@@ -4,10 +4,10 @@ Initializes pygame and the View Controller
 """
 import pygame
 import sys
+import os
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE, States
 from GUI.view_controller import ViewController
-from GUI.views.menu_view import MenuView
-from GUI.views.game_view import GameView
+from GUI.views.editor_view import EditorView
 
 def main():
     """
@@ -15,6 +15,15 @@ def main():
     """
     # Initialize pygame
     pygame.init()
+    
+    # Initialize font module explicitly
+    pygame.font.init()
+    
+    # Disable pygame's built-in key repeat - we'll handle it manually
+    pygame.key.set_repeat(0)  # Disable key repeat
+    
+    # Center the window on the screen
+    os.environ['SDL_VIDEO_CENTERED'] = '1'
     
     # Create window
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -24,12 +33,11 @@ def main():
         # Create View Controller
         controller = ViewController()
         
-        # Register states
-        controller.add_state(States.MENU, MenuView)
-        controller.add_state(States.GAME, GameView)
+        # Register only the Editor state
+        controller.add_state(States.EDITOR, EditorView)
         
-        # Set initial state
-        controller.set_initial_state(States.MENU)
+        # Set initial state to Editor
+        controller.set_initial_state(States.EDITOR)
         
         # Run main loop
         controller.run()

@@ -4,9 +4,9 @@ Contains global constants and configurations
 """
 
 # Window configuration
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-WINDOW_TITLE = "MVC System with FSM"
+SCREEN_WIDTH = 950
+SCREEN_HEIGHT = 750
+WINDOW_TITLE = "Full Stack Compiler"
 FPS = 60
 
 # Colors
@@ -19,14 +19,19 @@ GRAY = (128, 128, 128)
 
 # Application states
 class States:
-    MENU = "MENU"
-    GAME = "GAME"
-    # Add more states as needed
+    EDITOR = "EDITOR"  # Main editor state
 
 # Font configuration
 FONT_SIZE_SMALL = 24
 FONT_SIZE_MEDIUM = 36
 FONT_SIZE_LARGE = 48
+
+# TextBox configuration
+LINE_NUMBERS_WIDTH = 50  # width of line numbers area
+LINE_HEIGHT_MULTIPLIER = 2  # multiplier for line height (doubles the height)
+KEY_REPEAT_DELAY = 450  # ms before key starts repeating
+KEY_REPEAT_INTERVAL = 25  # ms between repeats (over 60 times/second)
+LINE_SEPARATOR_THICKNESS = 1  # thickness of line separators in pixels
 
 # Path configuration
 import os

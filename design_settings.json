@@ -1,0 +1,10 @@
+{
+    "theme": "light",
+    "font_size_small": 16,
+    "font_size_medium": 20,
+    "font_size_large": 28,
+    "button_radius": 5,
+    "text_padding": 10,
+    "toolbar_height": 40,
+    "status_bar_height": 30
+}
