@@ -111,6 +111,10 @@ class EditorView(ViewBase):
             
             if self.execute_button.handle_event(event):
                 print("Execute button clicked")
+                # Obtener y mostrar el texto del editor
+                text_content = self.text_editor.get_text()
+                print("Editor content:")
+                print(text_content)
     
     def update(self, dt):
         """

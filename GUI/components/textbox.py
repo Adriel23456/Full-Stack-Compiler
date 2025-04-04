@@ -7,6 +7,8 @@ from GUI.design_base import design
 from config import (LINE_NUMBERS_WIDTH, LINE_HEIGHT_MULTIPLIER, 
                    KEY_REPEAT_DELAY, KEY_REPEAT_INTERVAL, 
                    LINE_SEPARATOR_THICKNESS)
+from .text_selection import TextSelection
+from .key_handler import KeyHandler
 
 class TextBox:
     """
@@ -54,32 +56,21 @@ class TextBox:
         self.line_height = self.base_line_height * LINE_HEIGHT_MULTIPLIER
         self.visible_lines = self.text_rect.height // self.line_height
         
-        # Key repeat tracking
-        self.key_states = {}  # Tracks the state of each key for manual repeat
-        self.repeat_delay = KEY_REPEAT_DELAY
-        self.repeat_interval = KEY_REPEAT_INTERVAL
+        # Line separator thickness
+        self.line_thickness = LINE_SEPARATOR_THICKNESS
         
-        # For monitoring performance
-        self.repeat_count = {}  # Debug counter for measuring repeat rate
-        self.last_frame_time = pygame.time.get_ticks()
-        self.fps_avg = []
+        # Text content storage variable
+        self.text_content = ""
+        
+        # Initialize components
+        self.selection = TextSelection(self)
+        self.key_handler = KeyHandler(self)
         
         # Mouse state
         self.scrollbar_dragging = False
         self.scrollbar_click_y = 0
         self.scrollbar_thumb_y = 0
         self.scrollbar_thumb_height = 30  # Will be calculated based on content
-        
-        # Line separator thickness
-        self.line_thickness = LINE_SEPARATOR_THICKNESS
-        
-        # Scroll and cursor state
-        self.allow_cursor_positioning = True
-        self.last_scroll_time = 0
-        self.scroll_cooldown = 100
-        
-        # Disable Pygame's key repeat system - we'll handle it manually
-        pygame.key.set_repeat(0)  # Turn off built-in key repeat
         
         # Initialize wrapped lines
         self.update_wrapped_lines()
@@ -124,6 +115,17 @@ class TextBox:
         
         # Update scrollbar
         self.calculate_scrollbar()
+        
+        # Update text content variable with all text including line breaks
+        self.update_text_content()
+        
+        # Update selection visual ranges if selection is active
+        if self.selection.is_active():
+            self.selection.update_visuals()
+    
+    def update_text_content(self):
+        """Update the text_content variable with all current text including newlines"""
+        self.text_content = '\n'.join(self.lines)
     
     def find_wrap_point(self, text):
         """Find a good point to wrap the text"""
@@ -195,254 +197,7 @@ class TextBox:
     
     def get_text(self):
         """Get the text content as a string"""
-        return '\n'.join(self.lines)
-    
-    def process_key_repeat(self, key, unicode=""):
-        """Process a key repeat action"""
-        # Create a simulated key event
-        event = pygame.event.Event(pygame.KEYDOWN, {
-            'key': key,
-            'unicode': unicode
-        })
-        
-        # Handle it
-        self.handle_keydown(event)
-        
-        # Count for debugging purposes
-        if key not in self.repeat_count:
-            self.repeat_count[key] = 0
-        self.repeat_count[key] += 1
-    
-    def handle_keydown(self, event):
-        """Handle key down events"""
-        # Register this key as pressed
-        if hasattr(event, 'key'):
-            if event.key not in self.key_states:
-                self.key_states[event.key] = {
-                    'time': pygame.time.get_ticks(),
-                    'unicode': event.unicode,
-                    'repeat_count': 0
-                }
-            else:
-                # Update for a repeated key
-                self.key_states[event.key]['repeat_count'] += 1
-        
-        # Check for special keys
-        if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-            # Split line at cursor
-            current_line = self.lines[self.cursor_line]
-            self.lines[self.cursor_line] = current_line[:self.cursor_col]
-            self.lines.insert(self.cursor_line + 1, current_line[self.cursor_col:])
-            
-            # Move cursor to beginning of new line
-            self.cursor_line += 1
-            self.cursor_col = 0
-            
-            # Update wrapped lines
-            self.update_wrapped_lines()
-            
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_BACKSPACE:
-            if self.cursor_col > 0:
-                # Delete character before cursor
-                current_line = self.lines[self.cursor_line]
-                self.lines[self.cursor_line] = current_line[:self.cursor_col-1] + current_line[self.cursor_col:]
-                self.cursor_col -= 1
-            elif self.cursor_line > 0:
-                # At beginning of line, join with previous line
-                prev_line = self.lines[self.cursor_line - 1]
-                current_line = self.lines[self.cursor_line]
-                self.cursor_col = len(prev_line)
-                self.lines[self.cursor_line - 1] = prev_line + current_line
-                self.lines.pop(self.cursor_line)
-                self.cursor_line -= 1
-            
-            # Update wrapped lines
-            self.update_wrapped_lines()
-            
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_DELETE:
-            current_line = self.lines[self.cursor_line]
-            if self.cursor_col < len(current_line):
-                # Delete character at cursor
-                self.lines[self.cursor_line] = current_line[:self.cursor_col] + current_line[self.cursor_col+1:]
-            elif self.cursor_line < len(self.lines) - 1:
-                # At end of line, join with next line
-                next_line = self.lines[self.cursor_line + 1]
-                self.lines[self.cursor_line] = current_line + next_line
-                self.lines.pop(self.cursor_line + 1)
-            
-            # Update wrapped lines
-            self.update_wrapped_lines()
-            
-            return True
-            
-        elif event.key == pygame.K_LEFT:
-            if self.cursor_col > 0:
-                self.cursor_col -= 1
-            elif self.cursor_line > 0:
-                self.cursor_line -= 1
-                self.cursor_col = len(self.lines[self.cursor_line])
-            
-            # Update visual cursor
-            self.update_visual_cursor()
-            
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_RIGHT:
-            current_line = self.lines[self.cursor_line]
-            if self.cursor_col < len(current_line):
-                self.cursor_col += 1
-            elif self.cursor_line < len(self.lines) - 1:
-                self.cursor_line += 1
-                self.cursor_col = 0
-            
-            # Update visual cursor
-            self.update_visual_cursor()
-            
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_UP:
-            # Need to handle wrapping - move to previous wrapped line
-            if self.visual_cursor_line > 0:
-                prev_wrapped = self.wrapped_lines[self.visual_cursor_line - 1]
-                prev_line_idx, prev_start_idx, prev_text = prev_wrapped
-                
-                # Set logical cursor position
-                self.cursor_line = prev_line_idx
-                self.cursor_col = min(prev_start_idx + self.visual_cursor_col, prev_start_idx + len(prev_text))
-                
-                # Update visual cursor
-                self.update_visual_cursor()
-                
-                # Make sure cursor is visible
-                self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_DOWN:
-            # Need to handle wrapping - move to next wrapped line
-            if self.visual_cursor_line < len(self.wrapped_lines) - 1:
-                next_wrapped = self.wrapped_lines[self.visual_cursor_line + 1]
-                next_line_idx, next_start_idx, next_text = next_wrapped
-                
-                # Set logical cursor position
-                self.cursor_line = next_line_idx
-                self.cursor_col = min(next_start_idx + self.visual_cursor_col, next_start_idx + len(next_text))
-                
-                # Update visual cursor
-                self.update_visual_cursor()
-                
-                # Make sure cursor is visible
-                self.ensure_cursor_visible()
-            
-            return True
-            
-        elif event.key == pygame.K_HOME:
-            # Find the start of the current wrapped line
-            wrapped = self.wrapped_lines[self.visual_cursor_line]
-            line_idx, start_idx, text = wrapped
-            
-            # Move to start of wrapped line
-            self.cursor_col = start_idx
-            
-            # Update visual cursor
-            self.update_visual_cursor()
-            
-            return True
-            
-        elif event.key == pygame.K_END:
-            # Find the end of the current wrapped line
-            wrapped = self.wrapped_lines[self.visual_cursor_line]
-            line_idx, start_idx, text = wrapped
-            
-            # Move to end of wrapped line
-            self.cursor_col = start_idx + len(text)
-            
-            # Update visual cursor
-            self.update_visual_cursor()
-            
-            return True
-            
-        elif event.key == pygame.K_PAGEUP:
-            # Move cursor up by visible_lines
-            target_visual_line = max(0, self.visual_cursor_line - self.visible_lines)
-            
-            if target_visual_line != self.visual_cursor_line:
-                # Move to the target line
-                wrapped = self.wrapped_lines[target_visual_line]
-                line_idx, start_idx, text = wrapped
-                
-                # Try to maintain horizontal position
-                self.cursor_line = line_idx
-                self.cursor_col = min(start_idx + self.visual_cursor_col, start_idx + len(text))
-                
-                # Update visual cursor
-                self.update_visual_cursor()
-                
-                # Also scroll the view
-                self.scroll_y = max(0, self.scroll_y - self.visible_lines)
-                
-                # Update scrollbar
-                self.calculate_scrollbar()
-            
-            return True
-            
-        elif event.key == pygame.K_PAGEDOWN:
-            # Move cursor down by visible_lines
-            target_visual_line = min(len(self.wrapped_lines) - 1, self.visual_cursor_line + self.visible_lines)
-            
-            if target_visual_line != self.visual_cursor_line:
-                # Move to the target line
-                wrapped = self.wrapped_lines[target_visual_line]
-                line_idx, start_idx, text = wrapped
-                
-                # Try to maintain horizontal position
-                self.cursor_line = line_idx
-                self.cursor_col = min(start_idx + self.visual_cursor_col, start_idx + len(text))
-                
-                # Update visual cursor
-                self.update_visual_cursor()
-                
-                # Also scroll the view
-                self.scroll_y = min(max(0, len(self.wrapped_lines) - self.visible_lines), 
-                                   self.scroll_y + self.visible_lines)
-                
-                # Update scrollbar
-                self.calculate_scrollbar()
-            
-            return True
-        
-        # Handle normal key input
-        elif event.unicode and event.unicode.isprintable():
-            # Insert character at cursor
-            current_line = self.lines[self.cursor_line]
-            self.lines[self.cursor_line] = current_line[:self.cursor_col] + event.unicode + current_line[self.cursor_col:]
-            self.cursor_col += 1
-            
-            # Update wrapped lines
-            self.update_wrapped_lines()
-            
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
-            
-            return True
-        
-        return False
+        return self.text_content
     
     def is_cursor_visible(self):
         """Check if cursor is currently visible in the viewport"""
@@ -462,32 +217,73 @@ class TextBox:
         # Update scrollbar
         self.calculate_scrollbar()
     
+    def get_position_at_mouse(self, mouse_pos):
+        """Get logical cursor position at mouse position"""
+        # Calculate the wrapped line clicked
+        rel_y = mouse_pos[1] - self.text_rect.top
+        wrapped_line_idx = self.scroll_y + rel_y // self.line_height
+        wrapped_line_idx = min(max(0, wrapped_line_idx), len(self.wrapped_lines) - 1)
+        
+        # Get the wrapped line info
+        line_idx, start_idx, text = self.wrapped_lines[wrapped_line_idx]
+        
+        # Calculate the closest character position
+        rel_x = mouse_pos[0] - self.text_rect.left - 5  # Adjust for padding
+        
+        # Find the closest character position by checking each character width
+        visual_col = 0
+        x_pos = 0
+        accumulated_width = 0
+        
+        for i, char in enumerate(text):
+            char_width = self.font.size(char)[0]
+            accumulated_width += char_width
+            
+            # Calculate total text width to determine position percentage
+            total_width = self.font.size(text)[0]
+            position_percentage = accumulated_width / total_width if total_width > 0 else 0
+            
+            # Find appropriate correction factor based on position
+            factor_ranges = [
+                (0.1, 0.00535),  # 0-10%: 0.535% adjustment
+                (0.2, 0.00755),  # 10-20%: 0.755% adjustment
+                (0.3, 0.0122),   # 20-30%: 1.22% adjustment
+                (0.4, 0.0135),   # 30-40%: 1.35% adjustment
+                (0.5, 0.0155),   # 40-50%: 1.45% adjustment
+                (0.6, 0.0159),   # 50-60%: 1.55% adjustment
+                (0.7, 0.0160),   # 60-70%: 1.62% adjustment
+                (0.8, 0.0161),   # 70-80%: 1.69% adjustment
+                (0.9, 0.0162),   # 80-90%: 1.76% adjustment
+                (1.0, 0.0165)    # 90-100%: 1.82% adjustment
+            ]
+            
+            # Find appropriate factor
+            factor = factor_ranges[-1][1]  # Default (last range)
+            for threshold, factor_value in factor_ranges:
+                if position_percentage < threshold:
+                    factor = factor_value
+                    break
+            
+            offset_correction = int(-(accumulated_width * factor))
+            adjusted_x_pos = x_pos - offset_correction
+            
+            if adjusted_x_pos + (char_width / 2) > rel_x:
+                break
+            
+            x_pos += char_width
+            visual_col = i + 1
+        
+        return line_idx, start_idx + visual_col
+    
     def handle_event(self, event):
         """Handle pygame events"""
         # First check for typing or cursor movement
         if event.type == pygame.KEYDOWN:
-            self.allow_cursor_positioning = True
-            if self.is_focused:
-                # Reset cursor blink
-                self.cursor_blink = True
-                self.cursor_blink_time = pygame.time.get_ticks()
-                
-                # If typing and cursor not visible, make it visible
-                if not self.is_cursor_visible():
-                    self.ensure_cursor_visible()
-                
-                # Handle the key
-                if self.handle_keydown(event):
-                    return True
+            return self.key_handler.handle_keydown_event(event)
         
         # Handle key release to stop repeating
         elif event.type == pygame.KEYUP:
-            if event.key in self.key_states:
-                del self.key_states[event.key]
-                if event.key in self.repeat_count:
-                    # Debug info - print repeat count for this key
-                    # print(f"Key {event.key} repeated {self.repeat_count[event.key]} times")
-                    del self.repeat_count[event.key]
+            return self.key_handler.handle_keyup_event(event)
         
         # Handle mouse wheel for scrolling
         elif event.type == pygame.MOUSEWHEEL:
@@ -496,155 +292,201 @@ class TextBox:
                                     self.scroll_y - event.y * 3))
             # Update scrollbar
             self.calculate_scrollbar()
-            # Disable cursor positioning until explicit reset
-            self.allow_cursor_positioning = False
             return True
         
         # Handle mouse motion
-        elif event.type == pygame.MOUSEMOTION:                
-            # Handle scrollbar dragging
-            if self.scrollbar_dragging:
-                # Calculate new thumb position
-                new_thumb_y = event.pos[1] - self.scrollbar_click_y
+        elif event.type == pygame.MOUSEMOTION:
+            return self.handle_mouse_motion(event)
+        
+        # Handle mouse clicks on the text area
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            return self.handle_mouse_down(event)
+        
+        # Handle mouse up
+        elif event.type == pygame.MOUSEBUTTONUP:
+            return self.handle_mouse_up(event)
+            
+        return False
+    
+    def handle_mouse_motion(self, event):
+        """Handle mouse motion events"""
+        # Update mouse cursor style when over textbox
+        if self.text_rect.collidepoint(event.pos):
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        
+        # Verificar si el botón del mouse está presionado
+        mouse_buttons = pygame.mouse.get_pressed()
+        left_button_pressed = mouse_buttons[0]  # El índice 0 corresponde al botón izquierdo
+            
+        # Handle selection mode movement - solo si el botón del mouse está presionado
+        if left_button_pressed and self.selection.is_selection_mode() and self.text_rect.collidepoint(event.pos):
+            # Get logical position at mouse
+            end_line, end_col = self.get_position_at_mouse(event.pos)
+            
+            # Update selection end
+            self.selection.update_selection_end(end_line, end_col)
+            
+            # Update cursor position to match selection end
+            self.cursor_line = end_line
+            self.cursor_col = end_col
+            self.update_visual_cursor()
+            
+            # Make sure cursor is visible
+            self.ensure_cursor_visible()
+            
+            return True
+            
+        # Handle scrollbar dragging
+        if self.scrollbar_dragging:
+            # Calculate new thumb position
+            new_thumb_y = event.pos[1] - self.scrollbar_click_y
+            
+            # Constrain to scrollbar
+            new_thumb_y = max(0, min(self.scrollbar_rect.height - self.scrollbar_thumb_height, new_thumb_y))
+            
+            # Calculate new scroll position
+            ratio = new_thumb_y / (self.scrollbar_rect.height - self.scrollbar_thumb_height)
+            max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
+            self.scroll_y = int(ratio * max_scroll)
+            
+            # Update scrollbar
+            self.calculate_scrollbar()
+            
+            return True
+            
+        return False
+    
+    def handle_mouse_down(self, event):
+        """Handle mouse button down events"""
+        # Check if clicking in text area
+        if self.text_rect.collidepoint(event.pos):
+            # Set focus
+            self.is_focused = True
+            
+            # Get logical position at mouse
+            line_idx, col_idx = self.get_position_at_mouse(event.pos)
+            
+            # Set cursor position
+            self.cursor_line = line_idx
+            self.cursor_col = col_idx
+            
+            # Store as potential selection start
+            self.selection.set_selection_start(line_idx, col_idx)
+            
+            # Clear current selection
+            self.selection.clear()
+            
+            # Update visual cursor
+            self.update_visual_cursor()
+            
+            # Reset cursor blink
+            self.cursor_blink = True
+            self.cursor_blink_time = pygame.time.get_ticks()
+            
+            return True
+            
+        # Check if clicking on scrollbar
+        elif self.scrollbar_rect.collidepoint(event.pos):
+            # Check if clicking on thumb
+            thumb_rect = pygame.Rect(
+                self.scrollbar_rect.x,
+                self.scrollbar_rect.y + self.scrollbar_thumb_y,
+                self.scrollbar_rect.width,
+                self.scrollbar_thumb_height
+            )
+            
+            if thumb_rect.collidepoint(event.pos):
+                # Start dragging
+                self.scrollbar_dragging = True
+                self.scrollbar_click_y = event.pos[1] - self.scrollbar_thumb_y
+            else:
+                # Click in scrollbar but not on thumb - jump to position
+                rel_y = event.pos[1] - self.scrollbar_rect.top
                 
-                # Constrain to scrollbar
-                new_thumb_y = max(0, min(self.scrollbar_rect.height - self.scrollbar_thumb_height, new_thumb_y))
+                # Calculate ratio of click to scrollbar height
+                ratio = rel_y / self.scrollbar_rect.height
                 
-                # Calculate new scroll position
-                ratio = new_thumb_y / (self.scrollbar_rect.height - self.scrollbar_thumb_height)
+                # Set scroll position
                 max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
-                self.scroll_y = int(ratio * max_scroll)
+                self.scroll_y = max(0, min(max_scroll, int(ratio * len(self.wrapped_lines))))
                 
                 # Update scrollbar
                 self.calculate_scrollbar()
-                
-                # Disable cursor positioning when using scrollbar
-                self.allow_cursor_positioning = False
-                
-                return True
+            return True
+        else:
+            # Clicking outside text area and scrollbar
+            self.is_focused = False
         
-        # Handle mouse clicks on the text area
-        elif event.type == pygame.MOUSEBUTTONDOWN:            
-            # Check if clicking in text area
+        return False
+    
+    def handle_mouse_up(self, event):
+        """Handle mouse button up events"""
+        self.scrollbar_dragging = False
+        
+        # Si estábamos en modo selección y soltamos el botón
+        if self.selection.is_selection_mode():
+            # Terminar el modo de selección pero MANTENER la selección activa
+            self.selection.end_selection_mode()
+            
+            # Solo actualizar la posición final de la selección si el mouse está sobre el texto
             if self.text_rect.collidepoint(event.pos):
-                self.is_focused = True
-                # Update cursor only if positioning is allowed
-                if self.allow_cursor_positioning:
-                    # Calculate the wrapped line clicked
-                    rel_y = event.pos[1] - self.text_rect.top
-                    wrapped_line_idx = self.scroll_y + rel_y // self.line_height
-                    wrapped_line_idx = min(wrapped_line_idx, len(self.wrapped_lines) - 1)
-                    
-                    # Get the wrapped line info
-                    if wrapped_line_idx >= 0 and wrapped_line_idx < len(self.wrapped_lines):
-                        line_idx, start_idx, text = self.wrapped_lines[wrapped_line_idx]
-                        
-                        # Calculate the closest character position
-                        rel_x = event.pos[0] - self.text_rect.left
-                        
-                        # Find the closest character position by checking each character width
-                        visual_col = 0
-                        x_pos = 0
-                        for i, char in enumerate(text):
-                            char_width = self.font.size(char)[0]
-                            if x_pos + (char_width / 2) > rel_x:
-                                break
-                            x_pos += char_width
-                            visual_col = i + 1
-                        
-                        # Set cursor position
-                        self.cursor_line = line_idx
-                        self.cursor_col = start_idx + visual_col
-                        
-                        # Update visual cursor
-                        self.update_visual_cursor()
-                        
-                        # Reset cursor blink
-                        self.cursor_blink = True
-                        self.wheel_scrolling_active = False
-                        self.cursor_blink_time = pygame.time.get_ticks()
-                else:
-                    # First click after scrolling just enables positioning for next click
-                    self.allow_cursor_positioning = True
+                end_line, end_col = self.get_position_at_mouse(event.pos)
+                self.selection.update_selection_end(end_line, end_col)
                 
-                return True
+                # Actualizar posición del cursor para que coincida con el final de la selección
+                self.cursor_line = end_line
+                self.cursor_col = end_col
+                self.update_visual_cursor()
+                
+                self.selection.active = True
             
-            # Check if clicking on scrollbar
-            elif self.scrollbar_rect.collidepoint(event.pos):
-                # Check if clicking on thumb
-                thumb_rect = pygame.Rect(
-                    self.scrollbar_rect.x,
-                    self.scrollbar_rect.y + self.scrollbar_thumb_y,
-                    self.scrollbar_rect.width,
-                    self.scrollbar_thumb_height
-                )
+            # Resetear el seguimiento de selección para prevenir re-entrar en modo selección
+            self.selection.reset_selection_start()
+            
+            return True
+            
+        # Check if this was a click and hold long enough for selection
+        elif self.text_rect.collidepoint(event.pos) and self.selection.has_selection_start():
+            current_time = pygame.time.get_ticks()
+            # If mouse was held down for 100ms or more, complete selection
+            if current_time - self.selection.get_selection_start_time() >= 350:
+                # Get position at mouse up
+                end_line, end_col = self.get_position_at_mouse(event.pos)
                 
-                if thumb_rect.collidepoint(event.pos):
-                    # Start dragging
-                    self.scrollbar_dragging = True
-                    self.scrollbar_click_y = event.pos[1] - self.scrollbar_thumb_y
-                else:
-                    # Click in scrollbar but not on thumb - jump to position
-                    rel_y = event.pos[1] - self.scrollbar_rect.top
-                    
-                    # Calculate ratio of click to scrollbar height
-                    ratio = rel_y / self.scrollbar_rect.height
-                    
-                    # Set scroll position
-                    max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
-                    self.scroll_y = max(0, min(max_scroll, int(ratio * len(self.wrapped_lines))))
-                    
-                    # Update scrollbar
-                    self.calculate_scrollbar()
-                self.allow_cursor_positioning = False
+                # Create selection
+                self.selection.create_selection(end_line, end_col)
+                
+                # Update cursor position to match selection end
+                self.cursor_line = end_line
+                self.cursor_col = end_col
+                self.update_visual_cursor()
+                
+                # Make sure cursor is visible
+                self.ensure_cursor_visible()
+                
                 return True
-            else:
-                # Clicking outside text area and scrollbar
-                self.is_focused = False
         
-        # Handle mouse up to stop dragging
-        elif event.type == pygame.MOUSEBUTTONUP:
-            self.scrollbar_dragging = False
-            
+        # Reset selection tracking
+        self.selection.reset_selection_start()
+        
         return False
     
     def update(self):
         """Update the textbox state"""
         current_time = pygame.time.get_ticks()
         
-        # Calculate FPS for debugging
-        frame_time = current_time - self.last_frame_time
-        self.last_frame_time = current_time
-        fps = 1000 / frame_time if frame_time > 0 else 0
-        self.fps_avg.append(fps)
-        if len(self.fps_avg) > 60:
-            self.fps_avg.pop(0)
-        
         # Update cursor blink
         if current_time - self.cursor_blink_time > self.cursor_blink_rate:
             self.cursor_blink = not self.cursor_blink
             self.cursor_blink_time = current_time
         
-        # Handle key repeats with direct polling
-        keys = pygame.key.get_pressed()
-        for key, state in list(self.key_states.items()):
-            # Check if key is still pressed
-            if key < len(keys) and keys[key]:
-                # Calculate time since first press
-                elapsed = current_time - state['time']
-                
-                # Check if we should repeat
-                if elapsed >= self.repeat_delay:
-                    # Calculate how many repeats should have happened by now
-                    target_repeats = int((elapsed - self.repeat_delay) / self.repeat_interval) + 1
-                    
-                    # If we need more repeats, do them now
-                    while state['repeat_count'] < target_repeats:
-                        self.process_key_repeat(key, state.get('unicode', ''))
-                        state['repeat_count'] += 1
-            else:
-                # Key no longer pressed
-                del self.key_states[key]
+        # Check for selection mode activation
+        self.selection.check_for_selection_mode(current_time)
+        
+        # Update key handler
+        self.key_handler.update(current_time)
     
     def render(self, surface):
         """Render the textbox"""
@@ -660,6 +502,15 @@ class TextBox:
         # Determine line colors based on theme
         is_light_theme = design.colors["background"][0] > 128
         line_color = (180, 180, 180) if is_light_theme else (80, 80, 80)
+        grid_color = (220, 220, 220) if is_light_theme else (50, 50, 50)
+        
+        # Draw vertical grid lines at 10% intervals
+        text_width = self.text_rect.width
+        for i in range(1, 10):
+            x_pos = self.text_rect.left + (text_width * (i / 10))
+            pygame.draw.line(surface, grid_color,
+                           (x_pos, self.text_rect.top),
+                           (x_pos, self.text_rect.bottom), 1)
         
         # Draw visible wrapped lines
         for i in range(min(self.visible_lines, len(self.wrapped_lines) - self.scroll_y)):
@@ -680,6 +531,21 @@ class TextBox:
                 line_num_surf = design.get_font("small").render(line_num_text, True, design.colors["textbox_text"])
                 line_num_y = y + (self.line_height - line_num_surf.get_height()) // 2  # Center vertically
                 surface.blit(line_num_surf, (self.line_numbers_rect.left + 5, line_num_y))
+            
+            # Draw selection highlight if this line has selection
+            if self.selection.is_active():
+                for sel_idx, sel_start_x, sel_end_x in self.selection.get_visual_ranges():
+                    if sel_idx == display_idx:
+                        # Create selection rectangle
+                        sel_rect = pygame.Rect(
+                            self.text_rect.left + 5 + sel_start_x,
+                            y,
+                            sel_end_x - sel_start_x,
+                            self.line_height
+                        )
+                        # Draw selection highlight
+                        selection_color = (173, 214, 255) if is_light_theme else (59, 105, 152)
+                        pygame.draw.rect(surface, selection_color, sel_rect)
             
             # Draw text - center vertically in the larger line height
             text_surf = self.font.render(text, True, design.colors["textbox_text"])
