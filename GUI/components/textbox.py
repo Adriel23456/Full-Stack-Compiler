@@ -374,13 +374,43 @@ class TextBox:
         elif event.type == pygame.KEYUP:
             return self.key_handler.handle_keyup_event(event)
         
-        # Handle mouse wheel for scrolling
+        # Handle mouse wheel for scrolling - MANTIENE LA SELECCIÓN ACTIVA
         elif event.type == pygame.MOUSEWHEEL:
-            # Scroll up or down
+            # Obtener el estado actual de selección y cursor
+            was_selecting = self.selection.is_selection_mode()
+            was_active = self.selection.is_active()
+            
+            # Guardar completamente el estado de selección
+            selection_state = None
+            if was_selecting or was_active:
+                selection_state = {
+                    'mode': self.selection.selection_mode,
+                    'active': self.selection.active,
+                    'start_line': self.selection.start_line,
+                    'start_col': self.selection.start_col,
+                    'end_line': self.selection.end_line,
+                    'end_col': self.selection.end_col,
+                    'start_time': self.selection.selection_start_time,
+                    'visual_ranges': self.selection.visual_ranges.copy()
+                }
+            
+            # Realizar el scroll
             self.scroll_y = max(0, min(len(self.wrapped_lines) - self.visible_lines, 
                                     self.scroll_y - event.y * 3))
-            # Update scrollbar
+            # Actualizar scrollbar
             self.calculate_scrollbar()
+            
+            # Restaurar completamente el estado de selección
+            if selection_state:
+                self.selection.selection_mode = selection_state['mode']
+                self.selection.active = selection_state['active']
+                self.selection.start_line = selection_state['start_line']
+                self.selection.start_col = selection_state['start_col']
+                self.selection.end_line = selection_state['end_line']
+                self.selection.end_col = selection_state['end_col']
+                self.selection.selection_start_time = selection_state['start_time']
+                self.selection.visual_ranges = selection_state['visual_ranges']
+            
             return True
         
         # Handle mouse motion
@@ -388,13 +418,13 @@ class TextBox:
             return self.handle_mouse_motion(event)
         
         # Handle mouse clicks on the text area
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Solo botón izquierdo
             return self.handle_mouse_down(event)
         
         # Handle mouse up
-        elif event.type == pygame.MOUSEBUTTONUP:
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:  # Solo botón izquierdo
             return self.handle_mouse_up(event)
-            
+                
         return False
     
     def handle_mouse_motion(self, event):
@@ -410,20 +440,56 @@ class TextBox:
         left_button_pressed = mouse_buttons[0]  # El índice 0 corresponde al botón izquierdo
             
         # Handle selection mode movement - solo si el botón del mouse está presionado
-        if left_button_pressed and self.selection.is_selection_mode() and self.text_rect.collidepoint(event.pos):
-            # Get logical position at mouse
-            end_line, end_col = self.get_position_at_mouse(event.pos)
+        if left_button_pressed and self.selection.is_selection_mode():
+            # Auto-scrolling con tres niveles de velocidad cuando el mouse está cerca de los bordes
+            auto_scroll_distance = 0
             
-            # Update selection end
-            self.selection.update_selection_end(end_line, end_col)
+            # Distancia del mouse al borde superior
+            top_distance = event.pos[1] - self.text_rect.top
+            # Distancia del mouse al borde inferior
+            bottom_distance = self.text_rect.bottom - event.pos[1]
             
-            # Update cursor position to match selection end
-            self.cursor_line = end_line
-            self.cursor_col = end_col
-            self.update_visual_cursor()
+            # Determinar velocidad de scroll para el borde superior
+            if top_distance < 45:
+                # Nivel 3: Rápido - cuando está a 0-45 píxeles
+                auto_scroll_distance = -1.5
+            elif top_distance < 75:
+                # Nivel 2: Medio - cuando está a 45-75 píxeles
+                auto_scroll_distance = -1
+            elif top_distance < 90:
+                # Nivel 1: Lento - cuando está a 75-90 píxeles
+                auto_scroll_distance = -0.5
             
-            # Make sure cursor is visible
-            self.ensure_cursor_visible()
+            # Determinar velocidad de scroll para el borde inferior (si no hay ya un scroll hacia arriba)
+            if auto_scroll_distance == 0 and bottom_distance < 45:
+                # Nivel 3: Rápido - cuando está a 0-45 píxeles
+                auto_scroll_distance = 1.5
+            elif auto_scroll_distance == 0 and bottom_distance < 75:
+                # Nivel 2: Medio - cuando está a 45-75 píxeles
+                auto_scroll_distance = 1
+            elif auto_scroll_distance == 0 and bottom_distance < 90:
+                # Nivel 1: Lento - cuando está a 75-90 píxeles
+                auto_scroll_distance = 0.5
+            
+            # Aplicar auto-scroll si es necesario
+            if auto_scroll_distance != 0:
+                self.scroll_y = int(max(0, min(len(self.wrapped_lines) - self.visible_lines, 
+                                        self.scroll_y + auto_scroll_distance)))
+                # Update scrollbar
+                self.calculate_scrollbar()
+            
+            # Ahora maneja el movimiento de selección normal
+            if self.text_rect.collidepoint(event.pos):
+                # Get logical position at mouse
+                end_line, end_col = self.get_position_at_mouse(event.pos)
+                
+                # Update selection end
+                self.selection.update_selection_end(end_line, end_col)
+                
+                # Update cursor position to match selection end
+                self.cursor_line = end_line
+                self.cursor_col = end_col
+                self.update_visual_cursor()
             
             return True
             
@@ -457,15 +523,33 @@ class TextBox:
             # Get logical position at mouse
             line_idx, col_idx = self.get_position_at_mouse(event.pos)
             
-            # Set cursor position
-            self.cursor_line = line_idx
-            self.cursor_col = col_idx
-            
-            # Store as potential selection start
-            self.selection.set_selection_start(line_idx, col_idx)
-            
-            # Clear current selection
-            self.selection.clear()
+            # Check if Shift is held - if so, start selection from current cursor position
+            if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                if not self.selection.is_active():
+                    # Start new selection from current cursor position
+                    self.selection.set_selection_start(self.cursor_line, self.cursor_col)
+                    self.selection.active = True
+                
+                # Set the end of selection at the click position
+                self.selection.update_selection_end(line_idx, col_idx)
+                
+                # Update cursor position to match click position
+                self.cursor_line = line_idx
+                self.cursor_col = col_idx
+                
+                # Update visual cursor and visuals
+                self.update_visual_cursor()
+                self.selection.update_visuals()
+            else:
+                # Normal behavior - set cursor position
+                self.cursor_line = line_idx
+                self.cursor_col = col_idx
+                
+                # Store as potential selection start
+                self.selection.set_selection_start(line_idx, col_idx)
+                
+                # Clear current selection
+                self.selection.clear()
             
             # Update visual cursor
             self.update_visual_cursor()
@@ -591,15 +675,6 @@ class TextBox:
         # Determine line colors based on theme
         is_light_theme = design.colors["background"][0] > 128
         line_color = (180, 180, 180) if is_light_theme else (80, 80, 80)
-        grid_color = (220, 220, 220) if is_light_theme else (50, 50, 50)
-        
-        # Draw vertical grid lines at 10% intervals
-        text_width = self.text_rect.width
-        for i in range(1, 10):
-            x_pos = self.text_rect.left + (text_width * (i / 10))
-            pygame.draw.line(surface, grid_color,
-                           (x_pos, self.text_rect.top),
-                           (x_pos, self.text_rect.bottom), 1)
         
         # Draw visible wrapped lines
         for i in range(min(self.visible_lines, len(self.wrapped_lines) - self.scroll_y)):
