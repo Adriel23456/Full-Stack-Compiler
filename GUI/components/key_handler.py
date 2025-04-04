@@ -35,6 +35,108 @@ class KeyHandler:
             pygame.K_KP_PLUS: (pygame.K_PLUS, '+'),
             pygame.K_KP_ENTER: (pygame.K_RETURN, '\n')
         }
+        
+    def copy_selected_text(self):
+        """Copy selected text to clipboard"""
+        if self.textbox.selection.is_active():
+            selected_text = self.textbox.selection.get_selected_text()
+            if selected_text:
+                # Set clipboard text
+                pygame.scrap.put(pygame.SCRAP_TEXT, selected_text.encode('utf-8'))
+                return True
+        return False
+    
+    def paste_text_from_clipboard(self):
+        """Paste text from clipboard at cursor position"""
+        try:
+            # Get text from clipboard
+            clipboard_data = pygame.scrap.get(pygame.SCRAP_TEXT)
+            if not clipboard_data:
+                return False
+                
+            # Intentar varias codificaciones comunes
+            clipboard_text = None
+            encodings_to_try = ['utf-8', 'latin-1', 'cp1252', 'ascii']
+            
+            for encoding in encodings_to_try:
+                try:
+                    clipboard_text = clipboard_data.decode(encoding)
+                    # Si llegamos aquí, la decodificación tuvo éxito
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            # Si ninguna decodificación funcionó, usamos latin-1 que acepta todos los bytes
+            if clipboard_text is None:
+                clipboard_text = clipboard_data.decode('latin-1', errors='replace')
+            
+            # Limpieza del texto para quitar caracteres nulos y otros caracteres problemáticos
+            clipboard_text = clipboard_text.replace('\0', '')
+            
+            # En Windows, el portapapeles a veces contiene caracteres de control indeseados
+            # Filtramos solo los caracteres imprimibles y los saltos de línea comunes
+            printable_chars = []
+            for char in clipboard_text:
+                if char.isprintable() or char in ['\n', '\r', '\t']:
+                    printable_chars.append(char)
+            clipboard_text = ''.join(printable_chars)
+            
+            # Normalizar saltos de línea (Windows usa \r\n, Unix usa \n)
+            clipboard_text = clipboard_text.replace('\r\n', '\n')
+            
+            # Si después de la limpieza no queda texto, salimos
+            if not clipboard_text:
+                return False
+            
+            # Si selection is active, delete selected text first
+            if self.textbox.selection.is_active():
+                self.textbox.selection.delete_selected_text()
+            
+            # Insert clipboard text at cursor position
+            current_line = self.textbox.lines[self.textbox.cursor_line]
+            
+            # Handle multi-line paste
+            if '\n' in clipboard_text:
+                # Split clipboard text into lines
+                paste_lines = clipboard_text.split('\n')
+                
+                # First line replaces from cursor to end of current line
+                first_part = current_line[:self.textbox.cursor_col]
+                self.textbox.lines[self.textbox.cursor_line] = first_part + paste_lines[0]
+                
+                # Insert middle lines
+                for i, line in enumerate(paste_lines[1:-1], 1):
+                    self.textbox.lines.insert(self.textbox.cursor_line + i, line)
+                
+                # Last line is inserted before remainder of current line
+                if len(paste_lines) > 1:
+                    last_part = current_line[self.textbox.cursor_col:]
+                    last_line = paste_lines[-1] + last_part
+                    self.textbox.lines.insert(self.textbox.cursor_line + len(paste_lines) - 1, last_line)
+                
+                # Update cursor position to end of pasted text
+                self.textbox.cursor_line += len(paste_lines) - 1
+                self.textbox.cursor_col = len(paste_lines[-1])
+            else:
+                # Single line paste
+                self.textbox.lines[self.textbox.cursor_line] = current_line[:self.textbox.cursor_col] + clipboard_text + current_line[self.textbox.cursor_col:]
+                self.textbox.cursor_col += len(clipboard_text)
+            
+            # Clear selection
+            self.textbox.selection.clear()
+            
+            # Update wrapped lines
+            self.textbox.update_wrapped_lines()
+            
+            # Make sure cursor is visible
+            self.textbox.ensure_cursor_visible()
+            
+            return True
+        
+        except Exception as e:
+            print(f"Paste error: {e}")
+        
+        return False
     
     def handle_keydown_event(self, event):
         """Handle key down events"""
@@ -48,6 +150,11 @@ class KeyHandler:
         # If typing and cursor not visible, make it visible
         if not self.textbox.is_cursor_visible():
             self.textbox.ensure_cursor_visible()
+        
+        # Procesar atajos antes de registrar la tecla para evitar repetición no deseada
+        if pygame.key.get_mods() & pygame.KMOD_CTRL:
+            if event.key in [pygame.K_c, pygame.K_v, pygame.K_x, pygame.K_a]:
+                return self.handle_keydown(event)
         
         # Register this key as pressed
         if hasattr(event, 'key'):
@@ -95,6 +202,47 @@ class KeyHandler:
     
     def handle_keydown(self, event):
         """Process a keystroke"""
+        # Check for keyboard shortcuts (CTRL+Key)
+        if pygame.key.get_mods() & pygame.KMOD_CTRL:
+            # CTRL+C (Copy)
+            if event.key == pygame.K_c:
+                return self.copy_selected_text()
+            
+            # CTRL+V (Paste)
+            elif event.key == pygame.K_v:
+                return self.paste_text_from_clipboard()
+            
+            # CTRL+X (Cut)
+            elif event.key == pygame.K_x:
+                if self.copy_selected_text():
+                    self.textbox.selection.delete_selected_text()
+                    return True
+            
+            # CTRL+A (Select All)
+            elif event.key == pygame.K_a:
+                # Set selection start to beginning of document
+                self.textbox.selection.start_line = 0
+                self.textbox.selection.start_col = 0
+                
+                # Set selection end to end of document
+                last_line = len(self.textbox.lines) - 1
+                last_col = len(self.textbox.lines[last_line])
+                
+                # Activate selection
+                self.textbox.selection.active = True
+                self.textbox.selection.end_line = last_line
+                self.textbox.selection.end_col = last_col
+                
+                # Update visual selection
+                self.textbox.selection.update_visuals()
+                
+                # Position cursor at end of selection
+                self.textbox.cursor_line = last_line
+                self.textbox.cursor_col = last_col
+                self.textbox.update_visual_cursor()
+                
+                return True
+            
         # Check for special keys
         if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
             # If selection is active, delete selected text first

@@ -112,8 +112,8 @@ class TextSelection:
         if not self.textbox.is_focused or self.selection_start_time == 0 or self.selection_mode:
             return
             
-        # Aumentar a 250ms para el tiempo de mantener presionado
-        if current_time - self.selection_start_time >= 250:  
+        # 85ms para el tiempo de mantener presionado
+        if current_time - self.selection_start_time >= 85:  
             self.start_selection_mode()
     
     def delete_selected_text(self):

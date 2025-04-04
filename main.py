@@ -29,6 +29,9 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(WINDOW_TITLE)
     
+    # Initialize scrap module (clipboard)
+    pygame.scrap.init()
+    
     try:
         # Create View Controller
         controller = ViewController()
