@@ -37,18 +37,17 @@ class Button:
             if self.rect.collidepoint(event.pos) and not self.is_clicked:
                 self.is_active = True
                 self.is_clicked = True
-                return False  # Don't trigger action on press, only on release
+                return True  # Trigger action on press, not on release
         
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             was_active = self.is_active
             self.is_active = False
             
-            # Only register a click if button was active and mouse is still over it
-            if self.rect.collidepoint(event.pos) and was_active and self.is_clicked:
+            # Reset click state when mouse button is released
+            if self.is_clicked:
                 self.is_clicked = False
-                return True  # Trigger action
             
-            self.is_clicked = False
+            return False
         
         return False
     
