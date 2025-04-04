@@ -92,6 +92,9 @@ class KeyHandler:
             if self.textbox.selection.is_active():
                 self.textbox.selection.delete_selected_text()
             
+            # Verificar el límite de líneas antes de pegar
+            current_line_count = len(self.textbox.lines)
+            
             # Insert clipboard text at cursor position
             current_line = self.textbox.lines[self.textbox.cursor_line]
             
@@ -99,6 +102,21 @@ class KeyHandler:
             if '\n' in clipboard_text:
                 # Split clipboard text into lines
                 paste_lines = clipboard_text.split('\n')
+                
+                # Calcular cuántas líneas se agregarán realmente
+                lines_to_add = len(paste_lines) - 1
+                
+                # Comprobar si excederemos el límite
+                if current_line_count + lines_to_add > 2500:
+                    # Calcular cuántas líneas podemos añadir
+                    max_lines_to_add = 2500 - current_line_count
+                    if max_lines_to_add <= 0:
+                        # No podemos añadir líneas, solo modificar la actual
+                        paste_lines = [paste_lines[0]]
+                    else:
+                        # Truncar a las líneas que podemos añadir
+                        paste_lines = paste_lines[:max_lines_to_add + 1]  # +1 porque la primera reemplaza
+                
                 
                 # First line replaces from cursor to end of current line
                 first_part = current_line[:self.textbox.cursor_col]
@@ -115,12 +133,20 @@ class KeyHandler:
                     self.textbox.lines.insert(self.textbox.cursor_line + len(paste_lines) - 1, last_line)
                 
                 # Update cursor position to end of pasted text
-                self.textbox.cursor_line += len(paste_lines) - 1
-                self.textbox.cursor_col = len(paste_lines[-1])
+                self.textbox.cursor_line = min(self.textbox.cursor_line + len(paste_lines) - 1, 2499)
+                self.textbox.cursor_col = len(paste_lines[-1]) if len(paste_lines) > 0 else 0
             else:
                 # Single line paste
                 self.textbox.lines[self.textbox.cursor_line] = current_line[:self.textbox.cursor_col] + clipboard_text + current_line[self.textbox.cursor_col:]
                 self.textbox.cursor_col += len(clipboard_text)
+            
+            # Aplicar límite estricto después del pegado
+            if len(self.textbox.lines) > 2500:
+                self.textbox.lines = self.textbox.lines[:2500]
+                # Ajustar cursor si está fuera de límites
+                if self.textbox.cursor_line >= 2500:
+                    self.textbox.cursor_line = 2499
+                    self.textbox.cursor_col = len(self.textbox.lines[2499])
             
             # Clear selection
             self.textbox.selection.clear()
@@ -204,6 +230,10 @@ class KeyHandler:
         """Process a keystroke"""
         # Check for keyboard shortcuts (CTRL+Key)
         if pygame.key.get_mods() & pygame.KMOD_CTRL:
+            # CTRL+Z (Undo)
+            if event.key == pygame.K_z:
+                return self.textbox.undo()
+            
             # CTRL+C (Copy)
             if event.key == pygame.K_c:
                 return self.copy_selected_text()
@@ -248,6 +278,10 @@ class KeyHandler:
             # If selection is active, delete selected text first
             if self.textbox.selection.is_active():
                 self.textbox.selection.delete_selected_text()
+            
+            # Check if we're at the maximum line limit
+            if len(self.textbox.lines) >= 2500:
+                return True
             
             # Split line at cursor
             current_line = self.textbox.lines[self.textbox.cursor_line]
@@ -693,7 +727,7 @@ class KeyHandler:
         """Update key handler state"""
         # Handle key repeats with direct polling
         keys = pygame.key.get_pressed()
-        
+                    
         # Check numpad keys specifically
         for numpad_key, (std_key, unicode_val) in self.numpad_map.items():
             if keys[numpad_key]:
@@ -744,3 +778,48 @@ class KeyHandler:
             else:
                 # Key no longer pressed
                 del self.key_states[key]
+        
+                # First, handle Ctrl+Z separately with its own logic
+        ctrl_pressed = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
+        
+        # Solo manejar CTRL+Z y CTRL+V con repetición
+        if ctrl_pressed:
+            # Variable para rastrear la tecla Z
+            if "ctrl_z_time" not in self.__dict__:
+                self.ctrl_z_time = 0
+                self.ctrl_z_repeat_count = 0
+                
+            # Variable para rastrear la tecla V
+            if "ctrl_v_time" not in self.__dict__:
+                self.ctrl_v_time = 0
+                self.ctrl_v_repeat_count = 0
+                
+            # Manejar repetición de CTRL+Z
+            if keys[pygame.K_z]:
+                if self.ctrl_z_time == 0:  # Primera pulsación
+                    self.ctrl_z_time = current_time
+                else:
+                    elapsed = current_time - self.ctrl_z_time
+                    if elapsed >= self.repeat_delay:
+                        target_repeats = int((elapsed - self.repeat_delay) / self.repeat_interval) + 1
+                        while self.ctrl_z_repeat_count < target_repeats:
+                            self.textbox.undo()
+                            self.ctrl_z_repeat_count += 1
+            else:
+                self.ctrl_z_time = 0
+                self.ctrl_z_repeat_count = 0
+                
+            # Manejar repetición de CTRL+V
+            if keys[pygame.K_v]:
+                if self.ctrl_v_time == 0:  # Primera pulsación
+                    self.ctrl_v_time = current_time
+                else:
+                    elapsed = current_time - self.ctrl_v_time
+                    if elapsed >= self.repeat_delay:
+                        target_repeats = int((elapsed - self.repeat_delay) / self.repeat_interval) + 1
+                        while self.ctrl_v_repeat_count < target_repeats:
+                            self.paste_text_from_clipboard()
+                            self.ctrl_v_repeat_count += 1
+            else:
+                self.ctrl_v_time = 0
+                self.ctrl_v_repeat_count = 0

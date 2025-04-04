@@ -30,7 +30,7 @@ class TextBox:
         
         # Wrapped lines information
         self.wrapped_lines = []  # List of (logical_line_index, start_index, text)
-        self.wrap_width = int(self.text_rect.width * 0.9)  # 90% of text area width for wrapping
+        self.wrap_width = int(self.text_rect.width)
         
         # Cursor state
         self.cursor_line = 0  # Current logical line index
@@ -50,7 +50,7 @@ class TextBox:
         self.is_focused = False
         
         # Font and metrics
-        self.font = design.get_font("medium")
+        self.font = design.get_font("large")
         self.base_line_height = self.font.get_height()
         # Apply line height multiplier from config
         self.line_height = self.base_line_height * LINE_HEIGHT_MULTIPLIER
@@ -61,6 +61,11 @@ class TextBox:
         
         # Text content storage variable
         self.text_content = ""
+        
+        # History for undo functionality
+        self.history = [""]  # Comenzar con un estado vacío
+        self.history_index = 0
+        self.history_max_size = 200
         
         # Initialize components
         self.selection = TextSelection(self)
@@ -75,9 +80,82 @@ class TextBox:
         # Initialize wrapped lines
         self.update_wrapped_lines()
     
+    def save_to_history(self):
+        """Save current state to history"""
+        current_text = self.get_text()
+        
+        # No guardar si el texto no ha cambiado
+        if self.history and current_text == self.history[self.history_index]:
+            return
+        
+        # Si hemos retrocedido en el historial y luego hicimos un cambio,
+        # necesitamos eliminar el historial "futuro"
+        if self.history_index < len(self.history) - 1:
+            self.history = self.history[:self.history_index + 1]
+        
+        # Añadir el estado actual al historial
+        self.history.append(current_text)
+        
+        # Limitar el tamaño del historial
+        if len(self.history) > self.history_max_size:
+            self.history.pop(0)
+            self.history_index = len(self.history) - 1
+        else:
+            self.history_index = len(self.history) - 1
+
+    def undo(self):
+        """Undo last change"""
+        if self.history_index > 0:
+            # Guardar la posición actual de visualización
+            current_visual_line = self.visual_cursor_line
+            current_scroll_y = self.scroll_y
+            
+            # Retroceder un estado
+            self.history_index -= 1
+            
+            # Guardar el texto actual y la posición del cursor
+            current_lines = len(self.lines)
+            current_cursor_line = self.cursor_line
+            current_cursor_col = self.cursor_col
+            
+            # Restaurar el texto del historial
+            old_text = self.history[self.history_index]
+            self.lines = old_text.split('\n')
+            if not self.lines:
+                self.lines = [""]
+            
+            # Ajustar el cursor dentro de los límites válidos
+            self.cursor_line = min(current_cursor_line, len(self.lines) - 1)
+            self.cursor_col = min(current_cursor_col, len(self.lines[self.cursor_line]))
+            
+            # Actualizar líneas envueltas
+            # Hacemos una copia temporal del scroll_y para restaurarlo después
+            temp_scroll_y = self.scroll_y
+            self.update_wrapped_lines()
+            self.scroll_y = temp_scroll_y
+            
+            # Asegurar que el cursor sea visible pero manteniendo la posición
+            # del scroll lo más cercana posible a la original
+            self.ensure_cursor_visible()
+            # Ensure scroll_y stays within valid bounds after content changes
+            max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
+            self.scroll_y = min(self.scroll_y, max_scroll)
+            self.calculate_scrollbar()
+            
+            return True
+        return False
+    
     def update_wrapped_lines(self):
         """Update the wrapped lines based on current content"""
         self.wrapped_lines = []
+        
+        # Aplicar límite estricto de líneas
+        if len(self.lines) > 2500:
+            self.lines = self.lines[:2500]
+            # Asegurar que el cursor esté en una posición válida
+            if self.cursor_line >= len(self.lines):
+                self.cursor_line = len(self.lines) - 1
+                self.cursor_col = len(self.lines[self.cursor_line])
         
         for line_idx, line in enumerate(self.lines):
             if not line:
@@ -125,7 +203,14 @@ class TextBox:
     
     def update_text_content(self):
         """Update the text_content variable with all current text including newlines"""
-        self.text_content = '\n'.join(self.lines)
+        new_content = '\n'.join(self.lines)
+        
+        # Guardar en el historial solo si el contenido cambió
+        if new_content != self.text_content:
+            self.text_content = new_content
+            self.save_to_history()
+        else:
+            self.text_content = new_content
     
     def find_wrap_point(self, text):
         """Find a good point to wrap the text"""
@@ -187,9 +272,13 @@ class TextBox:
         if not self.lines:
             self.lines = [""]
         
+        # Enforce maximum line limit
+        if len(self.lines) > 2500:
+            self.lines = self.lines[:2500]
+        
         # Reset cursor and scroll
-        self.cursor_line = 0
-        self.cursor_col = 0
+        self.cursor_line = min(self.cursor_line, len(self.lines) - 1)
+        self.cursor_col = min(self.cursor_col, len(self.lines[self.cursor_line]))
         self.scroll_y = 0
         
         # Update wrapped lines
