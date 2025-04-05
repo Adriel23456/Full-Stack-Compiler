@@ -128,7 +128,8 @@ class EditorView(ViewBase):
             pygame.Rect(screen_width - button_margin - button_width, bottom_y,
                         button_width, button_height),
             "Execute",
-            fixed_height=button_height,     # Fija la altura
+            fixed_width=button_width,
+            fixed_height=button_height     # Fija la altura
         )
 
         # Create the main text editor area - scale with window size
