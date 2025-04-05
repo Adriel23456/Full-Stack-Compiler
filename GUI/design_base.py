@@ -44,18 +44,25 @@ class DesignSystem:
         self.font_medium = None
         self.font_large = None
         
+        # Actualizar a valores predeterminados si han cambiado
+        self.update_to_current_defaults()
+        
         DesignSystem._initialized = True
     
     def _load_settings(self):
         """
         Load settings from JSON file or create with defaults if not exists
         """
+        # Import font settings from config
+        from config import (DEFAULT_FONT_SIZE_SMALL, DEFAULT_FONT_SIZE_MEDIUM, 
+                       DEFAULT_FONT_SIZE_LARGE)
+        
         # Default settings
         defaults = {
             "theme": "light",  # light or dark
-            "font_size_small": 16,
-            "font_size_medium": 20,
-            "font_size_large": 28,
+            "font_size_small": DEFAULT_FONT_SIZE_SMALL,
+            "font_size_medium": DEFAULT_FONT_SIZE_MEDIUM,
+            "font_size_large": DEFAULT_FONT_SIZE_LARGE,
             "button_radius": 5,
             "text_padding": 10,
             "toolbar_height": 40,
@@ -81,6 +88,33 @@ class DesignSystem:
             print(f"Error loading settings: {e}")
             return defaults
     
+    def update_to_current_defaults(self):
+        """
+        Update settings to current defaults if any values change in config.py
+        """
+        from config import (DEFAULT_FONT_SIZE_SMALL, DEFAULT_FONT_SIZE_MEDIUM, 
+                        DEFAULT_FONT_SIZE_LARGE)
+        
+        # Check if current settings match defaults
+        current_size = self.settings.get("font_size_option", "small")
+        
+        # Si el usuario tiene seleccionado "small", actualizar a los valores default actuales
+        if current_size == "small":
+            if (self.settings.get("font_size_small") != DEFAULT_FONT_SIZE_SMALL or
+                self.settings.get("font_size_medium") != DEFAULT_FONT_SIZE_MEDIUM or
+                self.settings.get("font_size_large") != DEFAULT_FONT_SIZE_LARGE):
+                
+                # Actualizar a los valores actuales
+                self.settings["font_size_small"] = DEFAULT_FONT_SIZE_SMALL
+                self.settings["font_size_medium"] = DEFAULT_FONT_SIZE_MEDIUM
+                self.settings["font_size_large"] = DEFAULT_FONT_SIZE_LARGE
+                self.save_settings()
+                
+                # Reinicializar fuentes
+                self.font_small = None
+                self.font_medium = None
+                self.font_large = None
+    
     def save_settings(self):
         """
         Save current settings to JSON file
@@ -95,14 +129,20 @@ class DesignSystem:
         """
         Initialize fonts based on current settings
         """
-        # Create font sizes
-        if self.font_small is None:
+        from config import FONTS_DIR, MAIN_FONT
+        font_path = os.path.join(FONTS_DIR, MAIN_FONT)
+        
+        # Verificar si el archivo de fuente existe
+        if os.path.exists(font_path):
+            # Crear fuentes con la tipografía personalizada
+            self.font_small = pygame.font.Font(font_path, self.settings["font_size_small"])
+            self.font_medium = pygame.font.Font(font_path, self.settings["font_size_medium"])
+            self.font_large = pygame.font.Font(font_path, self.settings["font_size_large"])
+        else:
+            # Fallback a la fuente predeterminada si no encuentra el archivo
+            print(f"No se encontró la fuente personalizada. Usando fuente predeterminada.")
             self.font_small = pygame.font.Font(None, self.settings["font_size_small"])
-        
-        if self.font_medium is None:
             self.font_medium = pygame.font.Font(None, self.settings["font_size_medium"])
-        
-        if self.font_large is None:
             self.font_large = pygame.font.Font(None, self.settings["font_size_large"])
     
     def _initialize_colors(self):
@@ -307,6 +347,35 @@ class DesignSystem:
         pygame.draw.rect(surface, self.colors["textbox_border"], rect, 1, self.button_radius)
         
         return rect
+    
+    def get_window_size(self):
+        """
+        Get the configured window size
+        
+        Returns:
+            tuple: (width, height)
+        """
+        window_size = self.settings.get("window_size", "small")
+        
+        if window_size == "large":
+            return (1920, 1080)
+        elif window_size == "medium":
+            return (1500, 900)
+        elif window_size == "fullscreen":
+            return (0, 0, pygame.FULLSCREEN)  # Special format for fullscreen mode
+        else:  # Default to small
+            return (950, 750)
+
+    def set_window_size(self, size_name):
+        """
+        Set the window size configuration
+        
+        Args:
+            size_name: Size name ("small" or "large")
+        """
+        if size_name in ["small", "large"]:
+            self.settings["window_size"] = size_name
+            self.save_settings()
 
 # Create a singleton instance but don't initialize fonts yet
 design = DesignSystem()

@@ -4,7 +4,6 @@ Defines the common interface that all views must implement
 """
 import pygame
 from abc import ABC, abstractmethod
-from config import SCREEN_WIDTH, SCREEN_HEIGHT
 
 class ViewBase(ABC):
     """

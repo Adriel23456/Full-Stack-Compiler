@@ -110,9 +110,13 @@ class Scrollbar:
         Returns:
             int: Scroll offset in pixels
         """
-        # Calculate the actual scroll offset based on content height and viewport height
-        max_offset = max(0, self.content_height - self.viewport_height)
-        return int(self.scroll_pos * max_offset)
+        try:
+            # Calculate the actual scroll offset based on content height and viewport height
+            max_offset = max(0, self.content_height - self.viewport_height)
+            return int(self.scroll_pos * max_offset)
+        except Exception as e:
+            print(f"Error en get_scroll_offset: {e}")
+            return 0
     
     def set_scroll_offset(self, offset_pixels):
         """
@@ -121,11 +125,18 @@ class Scrollbar:
         Args:
             offset_pixels: Offset in pixels
         """
-        max_offset = max(0, self.content_height - self.viewport_height)
-        if max_offset > 0:
-            self.scroll_pos = min(1.0, max(0.0, offset_pixels / max_offset))
-        else:
+        try:
+            max_offset = max(1, self.content_height - self.viewport_height)
+            if max_offset > 0:
+                self.scroll_pos = min(1.0, max(0.0, offset_pixels / max_offset))
+            else:
+                self.scroll_pos = 0
+            
+            self.update_thumb()
+        except Exception as e:
+            print(f"Error en set_scroll_offset: {e}")
             self.scroll_pos = 0
+            self.update_thumb()
         
         self.update_thumb()
     

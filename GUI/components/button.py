@@ -8,7 +8,7 @@ class Button:
     """
     Button component for UI
     """
-    def __init__(self, rect, text):
+    def __init__(self, rect, text, fixed_width=None, fixed_height=None):
         """
         Initialize the Button
         
@@ -21,6 +21,34 @@ class Button:
         self.is_hover = False
         self.is_active = False
         self.is_clicked = False  # Track if button is currently clicked
+        self.fixed_width = fixed_width
+        self.fixed_height = fixed_height
+        
+        # Adjust size based on text if no fixed dimensions
+        self.adjust_size()
+    
+    def adjust_size(self):
+        """Adjust button size based on text content"""
+        from GUI.design_base import design
+        
+        # Use the medium font for all buttons
+        font = design.get_font("medium")
+        text_surface = font.render(self.text, True, (0, 0, 0))
+        text_width, text_height = text_surface.get_size()
+        
+        # Preserve original position
+        original_x, original_y = self.rect.x, self.rect.y
+        
+        # Calculate new width and height with padding
+        padding_x = 20
+        padding_y = 10
+        
+        # Use fixed dimensions if provided, otherwise calculate from text
+        width = self.fixed_width if self.fixed_width else text_width + (padding_x * 2)
+        height = self.fixed_height if self.fixed_height else text_height + (padding_y * 2)
+        
+        # Create new rect with adjusted size but same position
+        self.rect = pygame.Rect(original_x, original_y, width, height)
         
     def handle_event(self, event):
         """
@@ -64,6 +92,9 @@ class ToolbarButton(Button):
     """
     Button specifically for the toolbar
     """
+    def __init__(self, rect, text, fixed_width=None, fixed_height=None):
+        super().__init__(rect, text, fixed_width, fixed_height)
+    
     def render(self, surface):
         """
         Render the toolbar button
@@ -71,4 +102,11 @@ class ToolbarButton(Button):
         Args:
             surface: Surface to render on
         """
+        # Ensure button doesn't exceed toolbar height
+        from GUI.design_base import design
+        
+        # Get the original rect
+        orig_rect = self.rect.copy()
+        
+        # Draw the button
         design.draw_toolbar_button(surface, self.rect, self.text, self.is_hover, self.is_active)

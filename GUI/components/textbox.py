@@ -30,7 +30,7 @@ class TextBox:
         
         # Wrapped lines information
         self.wrapped_lines = []  # List of (logical_line_index, start_index, text)
-        self.wrap_width = int(self.text_rect.width)
+        self.wrap_width = int(self.text_rect.width) - 5 #5px margin
         
         # Cursor state
         self.cursor_line = 0  # Current logical line index
@@ -247,24 +247,27 @@ class TextBox:
                 
     def calculate_scrollbar(self):
         """Calculate scrollbar dimensions"""
-        if len(self.wrapped_lines) <= self.visible_lines:
-            # All lines fit in view, no need for scrollbar
-            self.scrollbar_thumb_height = self.scrollbar_rect.height
-            self.scrollbar_thumb_y = 0
-        else:
-            # Calculate thumb size as proportion of visible to total content
-            self.scrollbar_thumb_height = max(30, int(self.scrollbar_rect.height * 
-                                                   (self.visible_lines / len(self.wrapped_lines))))
-            
-            # Calculate thumb position
-            max_scroll_range = len(self.wrapped_lines) - self.visible_lines
-            if max_scroll_range > 0:
-                scroll_ratio = self.scroll_y / max_scroll_range
+        try:
+            if len(self.wrapped_lines) <= self.visible_lines:
+                # All lines fit in view, no need for scrollbar
+                self.scrollbar_thumb_height = self.scrollbar_rect.height
+                self.scrollbar_thumb_y = 0
             else:
-                scroll_ratio = 0
+                # Calculate thumb size as proportion of visible to total content
+                self.scrollbar_thumb_height = max(30, int(self.scrollbar_rect.height * 
+                                                (self.visible_lines / max(1, len(self.wrapped_lines)))))
                 
-            max_thumb_travel = self.scrollbar_rect.height - self.scrollbar_thumb_height
-            self.scrollbar_thumb_y = int(scroll_ratio * max_thumb_travel)
+                # Calculate thumb position
+                max_scroll_range = max(1, len(self.wrapped_lines) - self.visible_lines)
+                scroll_ratio = self.scroll_y / max_scroll_range
+                    
+                max_thumb_travel = max(1, self.scrollbar_rect.height - self.scrollbar_thumb_height)
+                self.scrollbar_thumb_y = int(scroll_ratio * max_thumb_travel)
+        except Exception as e:
+            # En caso de error, establecer valores seguros por defecto
+            print(f"Error en calculate_scrollbar: {e}")
+            self.scrollbar_thumb_height = max(30, self.scrollbar_rect.height // 4)
+            self.scrollbar_thumb_y = 0
     
     def set_text(self, text):
         """Set the text content of the editor"""
@@ -308,61 +311,57 @@ class TextBox:
     
     def get_position_at_mouse(self, mouse_pos):
         """Get logical cursor position at mouse position"""
-        # Calculate the wrapped line clicked
-        rel_y = mouse_pos[1] - self.text_rect.top
-        wrapped_line_idx = self.scroll_y + rel_y // self.line_height
-        wrapped_line_idx = min(max(0, wrapped_line_idx), len(self.wrapped_lines) - 1)
-        
-        # Get the wrapped line info
-        line_idx, start_idx, text = self.wrapped_lines[wrapped_line_idx]
-        
-        # Calculate the closest character position
-        rel_x = mouse_pos[0] - self.text_rect.left - 5  # Adjust for padding
-        
-        # Find the closest character position by checking each character width
-        visual_col = 0
-        x_pos = 0
-        accumulated_width = 0
-        
-        for i, char in enumerate(text):
-            char_width = self.font.size(char)[0]
-            accumulated_width += char_width
+        try:
+            # Verificar primero si tenemos líneas para trabajar
+            if not self.wrapped_lines:
+                return 0, 0
+                
+            # Calculate the wrapped line clicked
+            rel_y = mouse_pos[1] - self.text_rect.top
             
-            # Calculate total text width to determine position percentage
-            total_width = self.font.size(text)[0]
-            position_percentage = accumulated_width / total_width if total_width > 0 else 0
+            # Asegurarse de que line_height no sea cero
+            if self.line_height <= 0:
+                self.line_height = 1  # Valor seguro por defecto
+                
+            wrapped_line_idx = self.scroll_y + rel_y // self.line_height
+            wrapped_line_idx = min(max(0, wrapped_line_idx), len(self.wrapped_lines) - 1)
             
-            # Find appropriate correction factor based on position
-            factor_ranges = [
-                (0.1, 0.00535),  # 0-10%: 0.535% adjustment
-                (0.2, 0.00755),  # 10-20%: 0.755% adjustment
-                (0.3, 0.0122),   # 20-30%: 1.22% adjustment
-                (0.4, 0.0135),   # 30-40%: 1.35% adjustment
-                (0.5, 0.0155),   # 40-50%: 1.45% adjustment
-                (0.6, 0.0159),   # 50-60%: 1.55% adjustment
-                (0.7, 0.0160),   # 60-70%: 1.62% adjustment
-                (0.8, 0.0161),   # 70-80%: 1.69% adjustment
-                (0.9, 0.0162),   # 80-90%: 1.76% adjustment
-                (1.0, 0.0165)    # 90-100%: 1.82% adjustment
-            ]
+            # Get the wrapped line info
+            line_idx, start_idx, text = self.wrapped_lines[wrapped_line_idx]
             
-            # Find appropriate factor
-            factor = factor_ranges[-1][1]  # Default (last range)
-            for threshold, factor_value in factor_ranges:
-                if position_percentage < threshold:
-                    factor = factor_value
-                    break
+            # Calculate the closest character position
+            rel_x = mouse_pos[0] - self.text_rect.left - 5  # Adjust for padding
             
-            offset_correction = int(-(accumulated_width * factor))
-            adjusted_x_pos = x_pos - offset_correction
+            # Si la línea está vacía, devolver simplemente la posición de inicio
+            if not text:
+                return line_idx, start_idx
             
-            if adjusted_x_pos + (char_width / 2) > rel_x:
-                break
+            # Usar un método más simple y fiable: encontrar la mejor posición probando cada posibilidad
+            best_col = 0
+            min_distance = float('inf')
             
-            x_pos += char_width
-            visual_col = i + 1
-        
-        return line_idx, start_idx + visual_col
+            # Probar cada posible posición de columna y encontrar la más cercana al punto donde se hizo clic
+            for col in range(len(text) + 1):
+                # Obtener la posición x de esta columna
+                x_pos = self.font.size(text[:col])[0]
+                
+                # Calcular distancia a la posición del mouse
+                distance = abs(x_pos - rel_x)
+                
+                # Si esta posición está más cerca que la mejor encontrada hasta ahora, actualizarla
+                if distance < min_distance:
+                    min_distance = distance
+                    best_col = col
+            
+            return line_idx, start_idx + best_col
+            
+        except ZeroDivisionError:
+            # Si ocurre una división por cero, devolver la posición actual del cursor
+            return self.cursor_line, self.cursor_col
+        except Exception as e:
+            # Para cualquier otro error, imprimir e intentar devolver una posición segura
+            print(f"Error en posición del mouse: {e}")
+            return self.cursor_line, self.cursor_col
     
     def handle_event(self, event):
         """Handle pygame events"""
@@ -495,21 +494,27 @@ class TextBox:
             
         # Handle scrollbar dragging
         if self.scrollbar_dragging:
-            # Calculate new thumb position
-            new_thumb_y = event.pos[1] - self.scrollbar_click_y
-            
-            # Constrain to scrollbar
-            new_thumb_y = max(0, min(self.scrollbar_rect.height - self.scrollbar_thumb_height, new_thumb_y))
-            
-            # Calculate new scroll position
-            ratio = new_thumb_y / (self.scrollbar_rect.height - self.scrollbar_thumb_height)
-            max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
-            self.scroll_y = int(ratio * max_scroll)
-            
-            # Update scrollbar
-            self.calculate_scrollbar()
-            
-            return True
+            try:
+                # Calculate new thumb position
+                new_thumb_y = event.pos[1] - self.scrollbar_click_y
+                
+                # Constrain to scrollbar
+                new_thumb_y = max(0, min(self.scrollbar_rect.height - max(10, self.scrollbar_thumb_height), new_thumb_y))
+                
+                # Calculate new scroll position
+                scroll_height = max(1, self.scrollbar_rect.height - self.scrollbar_thumb_height)
+                ratio = new_thumb_y / scroll_height
+                max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
+                self.scroll_y = int(ratio * max_scroll)
+                
+                # Update scrollbar
+                self.calculate_scrollbar()
+                
+                return True
+            except Exception as e:
+                print(f"Error en arrastre de scrollbar: {e}")
+                self.scrollbar_dragging = False
+                return False
             
         return False
     
@@ -562,32 +567,38 @@ class TextBox:
             
         # Check if clicking on scrollbar
         elif self.scrollbar_rect.collidepoint(event.pos):
-            # Check if clicking on thumb
-            thumb_rect = pygame.Rect(
-                self.scrollbar_rect.x,
-                self.scrollbar_rect.y + self.scrollbar_thumb_y,
-                self.scrollbar_rect.width,
-                self.scrollbar_thumb_height
-            )
-            
-            if thumb_rect.collidepoint(event.pos):
-                # Start dragging
-                self.scrollbar_dragging = True
-                self.scrollbar_click_y = event.pos[1] - self.scrollbar_thumb_y
-            else:
-                # Click in scrollbar but not on thumb - jump to position
-                rel_y = event.pos[1] - self.scrollbar_rect.top
+            try:
+                # Check if clicking on thumb
+                thumb_rect = pygame.Rect(
+                    self.scrollbar_rect.x,
+                    self.scrollbar_rect.y + self.scrollbar_thumb_y,
+                    self.scrollbar_rect.width,
+                    max(10, self.scrollbar_thumb_height)  # Asegurar altura mínima
+                )
                 
-                # Calculate ratio of click to scrollbar height
-                ratio = rel_y / self.scrollbar_rect.height
-                
-                # Set scroll position
-                max_scroll = max(0, len(self.wrapped_lines) - self.visible_lines)
-                self.scroll_y = max(0, min(max_scroll, int(ratio * len(self.wrapped_lines))))
-                
-                # Update scrollbar
-                self.calculate_scrollbar()
-            return True
+                if thumb_rect.collidepoint(event.pos):
+                    # Start dragging
+                    self.scrollbar_dragging = True
+                    self.scrollbar_click_y = event.pos[1] - self.scrollbar_thumb_y
+                else:
+                    # Click in scrollbar but not on thumb - jump to position
+                    rel_y = event.pos[1] - self.scrollbar_rect.top
+                    
+                    # Calculate ratio of click to scrollbar height
+                    ratio = rel_y / max(1, self.scrollbar_rect.height)
+                    
+                    # Set scroll position
+                    total_lines = max(1, len(self.wrapped_lines))
+                    visible_lines = max(1, self.visible_lines)
+                    max_scroll = max(0, total_lines - visible_lines)
+                    self.scroll_y = max(0, min(max_scroll, int(ratio * total_lines)))
+                    
+                    # Update scrollbar
+                    self.calculate_scrollbar()
+                return True
+            except Exception as e:
+                print(f"Error en el manejo del scrollbar: {e}")
+                return False
         else:
             # Clicking outside text area and scrollbar
             self.is_focused = False
@@ -683,8 +694,8 @@ class TextBox:
             
             # Draw line separator at top of this line
             pygame.draw.line(surface, line_color, 
-                           (self.line_numbers_rect.left, y), 
-                           (self.text_rect.right, y), self.line_thickness)
+                        (self.line_numbers_rect.left, y), 
+                        (self.text_rect.right, y), self.line_thickness)
             
             # Get wrapped line info
             line_idx, start_idx, text = self.wrapped_lines[display_idx]
@@ -693,8 +704,10 @@ class TextBox:
             if start_idx == 0:  # This is the first wrapped segment of a logical line
                 line_num_text = f"Line {line_idx + 1}"
                 line_num_surf = design.get_font("small").render(line_num_text, True, design.colors["textbox_text"])
-                line_num_y = y + (self.line_height - line_num_surf.get_height()) // 2  # Center vertically
-                surface.blit(line_num_surf, (self.line_numbers_rect.left + 5, line_num_y))
+                # Alinear a la izquierda con un margen, en lugar de centrar
+                line_num_x = self.line_numbers_rect.left + 10  # Margen de 10px desde la izquierda
+                line_num_y = y + (self.line_height - line_num_surf.get_height()) // 2  # Centrar verticalmente
+                surface.blit(line_num_surf, (line_num_x, line_num_y))
             
             # Draw selection highlight if this line has selection
             if self.selection.is_active():
@@ -750,3 +763,45 @@ class TextBox:
             )
             pygame.draw.rect(surface, design.colors["button_hover"], thumb_rect, 0, 3)
             pygame.draw.rect(surface, design.colors["textbox_border"], thumb_rect, 1, 3)
+    
+    def update_font(self):
+        """Update font based on current settings"""
+        # Get font from design system
+        self.font = design.get_font("large")
+        
+        # Update font-related metrics
+        self.base_line_height = self.font.get_height()
+        # Apply line height multiplier from config
+        self.line_height = self.base_line_height * LINE_HEIGHT_MULTIPLIER
+        self.visible_lines = self.text_rect.height // self.line_height
+        
+        # Update wrapped lines to account for new font size
+        self.update_wrapped_lines()
+    
+    def resize(self, new_rect):
+        """
+        Resize the textbox to new dimensions
+        
+        Args:
+            new_rect: New rectangle dimensions
+        """
+        # Store the overall rectangle
+        self.rect = pygame.Rect(new_rect)
+        
+        # Split into line numbers area and text area
+        self.line_numbers_rect = pygame.Rect(new_rect.x, new_rect.y, self.line_numbers_width, new_rect.height)
+        self.text_rect = pygame.Rect(new_rect.x + self.line_numbers_width, new_rect.y, 
+                                    new_rect.width - self.line_numbers_width - 15, new_rect.height)
+        self.scrollbar_rect = pygame.Rect(new_rect.right - 15, new_rect.y, 15, new_rect.height)
+        
+        # Update wrap width
+        self.wrap_width = int(self.text_rect.width) - 5 #5px margin
+        
+        # Update visible lines
+        self.visible_lines = self.text_rect.height // self.line_height
+        
+        # Update wrapped lines for new width
+        self.update_wrapped_lines()
+        
+        # Ensure cursor is visible
+        self.ensure_cursor_visible()

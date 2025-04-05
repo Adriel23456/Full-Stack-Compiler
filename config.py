@@ -4,10 +4,8 @@ Contains global constants and configurations
 """
 
 # Window configuration
-SCREEN_WIDTH = 950
-SCREEN_HEIGHT = 750
 WINDOW_TITLE = "Full Stack Compiler"
-FPS = 60
+FPS = 120
 
 # Colors
 BLACK = (0, 0, 0)
@@ -21,13 +19,35 @@ GRAY = (128, 128, 128)
 class States:
     EDITOR = "EDITOR"  # Main editor state
 
-# Font configuration
-FONT_SIZE_SMALL = 24
-FONT_SIZE_MEDIUM = 36
-FONT_SIZE_LARGE = 48
+# Font size configurations
+# Tamaños para la opción "small"
+FONT_SIZE_SMALL_OPTION = {
+    "small": 10,
+    "medium": 12,
+    "large": 15
+}
+
+# Tamaños para la opción "medium"
+FONT_SIZE_MEDIUM_OPTION = {
+    "small": 12,
+    "medium": 18,
+    "large": 22
+}
+
+# Tamaños para la opción "large"
+FONT_SIZE_LARGE_OPTION = {
+    "small": 14,
+    "medium": 22,
+    "large": 26
+}
+
+# Default font sizes (small option)
+DEFAULT_FONT_SIZE_SMALL = FONT_SIZE_SMALL_OPTION["small"]
+DEFAULT_FONT_SIZE_MEDIUM = FONT_SIZE_SMALL_OPTION["medium"]
+DEFAULT_FONT_SIZE_LARGE = FONT_SIZE_SMALL_OPTION["large"]
 
 # TextBox configuration
-LINE_NUMBERS_WIDTH = 50  # width of line numbers area
+LINE_NUMBERS_WIDTH = 80  # width of line numbers area
 LINE_HEIGHT_MULTIPLIER = 2  # multiplier for line height (doubles the height)
 KEY_REPEAT_DELAY = 450  # ms before key starts repeating
 KEY_REPEAT_INTERVAL = 25  # ms between repeats (over 60 times/second)
@@ -39,3 +59,5 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Assets directory (if needed)
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
+MAIN_FONT = "ttf/JetBrainsMono-Regular.ttf"  # Nombre del archivo de fuente
