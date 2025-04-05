@@ -5,7 +5,7 @@ Contains global constants and configurations
 
 # Window configuration
 WINDOW_TITLE = "Full Stack Compiler"
-FPS = 120
+FPS = 60
 
 # Colors
 BLACK = (0, 0, 0)
