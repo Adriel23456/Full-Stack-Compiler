@@ -73,45 +73,48 @@ class ConfigView:
         self.regular_font = design.get_font("medium")
         
         # Button dimensions
-        button_width = 150
+        BUTTON_WIDTH = 150  # Ancho constante para Apply & Cancel
         button_height = 40
-        button_margin = 30  # Increased margin for better spacing
-        section_spacing = 60  # Space between sections
+        button_margin = 30  # Margen desde los bordes del componente
+        button_gap = 10     # Espacio entre botones en la misma fila
+        section_spacing = 60  # Espacio entre secciones
         
         # Calculate positions for buttons at the bottom
         bottom_y = self.rect.bottom - button_height - button_margin
         
         # Create buttons
-        self.apply_button = Button(
-            pygame.Rect(
-                self.rect.right - button_width - button_margin,
-                bottom_y,
-                button_width,
-                button_height
-            ),
-            "Apply"
-        )
-        
         self.cancel_button = Button(
             pygame.Rect(
                 self.rect.left + button_margin,
                 bottom_y,
-                button_width,
+                BUTTON_WIDTH,
                 button_height
             ),
-            "Cancel"
+            "Cancel",
+            fixed_width=BUTTON_WIDTH,
+        )
+        
+        self.apply_button = Button(
+            pygame.Rect(
+                self.rect.right - button_margin - BUTTON_WIDTH,
+                bottom_y,
+                BUTTON_WIDTH,
+                button_height
+            ),
+            "Apply",
+            fixed_width=BUTTON_WIDTH,
         )
         
         # Option buttons - theme selection
         theme_section_y = self.rect.top + 100
         option_height = 40  # Increased height
-        option_width = (self.width - 3 * button_margin) // 2
+        theme_button_width = (self.width - 2 * button_margin - button_gap) // 2
         
         self.theme_light_button = Button(
             pygame.Rect(
                 self.rect.left + button_margin,
                 theme_section_y,
-                option_width,
+                theme_button_width,
                 option_height
             ),
             "Light Theme"
@@ -119,9 +122,9 @@ class ConfigView:
         
         self.theme_dark_button = Button(
             pygame.Rect(
-                self.rect.right - option_width - button_margin,
+                self.theme_light_button.rect.right + button_gap,
                 theme_section_y,
-                option_width,
+                theme_button_width,
                 option_height
             ),
             "Dark Theme"
@@ -129,16 +132,13 @@ class ConfigView:
         
         # Font size selection - calculate positions based on previous section
         font_section_y = theme_section_y + option_height + section_spacing
-        
-        # Calculate buttons with equal width for better layout
-        text_label_width = 120  # Width for "Text Size:" label
-        small_option_width = (self.width - 2 * button_margin - text_label_width) // 3 - 10
+        font_option_width = (self.width - 2 * button_margin - 2 * button_gap) // 3
         
         self.font_small_button = Button(
             pygame.Rect(
-                self.rect.left + button_margin + text_label_width,
+                self.rect.left + button_margin,
                 font_section_y,
-                small_option_width,
+                font_option_width,
                 option_height
             ),
             "Small"
@@ -146,9 +146,9 @@ class ConfigView:
         
         self.font_medium_button = Button(
             pygame.Rect(
-                self.font_small_button.rect.right + 10,
+                self.font_small_button.rect.right + button_gap,
                 font_section_y,
-                small_option_width,
+                font_option_width,
                 option_height
             ),
             "Medium"
@@ -156,9 +156,9 @@ class ConfigView:
         
         self.font_large_button = Button(
             pygame.Rect(
-                self.font_medium_button.rect.right + 10,
+                self.font_medium_button.rect.right + button_gap,
                 font_section_y,
-                small_option_width,
+                font_option_width,
                 option_height
             ),
             "Large"
@@ -168,7 +168,7 @@ class ConfigView:
         window_section_y = font_section_y + option_height + section_spacing
         
         # Three window size options with equal width and improved spacing
-        window_option_width = (self.width - 2 * button_margin) // 3 - 10
+        window_option_width = (self.width - 2 * button_margin - 3 * button_gap) // 4
         
         self.size_small_button = Button(
             pygame.Rect(
@@ -182,7 +182,7 @@ class ConfigView:
         
         self.size_medium_button = Button(
             pygame.Rect(
-                self.size_small_button.rect.right + 10,
+                self.size_small_button.rect.right + button_gap,
                 window_section_y,
                 window_option_width,
                 option_height
@@ -192,7 +192,7 @@ class ConfigView:
         
         self.size_large_button = Button(
             pygame.Rect(
-                self.size_medium_button.rect.right + 10,
+                self.size_medium_button.rect.right + button_gap,
                 window_section_y,
                 window_option_width,
                 option_height
@@ -200,11 +200,10 @@ class ConfigView:
             "1920 x 1080"
         )
         
-        # Fullscreen button
         self.fullscreen_button = Button(
             pygame.Rect(
-                self.rect.centerx - window_option_width // 2,
-                window_section_y + option_height + button_margin,
+                self.size_large_button.rect.right + button_gap,
+                window_section_y,
                 window_option_width,
                 option_height
             ),

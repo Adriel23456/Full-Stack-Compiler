@@ -46,26 +46,30 @@ class EditorView(ViewBase):
 
         # Position the main toolbar buttons with proper spacing
         self.save_button = ToolbarButton(
-            pygame.Rect(toolbar_button_margin, toolbar_y, toolbar_button_width, toolbar_height - 10),
-            "Save"
+            pygame.Rect(button_margin, toolbar_y, toolbar_button_width, toolbar_height - 10),
+            "Save",
+            fixed_height=toolbar_height - 10     # Fija la altura
         )
 
         self.load_button = ToolbarButton(
             pygame.Rect(self.save_button.rect.right + toolbar_button_margin, toolbar_y,
                         toolbar_button_width, toolbar_height - 10),
-            "Load"
+            "Load",
+            fixed_height=toolbar_height - 10     # Fija la altura
         )
 
         self.configure_button = ToolbarButton(
             pygame.Rect(self.load_button.rect.right + toolbar_button_margin, toolbar_y,
                         toolbar_button_width, toolbar_height - 10),
-            "Configure"
+            "Configure",
+            fixed_height=toolbar_height - 10     # Fija la altura
         )
 
         self.credits_button = ToolbarButton(
             pygame.Rect(self.configure_button.rect.right + toolbar_button_margin, toolbar_y,
                         toolbar_button_width, toolbar_height - 10),
-            "Credits"
+            "Credits",
+            fixed_height=toolbar_height - 10     # Fija la altura
         )
 
         # NUEVO ENFOQUE PARA LOS BOTONES DE SÍMBOLOS
@@ -73,10 +77,9 @@ class EditorView(ViewBase):
         # dejando un margen de 8px entre ellos y el borde derecho,
         # y que estén separados 8px del último botón principal (credits_button).
         margin_between = 8   # Espacio entre el último botón del toolbar y el grupo de símbolos
-        margin_right = 8     # Espacio entre el grupo de símbolos y el borde derecho
 
         # Calcular el ancho disponible: desde el final del botón "Credits" + 8px, hasta el borde derecho menos 8px.
-        available_width = screen_width - (self.credits_button.rect.right + margin_between) - margin_right
+        available_width = screen_width - (self.credits_button.rect.right + margin_between) - button_margin
 
         num_symbols = 6
         num_spaces = num_symbols - 1
@@ -88,7 +91,7 @@ class EditorView(ViewBase):
         total_symbols_width = num_symbols * symbol_width + num_spaces * symbol_margin
 
         # Para alinear a la derecha, la posición inicial se calcula para que el grupo termine a 8px del borde.
-        symbols_offset_x = screen_width - margin_right - total_symbols_width
+        symbols_offset_x = screen_width - total_symbols_width - button_margin
 
         self.symbol_buttons = []
         symbols = ["(", ")", "{", "}", "[", "]"]
@@ -106,23 +109,26 @@ class EditorView(ViewBase):
             current_x += symbol_width + symbol_margin
 
         # Create compile and execute buttons at the bottom
-        bottom_y = screen_height - button_height - button_margin
+        bottom_y = screen_height - button_height - 15
 
         self.compile_button = Button(
             pygame.Rect(button_margin, bottom_y, button_width, button_height),
-            "Compile"
+            "Compile",
+            fixed_height=button_height,     # Fija la altura
         )
 
         self.grammar_button = Button(
-            pygame.Rect(button_margin * 2 + button_width, bottom_y, button_width, button_height),
-            "Grammar"
+            pygame.Rect(self.compile_button.rect.right + toolbar_button_margin, bottom_y, button_width, button_height),
+            "Grammar",
+            fixed_height=button_height,     # Fija la altura
         )
 
         # Alinear exactamente el botón Execute con el borde derecho del TextBox
         self.execute_button = Button(
-            pygame.Rect(screen_width - button_width - button_margin, bottom_y,
+            pygame.Rect(screen_width - button_margin - button_width, bottom_y,
                         button_width, button_height),
-            "Execute"
+            "Execute",
+            fixed_height=button_height,     # Fija la altura
         )
 
         # Create the main text editor area - scale with window size
