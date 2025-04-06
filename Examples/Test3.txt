@@ -1,0 +1,5 @@
+program Example {
+    var x;
+    x = 10;
+    println(x);
+};

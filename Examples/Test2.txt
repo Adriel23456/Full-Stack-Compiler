@@ -1,2 +1,9 @@
-Welcome to the Full Stack Compiler!
-Start typing here...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKJBkjlbjakshlñajsfhglñajlñasglñajjsllñajslññajslñajsflñajsffhlñaajjssfhhllññajsffhllññaajjssfhhllññaajjssffhhlllñññaaajjjsssfffhhhllllññññaaaajjjjssssffffhhhhlllllñññññaaaaajjjjjfffffhhhhhlllllñññññaaaaaajjjjjjffffffhhhhhhelllllllllñññññññññjjjjjjjjffffffffffhbnuosñekjbskfshdñklfjsdhfjklñdsñfjkldsvñjklsnaselñjfghnseblñfjshefoñisefhnsdlgshdnkjsdnvilsvnbkvlujsvbnksdvsg5s465sdg465sdg1sd65f1sd68f
+program miprograma {
+    var x;
+    x = 5;
+    if (true || false){
+        println(mutGen([0b1010, 0b1100, 0b1111], 0.2, 3));
+    } else {
+        println(x);
+    }
+};
