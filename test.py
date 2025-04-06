@@ -4,46 +4,39 @@ import os
 
 # Define the complex grammar in Lark format
 grammar = r'''
-    start: program
+start: program
+program: "program" ID "{" sentence* "}"
+sentence: println | conditional | var_decl | var_assign
+    
+println: "println" expression ";"
+conditional: "if" "(" expression ")" "{" sentence* "}" "else" "{" sentence* "}"
+    
+var_decl: "var" ID ";"
+var_assign: ID "=" expression ";"
+    
+expression: factor (op factor)* | "mutGen" "(" binary_array "," expression "," expression ")"
+    
+op: "+" | "-" | "&&" | "||"
+    
+factor: comp (factor_op comp)*
+factor_op: "*" | "/"
+    
+comp: "|-" term | "|-" "(" expression ")" | term
+    
+term: NUMBER | BOOLEAN | ID | "(" expression ")"
+    
+binary_array: "[" binary_term ("," binary_term)* "]"
+binary_term: BINARY
 
-    program: "program" ID "{" sentence* "}"
-    sentence: println | conditional | var_decl | var_assign
-    
-    println: "println" expression ";"
-    conditional: "if" "(" expression ")" "{" sentence* "}" "else" "{" sentence* "}"
-    
-    var_decl: "var" ID ";"
-    var_assign: ID "=" expression ";"
-    
-    expression: factor (op factor)*
-              | "mutGen" "(" binary_array "," expression "," expression ")"
-    
-    op: "+" | "-" | "&&" | "||"
-    
-    factor: comp (factor_op comp)*
-    factor_op: "*" | "/"
-    
-    comp: "|-" term
-        | "|-" "(" expression ")"
-        | term
-    
-    term: NUMBER
-        | BOOLEAN
-        | ID
-        | "(" expression ")"
-    
-    binary_array: "[" binary_term ("," binary_term)* "]"
-    binary_term: BINARY
+// Terminals
+BOOLEAN: "true" | "false"
+BINARY: /0b[0-1]+/
+ID: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /[0-9]+((\.|,)[0-9]+)?/
 
-    // Terminals
-    BOOLEAN: "true" | "false"
-    BINARY: /0b[0-1]+/
-    ID: /[a-zA-Z_][a-zA-Z0-9_]*/
-    NUMBER: /[0-9]+((\.|,)[0-9]+)?/
-
-    // Skip whitespace
-    %import common.WS
-    %ignore WS
+// Skip whitespace
+%import common.WS
+%ignore WS
 '''
 
 # Sample program in this language

@@ -1,5 +1,6 @@
 from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
+from GUI.views.grammar_view import GrammarView
 import os
 import tkinter as tk
 from tkinter import filedialog
@@ -28,6 +29,7 @@ class EditorView(ViewBase):
         super().__init__(view_controller)
         self.config_view = None
         self.credits_view = None
+        self.grammar_view = None
         
         # File tracking
         self.current_file_path = None
@@ -192,6 +194,14 @@ class EditorView(ViewBase):
             
             # Always return if credits view is active to prevent interactions with main view
             return True
+        
+        # If grammar view is active, let it handle events first
+        if self.grammar_view:
+            if self.grammar_view.handle_events(events):
+                return True
+            
+            # Always return if grammar view is active to prevent interactions with main view
+            return True
             
         for event in events:
             if event.type == pygame.QUIT:
@@ -268,7 +278,7 @@ class EditorView(ViewBase):
                 print("Compile button clicked")
                 
             if self.grammar_button.handle_event(event):
-                print("Grammar button clicked")
+                self.open_grammar_view()
             
             if self.execute_button.handle_event(event):
                 print("Execute button clicked")
@@ -398,6 +408,10 @@ class EditorView(ViewBase):
         if self.credits_view:
             self.credits_view.update(dt)
             
+        # Update grammar view if active
+        if self.grammar_view:
+            self.grammar_view.update(dt)
+            
         # Update text editor
         self.text_editor.update()
     
@@ -447,6 +461,10 @@ class EditorView(ViewBase):
         # Render credits view on top if active
         if self.credits_view:
             self.credits_view.render()
+            
+        # Render grammar view on top if active
+        if self.grammar_view:
+            self.grammar_view.render()
     
     def insert_symbol(self, symbol):
         """
@@ -647,3 +665,14 @@ class EditorView(ViewBase):
         """Handle when text is modified"""
         if hasattr(self, "file_status") and self.file_status == "saved":
             self.set_file_status("modified")
+    
+    def open_grammar_view(self):
+        """Open the grammar view"""
+        self.grammar_view = GrammarView(
+            self,
+            on_close=self.close_grammar_view
+        )
+
+    def close_grammar_view(self):
+        """Close the grammar view"""
+        self.grammar_view = None
