@@ -1,4 +1,8 @@
 from GUI.views.config_view import ConfigView
+from GUI.views.credits_view import CreditsView
+import os
+import tkinter as tk
+from tkinter import filedialog
 
 """
 Editor view for the Full Stack Compiler
@@ -23,6 +27,7 @@ class EditorView(ViewBase):
         """
         super().__init__(view_controller)
         self.config_view = None
+        self.credits_view = None
     
     def setup(self):
         """
@@ -146,7 +151,7 @@ class EditorView(ViewBase):
 
         # Set initial content if not already set
         if not hasattr(self, '_initialized_content'):
-            self.text_editor.set_text("Welcome to the Full Stack Compiler!\nStart typing here...")
+            self.text_editor.set_text("#Example of a comment\nprintln('Hello world');")
             self.text_editor.is_focused = True
             self._initialized_content = True
 
@@ -164,6 +169,14 @@ class EditorView(ViewBase):
                 return True
             
             # Always return if config view is active to prevent interactions with main view
+            return True
+        
+        # If credits view is active, let it handle events first
+        if self.credits_view:
+            if self.credits_view.handle_events(events):
+                return True
+            
+            # Always return if credits view is active to prevent interactions with main view
             return True
             
         for event in events:
@@ -214,16 +227,16 @@ class EditorView(ViewBase):
             
             # Then check button events
             if self.save_button.handle_event(event):
-                print("Save button clicked")
+                self.save_file()
                 
             if self.load_button.handle_event(event):
-                print("Load button clicked")
+                self.load_file()
             
             if self.configure_button.handle_event(event):
                 self.open_config_view()
             
             if self.credits_button.handle_event(event):
-                print("Credits button clicked")
+                self.open_credits_view()
             
             # Manejar botones de símbolos
             for i, button in enumerate(self.symbol_buttons):
@@ -359,6 +372,10 @@ class EditorView(ViewBase):
         # Update config view if active
         if self.config_view:
             self.config_view.update(dt)
+        
+        # Update credits view if active
+        if self.credits_view:
+            self.credits_view.update(dt)
             
         # Update text editor
         self.text_editor.update()
@@ -390,6 +407,10 @@ class EditorView(ViewBase):
         # Render config view on top if active
         if self.config_view:
             self.config_view.render()
+        
+        # Render credits view on top if active
+        if self.credits_view:
+            self.credits_view.render()
     
     def insert_symbol(self, symbol):
         """
@@ -449,3 +470,85 @@ class EditorView(ViewBase):
             button_margin, editor_top,
             screen_width - 2 * button_margin, editor_height
         ))
+    
+    def open_credits_view(self):
+        """Open the credits view"""
+        self.credits_view = CreditsView(
+            self,
+            on_close=self.close_credits_view
+        )
+
+    def close_credits_view(self):
+        """Close the credits view"""
+        self.credits_view = None
+    
+    def save_file(self):
+        """
+        Open a file dialog to save the current text content
+        """
+        # Initialize tkinter without creating a visible window
+        root = tk.Tk()
+        root.withdraw()
+        
+        # Get the current directory
+        current_dir = os.path.join(os.getcwd())
+        
+        # Show file dialog
+        file_path = filedialog.asksaveasfilename(
+            initialdir=current_dir,
+            title="Save File",
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        
+        # If a file path was selected
+        if file_path:
+            try:
+                # Get text content from editor
+                text_content = self.text_editor.get_text()
+                
+                # Write to file
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(text_content)
+            except Exception as e:
+                print(f"Error saving file: {e}")
+        
+        # Destroy the tkinter instance
+        root.destroy()
+
+    def load_file(self):
+        """
+        Open a file dialog to load text content from a file
+        """
+        # Initialize tkinter without creating a visible window
+        root = tk.Tk()
+        root.withdraw()
+        
+        # Get the examples directory path
+        examples_dir = os.path.join(os.getcwd(), "Examples")
+        
+        # Create Examples directory if it doesn't exist
+        if not os.path.exists(examples_dir):
+            os.makedirs(examples_dir)
+        
+        # Show file dialog
+        file_path = filedialog.askopenfilename(
+            initialdir=examples_dir,
+            title="Open File",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        
+        # If a file path was selected
+        if file_path:
+            try:
+                # Read from file
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    text_content = file.read()
+                
+                # Set the text in the editor
+                self.text_editor.set_text(text_content)
+            except Exception as e:
+                print(f"Error loading file: {e}")
+        
+        # Destroy the tkinter instance
+        root.destroy()

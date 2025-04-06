@@ -1,4 +1,3 @@
-# GUI/views/config_view.py
 """
 Configuration view for application settings
 """

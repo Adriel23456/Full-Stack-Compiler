@@ -4,7 +4,7 @@ Contains global constants and configurations
 """
 
 # Window configuration
-WINDOW_TITLE = "Full Stack Compiler"
+WINDOW_TITLE = "Full Stack Compiler - Adriel S. Chaves Salazar"
 FPS = 60
 
 # Colors
