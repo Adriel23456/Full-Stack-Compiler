@@ -20,7 +20,7 @@ def ensure_directories():
     # Crear directorio de fuentes si no existe
     if not os.path.exists(FONTS_DIR):
         os.makedirs(FONTS_DIR)
-        
+
 def main():
     """
     Main program function

@@ -28,6 +28,11 @@ class EditorView(ViewBase):
         super().__init__(view_controller)
         self.config_view = None
         self.credits_view = None
+        
+        # File tracking
+        self.current_file_path = None
+        self.file_status = "unsaved"  # Options: "unsaved", "saved", "modified"
+        self.status_indicator_rect = None
     
     def setup(self):
         """
@@ -148,6 +153,15 @@ class EditorView(ViewBase):
             pygame.Rect(button_margin, editor_top,
                         screen_width - 2 * button_margin, editor_height)
         )
+        
+        # Create status indicator (centered between compile/grammar and execute buttons)
+        status_indicator_size = 50
+        self.status_indicator_rect = pygame.Rect(
+            (self.grammar_button.rect.right + self.execute_button.rect.left - status_indicator_size) // 2,
+            bottom_y + (button_height - status_indicator_size) // 2,
+            status_indicator_size,
+            status_indicator_size
+        )
 
         # Set initial content if not already set
         if not hasattr(self, '_initialized_content'):
@@ -182,6 +196,12 @@ class EditorView(ViewBase):
         for event in events:
             if event.type == pygame.QUIT:
                 self.view_controller.quit()
+            
+            # Check for CTRL+S key combination
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_s and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                # If file is already saved/loaded, use that path, otherwise open dialog
+                self.save_file(use_current_path=self.current_file_path is not None)
+                return True
             
             # Handle ESC key to exit fullscreen or 1920x1080
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -221,8 +241,9 @@ class EditorView(ViewBase):
                 else:
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             
-            # Handle text editor events first (highest priority)
+            # If text is edited, mark as modified
             if self.text_editor.handle_event(event):
+                self.on_text_modified()
                 continue
             
             # Then check button events
@@ -404,6 +425,21 @@ class EditorView(ViewBase):
         self.grammar_button.render(self.screen)
         self.execute_button.render(self.screen)
         self.text_editor.render(self.screen)
+        
+        # Draw status indicator
+        if hasattr(self, "status_indicator_rect") and self.status_indicator_rect:
+            # Choose color based on file status
+            if self.file_status == "unsaved":
+                indicator_color = (255, 0, 0)  # Red
+            elif self.file_status == "saved":
+                indicator_color = (0, 255, 0)  # Green
+            elif self.file_status == "modified":
+                indicator_color = (255, 255, 0)  # Yellow
+            
+            # Draw the indicator
+            pygame.draw.rect(self.screen, indicator_color, self.status_indicator_rect, 0, 10)
+            pygame.draw.rect(self.screen, (0, 0, 0), self.status_indicator_rect, 2, 10)
+        
         # Render config view on top if active
         if self.config_view:
             self.config_view.render()
@@ -446,6 +482,8 @@ class EditorView(ViewBase):
         # Reiniciar el parpadeo del cursor para que sea visible inmediatamente
         self.text_editor.cursor_blink = True
         self.text_editor.cursor_blink_time = pygame.time.get_ticks()
+        
+        self.on_text_modified()
     
     def update_layout(self):
         # Obtener dimensiones actuales de la pantalla
@@ -482,10 +520,31 @@ class EditorView(ViewBase):
         """Close the credits view"""
         self.credits_view = None
     
-    def save_file(self):
+    def save_file(self, use_current_path=False):
         """
-        Open a file dialog to save the current text content
+        Save file to disk
+        
+        Args:
+            use_current_path: If True, use the current file path (if available)
         """
+        # If using current path and we have one, save directly
+        if use_current_path and self.current_file_path:
+            try:
+                # Get text content
+                text_content = self.text_editor.get_text()
+                
+                # Write to file
+                with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                    file.write(text_content)
+                    
+                print(f"File saved: {self.current_file_path}")
+                self.set_file_status("saved")
+                return True
+            except Exception as e:
+                print(f"Error saving file: {e}")
+                return False
+        
+        # Otherwise open file dialog
         # Initialize tkinter without creating a visible window
         root = tk.Tk()
         root.withdraw()
@@ -504,17 +563,30 @@ class EditorView(ViewBase):
         # If a file path was selected
         if file_path:
             try:
-                # Get text content from editor
+                # Get text content
                 text_content = self.text_editor.get_text()
                 
                 # Write to file
                 with open(file_path, 'w', encoding='utf-8') as file:
                     file.write(text_content)
+                    
+                # Store the file path
+                self.current_file_path = file_path
+                self.set_file_status("saved")
+                
+                print(f"File saved: {file_path}")
+                return True
             except Exception as e:
                 print(f"Error saving file: {e}")
+                return False
         
         # Destroy the tkinter instance
         root.destroy()
+        return False
+        
+        # Destroy the tkinter instance
+        root.destroy()
+        return False
 
     def load_file(self):
         """
@@ -547,8 +619,31 @@ class EditorView(ViewBase):
                 
                 # Set the text in the editor
                 self.text_editor.set_text(text_content)
+                
+                # Store the file path
+                self.current_file_path = file_path
+                self.set_file_status("saved")
+                
+                print(f"File loaded: {file_path}")
+                return True
             except Exception as e:
                 print(f"Error loading file: {e}")
+                return False
         
         # Destroy the tkinter instance
         root.destroy()
+        return False
+    
+    def set_file_status(self, status):
+        """
+        Set the file status
+        
+        Args:
+            status: Status to set ("unsaved", "saved", "modified")
+        """
+        self.file_status = status
+    
+    def on_text_modified(self):
+        """Handle when text is modified"""
+        if hasattr(self, "file_status") and self.file_status == "saved":
+            self.set_file_status("modified")
