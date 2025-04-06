@@ -459,7 +459,7 @@ try:
         return first, follow, non_terminals, terminals, productions
 
     def visualize_parsing_table(grammar_text, parser, input_text, filename="parsing_table.png"):
-        """Visualiza una tabla de parseo predictivo LL(1) para la gramática dada"""
+        """Visualiza una tabla de parseo predictivo LL(1) completa para la gramática dada"""
         import pydot
         import re
         
@@ -484,17 +484,52 @@ try:
         # Añadimos $ como terminal para fin de entrada
         real_terminals.add('$')
         
-        # Crear la tabla LL(1) con las producciones
-        # Esta es la tabla M en el formato que mostraste
+        # Función para crear la tabla LL(1)
         from PIL import Image, ImageDraw, ImageFont
         import os
+        import math
         
-        def create_table_image(filename, title, non_terminals, terminals, table_data, cell_width=120, cell_height=50):
+        def create_table_image(filename, title, non_terminals, terminals, table_data, cell_width=100, cell_height=40):
             # Calcular dimensiones de la tabla
             num_cols = len(terminals) + 1  # +1 para la columna de no-terminales
             num_rows = len(non_terminals) + 1  # +1 para la fila de encabezado
+            
+            # Ajustar tamaño de celda si hay demasiados terminales
+            if num_cols > 15:
+                cell_width = 80  # Reducir ancho de celda si hay muchos terminales
+            
             width = cell_width * num_cols
             height = cell_height * num_rows + 50  # Espacio para título
+            
+            # Si la imagen es muy grande, dividirla en partes
+            max_width = 5000  # Limitar a 5000px de ancho para evitar problemas de memoria
+            max_height = 5000  # Limitar a 5000px de alto
+            
+            if width > max_width or height > max_height:
+                # Dividir en múltiples imágenes si es demasiado grande
+                parts = []
+                num_term_per_img = 10  # Terminales por imagen
+                
+                for i in range(0, len(terminals), num_term_per_img):
+                    part_terminals = terminals[i:i+num_term_per_img]
+                    part_filename = filename.replace('.png', f'_part{i//num_term_per_img+1}.png')
+                    
+                    # Crear la parte de la tabla
+                    create_table_part(part_filename, f"{title} (Parte {i//num_term_per_img+1}/{math.ceil(len(terminals)/num_term_per_img)})", 
+                                non_terminals, part_terminals, table_data, cell_width, cell_height)
+                    parts.append(part_filename)
+                
+                return parts
+            else:
+                # Crear una única imagen
+                return [create_table_part(filename, title, non_terminals, terminals, table_data, cell_width, cell_height)]
+        
+        def create_table_part(filename, title, non_terminals, terminals, table_data, cell_width=100, cell_height=40):
+            # Calcular dimensiones de la tabla
+            num_cols = len(terminals) + 1
+            num_rows = len(non_terminals) + 1
+            width = cell_width * num_cols
+            height = cell_height * num_rows + 50
             
             # Crear imagen con fondo blanco
             img = Image.new('RGB', (width, height), color='white')
@@ -504,8 +539,8 @@ try:
             try:
                 font_path = 'C:\\Windows\\Fonts\\Arial.ttf'
                 title_font = ImageFont.truetype(font_path, 16)
-                header_font = ImageFont.truetype(font_path, 12)
-                cell_font = ImageFont.truetype(font_path, 10)
+                header_font = ImageFont.truetype(font_path, 11)
+                cell_font = ImageFont.truetype(font_path, 9)
             except:
                 title_font = ImageFont.load_default()
                 header_font = ImageFont.load_default()
@@ -560,9 +595,9 @@ try:
                     
                     # Ajustar texto si es demasiado largo
                     text = str(cell_content)
-                    text_width = draw.textlength(text, font=cell_font)
-                    if text_width > cell_width - 10:
-                        text = text[:12] + "..."
+                    if text and len(text) > 10:
+                        if len(text) > 15:
+                            text = text[:10] + "..."
                     
                     draw.text((x1 + cell_width//2, y1 + cell_height//2), text, fill='black', font=cell_font, anchor='mm')
             
@@ -578,70 +613,78 @@ try:
             # Para cada producción de ese no-terminal
             for lhs, rhs_list in productions.items():
                 if lhs == nt:
-                    for rhs in rhs_list:
+                    for i, rhs in enumerate(rhs_list):
                         # Calcular los terminales para los que esta producción se aplica
                         if not rhs:  # Producción epsilon
                             # Para epsilon, usamos FOLLOW
                             for terminal in follow[nt]:
-                                prod_text = "ε"  # Epsilon
-                                table_data[(nt, terminal)] = prod_text
+                                if (nt, terminal) not in table_data:  # Evitar conflictos
+                                    prod_text = "ε"  # Epsilon
+                                    table_data[(nt, terminal)] = prod_text
                         else:
                             # Para otros, usamos FIRST del primer símbolo
                             first_sym = rhs[0]
                             if first_sym in terminals:
                                 # Si el primer símbolo es un terminal
-                                prod_text = " ".join(rhs)
-                                table_data[(nt, first_sym)] = prod_text
+                                if (nt, first_sym) not in table_data:  # Evitar conflictos
+                                    prod_text = " ".join(rhs)
+                                    table_data[(nt, first_sym)] = prod_text
                             else:
                                 # Si el primer símbolo es un no-terminal
                                 for terminal in first[first_sym]:
                                     if terminal != '':  # Ignorar epsilon
-                                        prod_text = " ".join(rhs)
-                                        table_data[(nt, terminal)] = prod_text
+                                        if (nt, terminal) not in table_data:  # Evitar conflictos
+                                            prod_text = " ".join(rhs)
+                                            table_data[(nt, terminal)] = prod_text
                                 
                                 # Si el primer símbolo puede derivar epsilon, añadir FOLLOW
                                 if '' in first[first_sym]:
                                     for terminal in follow[nt]:
-                                        prod_text = " ".join(rhs)
-                                        table_data[(nt, terminal)] = prod_text
+                                        if (nt, terminal) not in table_data:  # Evitar conflictos
+                                            prod_text = " ".join(rhs)
+                                            table_data[(nt, terminal)] = prod_text
         
-        # Filtrar solo los no-terminales y terminales clave para la tabla
-        key_non_terminals = ['start', 'program', 'sentence', 'expression', 'factor', 'term']
-        key_terminals = ['program', 'if', 'var', 'println', 'ID', '{', '}', '$']
+        # Usar todos los no-terminales y terminales para la tabla completa
+        sorted_non_terminals = sorted(non_terminals)
+        sorted_terminals = sorted(real_terminals)
         
-        display_non_terminals = [nt for nt in key_non_terminals if nt in non_terminals]
-        display_terminals = [t for t in key_terminals if t in real_terminals]
+        # Crear la tabla de parseo LL(1) completa
+        ll1_table_paths = create_table_image(filename, "TABLA DE PARSEO LL(1) - TABLA M COMPLETA", 
+                                        sorted_non_terminals, sorted_terminals, table_data)
         
-        # Crear la tabla de parseo LL(1)
-        ll1_table_path = create_table_image(filename, "TABLA DE PARSEO LL(1) - TABLA M", 
-                                        display_non_terminals, display_terminals, table_data)
-        print(f"\nVisualizacion de la tabla de parseo LL(1) guardada en {ll1_table_path}")
+        for path in ll1_table_paths:
+            print(f"\nVisualizacion de la tabla de parseo LL(1) guardada en {path}")
         
         # Crear simulación del proceso de parsing
         def create_parsing_simulation(filename, input_text):
             # Tokens para la simulación
-            tokens = [t.value for t in list(parser.lex(input_text)) if t.type != 'WS'][:10]  # Limitamos a 10 tokens
-            tokens.append('$')  # Añadir fin de entrada
+            tokens = [t for t in list(parser.lex(input_text)) if t.type != 'WS'][:15]  # Limitamos a 15 tokens
+            token_values = [t.value for t in tokens]
+            token_types = [t.type for t in tokens]
+            token_values.append('$')  # Añadir fin de entrada
             
             # Simulación del proceso de parsing
             parsing_steps = []
             stack = ['$', 'start']  # Pila inicial con símbolo de fin y símbolo de inicio
-            remaining_input = tokens.copy()
+            remaining_input = token_values.copy()
+            remaining_types = token_types.copy() + ['$']
             
             # Añadir el estado inicial
             parsing_steps.append({
                 'stack': stack.copy(),
                 'input': remaining_input.copy(),
+                'types': remaining_types.copy(),
                 'action': 'Inicio del parseo'
             })
             
             # Simular pasos básicos del parsing
-            for _ in range(min(8, len(tokens))):  # Limitar a 8 pasos para claridad
+            for _ in range(min(10, len(token_values))):  # Limitar a 10 pasos para claridad
                 if not stack or not remaining_input:
                     break
                     
                 top = stack[-1]
                 current_input = remaining_input[0] if remaining_input else '$'
+                current_type = remaining_types[0] if remaining_types else '$'
                 
                 # Si el tope de la pila es un terminal
                 if top in terminals or top == '$':
@@ -649,21 +692,39 @@ try:
                         # Match
                         stack.pop()
                         remaining_input.pop(0)
+                        remaining_types.pop(0)
                         parsing_steps.append({
                             'stack': stack.copy(),
                             'input': remaining_input.copy(),
+                            'types': remaining_types.copy(),
                             'action': f'Match: {top}'
                         })
                     else:
+                        # Verificar si coincide por tipo en lugar de valor
+                        if any(terminal in top for terminal in ['ID', 'NUMBER', 'BOOLEAN', 'BINARY']):
+                            if top == current_type:
+                                stack.pop()
+                                remaining_input.pop(0)
+                                remaining_types.pop(0)
+                                parsing_steps.append({
+                                    'stack': stack.copy(),
+                                    'input': remaining_input.copy(),
+                                    'types': remaining_types.copy(),
+                                    'action': f'Match por tipo: {top}'
+                                })
+                                continue
+                        
                         # Error
                         parsing_steps.append({
                             'stack': stack.copy(),
                             'input': remaining_input.copy(),
+                            'types': remaining_types.copy(),
                             'action': f'Error: se esperaba {top}'
                         })
                         break
                 # Si el tope es un no-terminal
                 elif top in non_terminals:
+                    # Intentar encontrar por valor
                     if (top, current_input) in table_data:
                         # Aplicar producción
                         production = table_data[(top, current_input)]
@@ -678,21 +739,41 @@ try:
                         parsing_steps.append({
                             'stack': stack.copy(),
                             'input': remaining_input.copy(),
+                            'types': remaining_types.copy(),
                             'action': f'Aplicar: {top} -> {production}'
                         })
                     else:
-                        # Error - no hay producción aplicable
-                        parsing_steps.append({
-                            'stack': stack.copy(),
-                            'input': remaining_input.copy(),
-                            'action': f'Error: no hay producción para ({top}, {current_input})'
-                        })
-                        break
+                        # Intentar encontrar por tipo
+                        if (top, current_type) in table_data:
+                            production = table_data[(top, current_type)]
+                            stack.pop()
+                            
+                            if production != "ε":
+                                prod_symbols = production.split()
+                                for symbol in reversed(prod_symbols):
+                                    stack.append(symbol)
+                                    
+                            parsing_steps.append({
+                                'stack': stack.copy(),
+                                'input': remaining_input.copy(),
+                                'types': remaining_types.copy(),
+                                'action': f'Aplicar por tipo: {top} -> {production}'
+                            })
+                        else:
+                            # Error - no hay producción aplicable
+                            parsing_steps.append({
+                                'stack': stack.copy(),
+                                'input': remaining_input.copy(),
+                                'types': remaining_types.copy(),
+                                'action': f'Error: no hay producción para ({top}, {current_input})'
+                            })
+                            break
                 else:
                     # Caso inesperado
                     parsing_steps.append({
                         'stack': stack.copy(),
                         'input': remaining_input.copy(),
+                        'types': remaining_types.copy(),
                         'action': f'Símbolo desconocido: {top}'
                     })
                     break
@@ -707,13 +788,10 @@ try:
                 rows.append([str(i), stack_str, input_str, step['action']])
             
             # Crear imagen de la tabla
-            from PIL import Image, ImageDraw, ImageFont
-            
-            # Calcular dimensiones de la tabla
             cell_width = 200
             cell_height = 40
             width = cell_width * len(headers)
-            height = cell_height * (len(rows) + 1) + 50  # +1 para encabezados, +50 para título
+            height = cell_height * (len(rows) + 1) + 50
             
             img = Image.new('RGB', (width, height), color='white')
             draw = ImageDraw.Draw(img)
@@ -770,24 +848,39 @@ try:
         simulation_path = create_parsing_simulation("parsing_simulation.png", input_text)
         print(f"Simulacion del proceso de parsing guardada en {simulation_path}")
         
-        # Crear tabla con las reglas de producción
+        # Crear tabla completa con todas las reglas de producción
         def create_grammar_rules_image(filename):
             headers = ["No-Terminal", "Producción"]
             rows = []
             
-            # Recopilar reglas para la visualización
+            # Recopilar todas las reglas para la visualización
             for lhs, rhs_list in productions.items():
-                for rhs in rhs_list:
+                for i, rhs in enumerate(rhs_list):
                     prod_str = " ".join(rhs) if rhs else "ε"
-                    rows.append([lhs, f"{lhs} -> {prod_str}"])
+                    rule_id = f"R{list(productions.keys()).index(lhs)+1}.{i+1}"
+                    rows.append([lhs, f"{rule_id}: {lhs} -> {prod_str}"])
             
-            # Limitar a un número razonable de reglas para la visualización
-            if len(rows) > 20:
-                rows = rows[:20]
-                rows.append(["...", "..."])
+            # Organizar por no-terminales
+            rows.sort(key=lambda x: x[0])
             
+            # Dividir en múltiples imágenes si hay demasiadas reglas
+            max_rows_per_image = 30
+            if len(rows) > max_rows_per_image:
+                parts = []
+                for i in range(0, len(rows), max_rows_per_image):
+                    part_rows = rows[i:i+max_rows_per_image]
+                    part_filename = filename.replace('.png', f'_part{i//max_rows_per_image+1}.png')
+                    part_paths = create_grammar_rules_part(part_filename, 
+                                                    f"REGLAS DE LA GRAMÁTICA (Parte {i//max_rows_per_image+1}/{math.ceil(len(rows)/max_rows_per_image)})",
+                                                    headers, part_rows)
+                    parts.extend(part_paths)
+                return parts
+            else:
+                return create_grammar_rules_part(filename, "REGLAS DE LA GRAMÁTICA COMPLETA", headers, rows)
+        
+        def create_grammar_rules_part(filename, title, headers, rows):
             # Parámetros de la tabla
-            cell_width = 250
+            cell_width = 350
             cell_height = 30
             width = cell_width * len(headers)
             height = cell_height * (len(rows) + 1) + 50
@@ -808,7 +901,7 @@ try:
             
             # Dibujar título
             draw.rectangle([(0, 0), (width, 50)], fill='#4B6082')
-            draw.text((width//2, 25), "REGLAS DE LA GRAMÁTICA", fill='white', font=title_font, anchor='mm')
+            draw.text((width//2, 25), title, fill='white', font=title_font, anchor='mm')
             
             # Dibujar encabezados
             for i, header in enumerate(headers):
@@ -831,18 +924,15 @@ try:
                     draw.rectangle([(x1, y1), (x2, y2)], fill=bg_color, outline='black')
                     
                     text = str(cell)
-                    text_width = draw.textlength(text, font=cell_font)
-                    if text_width > cell_width - 10:
-                        text = text[:30] + "..."
-                    
-                    draw.text((x1 + cell_width//2, y1 + cell_height//2), text, fill='black', font=cell_font, anchor='mm')
+                    draw.text((x1 + 10, y1 + cell_height//2), text, fill='black', font=cell_font, anchor='lm')  # Alineado a la izquierda
             
             img.save(filename)
-            return os.path.abspath(filename)
+            return [os.path.abspath(filename)]
         
-        # Crear tabla de reglas
-        rules_path = create_grammar_rules_image("grammar_rules.png")
-        print(f"Tabla de reglas de gramatica guardada en {rules_path}")
+        # Crear tabla de reglas completa
+        rules_paths = create_grammar_rules_image("grammar_rules.png")
+        for path in rules_paths:
+            print(f"Tabla de reglas de gramatica guardada en {path}")
         
         return first, follow, real_terminals
 
