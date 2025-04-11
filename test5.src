@@ -1,0 +1,13 @@
+x = 10;
+y = 5;
+
+if (x > y) {
+    print(x);
+} else {
+    print(y);
+}
+
+for (i in range(5)) {
+    z = i * 2;
+    print(z);
+}
