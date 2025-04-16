@@ -541,7 +541,6 @@ class EditorView(ViewBase):
     def save_file(self, use_current_path=False):
         """
         Save file to disk
-        
         Args:
             use_current_path: If True, use the current file path (if available)
         """
@@ -550,107 +549,111 @@ class EditorView(ViewBase):
             try:
                 # Get text content
                 text_content = self.text_editor.get_text()
-                
                 # Write to file
                 with open(self.current_file_path, 'w', encoding='utf-8') as file:
                     file.write(text_content)
-                    
                 print(f"File saved: {self.current_file_path}")
                 self.set_file_status("saved")
                 return True
             except Exception as e:
                 print(f"Error saving file: {e}")
                 return False
-        
+                
         # Otherwise open file dialog
-        # Initialize tkinter without creating a visible window
-        root = tk.Tk()
-        root.withdraw()
-        
-        # Get the current directory
-        current_dir = os.path.join(os.getcwd())
-        
-        # Show file dialog
-        file_path = filedialog.asksaveasfilename(
-            initialdir=current_dir,
-            title="Save File",
-            defaultextension=".txt",
-            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
-        )
-        
-        # If a file path was selected
-        if file_path:
+        try:
+            # Initialize tkinter without creating a visible window
+            root = tk.Tk()
+            root.withdraw()
+            
+            # Make sure the dialog window appears on top
+            root.attributes('-topmost', True)
+            
+            # Get the current directory
+            current_dir = os.path.join(os.getcwd())
+            
+            # Show file dialog
+            file_path = filedialog.asksaveasfilename(
+                initialdir=current_dir,
+                title="Save File",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            
+            # If a file path was selected
+            if file_path:
+                try:
+                    # Get text content
+                    text_content = self.text_editor.get_text()
+                    # Write to file
+                    with open(file_path, 'w', encoding='utf-8') as file:
+                        file.write(text_content)
+                    # Store the file path
+                    self.current_file_path = file_path
+                    self.set_file_status("saved")
+                    print(f"File saved: {file_path}")
+                    return True
+                except Exception as e:
+                    print(f"Error saving file: {e}")
+                    return False
+            
+            return False
+        finally:
+            # Ensure root is destroyed even if an exception occurs
             try:
-                # Get text content
-                text_content = self.text_editor.get_text()
-                
-                # Write to file
-                with open(file_path, 'w', encoding='utf-8') as file:
-                    file.write(text_content)
-                    
-                # Store the file path
-                self.current_file_path = file_path
-                self.set_file_status("saved")
-                
-                print(f"File saved: {file_path}")
-                return True
-            except Exception as e:
-                print(f"Error saving file: {e}")
-                return False
-        
-        # Destroy the tkinter instance
-        root.destroy()
-        return False
-        
-        # Destroy the tkinter instance
-        root.destroy()
-        return False
+                root.destroy()
+            except:
+                pass
 
     def load_file(self):
         """
         Open a file dialog to load text content from a file
         """
-        # Initialize tkinter without creating a visible window
-        root = tk.Tk()
-        root.withdraw()
-        
-        # Get the examples directory path
-        examples_dir = os.path.join(os.getcwd(), "Examples")
-        
-        # Create Examples directory if it doesn't exist
-        if not os.path.exists(examples_dir):
-            os.makedirs(examples_dir)
-        
-        # Show file dialog
-        file_path = filedialog.askopenfilename(
-            initialdir=examples_dir,
-            title="Open File",
-            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
-        )
-        
-        # If a file path was selected
-        if file_path:
+        try:
+            # Initialize tkinter without creating a visible window
+            root = tk.Tk()
+            root.withdraw()
+            
+            # Make sure the dialog window appears on top
+            root.attributes('-topmost', True)
+            
+            # Get the examples directory path
+            examples_dir = os.path.join(os.getcwd(), "Examples")
+            
+            # Create Examples directory if it doesn't exist
+            if not os.path.exists(examples_dir):
+                os.makedirs(examples_dir)
+                
+            # Show file dialog
+            file_path = filedialog.askopenfilename(
+                initialdir=examples_dir,
+                title="Open File",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            
+            # If a file path was selected
+            if file_path:
+                try:
+                    # Read from file
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        text_content = file.read()
+                    # Set the text in the editor
+                    self.text_editor.set_text(text_content)
+                    # Store the file path
+                    self.current_file_path = file_path
+                    self.set_file_status("saved")
+                    print(f"File loaded: {file_path}")
+                    return True
+                except Exception as e:
+                    print(f"Error loading file: {e}")
+                    return False
+                    
+            return False
+        finally:
+            # Ensure root is destroyed even if an exception occurs
             try:
-                # Read from file
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    text_content = file.read()
-                
-                # Set the text in the editor
-                self.text_editor.set_text(text_content)
-                
-                # Store the file path
-                self.current_file_path = file_path
-                self.set_file_status("saved")
-                
-                print(f"File loaded: {file_path}")
-                return True
-            except Exception as e:
-                print(f"Error loading file: {e}")
-                return False
-        
-        # Destroy the tkinter instance
-        root.destroy()
-        return False
+                root.destroy()
+            except:
+                pass
     
     def set_file_status(self, status):
         """
