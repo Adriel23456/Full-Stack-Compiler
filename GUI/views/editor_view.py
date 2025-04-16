@@ -1,9 +1,9 @@
 from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
 from GUI.views.grammar_view import GrammarView
+
+import pygame
 import os
-import tkinter as tk
-from tkinter import filedialog
 
 """
 Editor view for the Full Stack Compiler
@@ -258,7 +258,7 @@ class EditorView(ViewBase):
             
             # Then check button events
             if self.save_button.handle_event(event):
-                self.save_file()
+                self.save_file(use_current_path=self.current_file_path is not None)
                 
             if self.load_button.handle_event(event):
                 self.load_file()
@@ -540,11 +540,14 @@ class EditorView(ViewBase):
     
     def save_file(self, use_current_path=False):
         """
-        Save file to disk
+        Save file to disk using a separate thread
         Args:
             use_current_path: If True, use the current file path (if available)
         """
-        # If using current path and we have one, save directly
+        # Importar el explorador de archivos (asegúrate de haber creado el directorio fileExp)
+        from fileExp.file_explorer import FileExplorer
+        
+        # Si usamos path actual y tenemos uno, guardamos directamente
         if use_current_path and self.current_file_path:
             try:
                 # Get text content
@@ -558,28 +561,12 @@ class EditorView(ViewBase):
             except Exception as e:
                 print(f"Error saving file: {e}")
                 return False
-                
-        # Otherwise open file dialog
-        try:
-            # Initialize tkinter without creating a visible window
-            root = tk.Tk()
-            root.withdraw()
-            
-            # Make sure the dialog window appears on top
-            root.attributes('-topmost', True)
-            
-            # Get the current directory
-            current_dir = os.path.join(os.getcwd())
-            
-            # Show file dialog
-            file_path = filedialog.asksaveasfilename(
-                initialdir=current_dir,
-                title="Save File",
-                defaultextension=".txt",
-                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
-            )
-            
-            # If a file path was selected
+        
+        # Determine initial directory
+        current_dir = os.getcwd()
+        
+        # Define el callback para procesar el resultado del diálogo
+        def save_callback(file_path):
             if file_path:
                 try:
                     # Get text content
@@ -591,46 +578,29 @@ class EditorView(ViewBase):
                     self.current_file_path = file_path
                     self.set_file_status("saved")
                     print(f"File saved: {file_path}")
-                    return True
                 except Exception as e:
                     print(f"Error saving file: {e}")
-                    return False
-            
-            return False
-        finally:
-            # Ensure root is destroyed even if an exception occurs
-            try:
-                root.destroy()
-            except:
-                pass
+        
+        # Inicia el diálogo en un hilo separado
+        # Nota: esta llamada no es bloqueante y devolverá inmediatamente
+        FileExplorer.save_file_dialog(initial_dir=current_dir, callback=save_callback)
+        return True
 
     def load_file(self):
         """
-        Open a file dialog to load text content from a file
+        Open a file dialog to load text content from a file using a separate thread
         """
-        try:
-            # Initialize tkinter without creating a visible window
-            root = tk.Tk()
-            root.withdraw()
-            
-            # Make sure the dialog window appears on top
-            root.attributes('-topmost', True)
-            
-            # Get the examples directory path
-            examples_dir = os.path.join(os.getcwd(), "Examples")
-            
-            # Create Examples directory if it doesn't exist
-            if not os.path.exists(examples_dir):
-                os.makedirs(examples_dir)
-                
-            # Show file dialog
-            file_path = filedialog.askopenfilename(
-                initialdir=examples_dir,
-                title="Open File",
-                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
-            )
-            
-            # If a file path was selected
+        # Importar el explorador de archivos
+        from fileExp.file_explorer import FileExplorer
+        
+        # Get the examples directory path
+        examples_dir = os.path.join(os.getcwd(), "Examples")
+        # Create Examples directory if it doesn't exist
+        if not os.path.exists(examples_dir):
+            os.makedirs(examples_dir)
+        
+        # Define el callback para procesar el resultado del diálogo
+        def load_callback(file_path):
             if file_path:
                 try:
                     # Read from file
@@ -642,18 +612,13 @@ class EditorView(ViewBase):
                     self.current_file_path = file_path
                     self.set_file_status("saved")
                     print(f"File loaded: {file_path}")
-                    return True
                 except Exception as e:
                     print(f"Error loading file: {e}")
-                    return False
-                    
-            return False
-        finally:
-            # Ensure root is destroyed even if an exception occurs
-            try:
-                root.destroy()
-            except:
-                pass
+        
+        # Inicia el diálogo en un hilo separado
+        # Nota: esta llamada no es bloqueante y devolverá inmediatamente
+        FileExplorer.open_file_dialog(initial_dir=examples_dir, callback=load_callback)
+        return True
     
     def set_file_status(self, status):
         """
