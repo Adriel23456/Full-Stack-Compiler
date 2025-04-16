@@ -29,8 +29,6 @@ class Button:
     
     def adjust_size(self):
         """Adjust button size based on text content"""
-        from GUI.design_base import design
-        
         # Use the medium font for all buttons
         font = design.get_font("medium")
         text_surface = font.render(self.text, True, (0, 0, 0))
@@ -102,9 +100,6 @@ class ToolbarButton(Button):
         Args:
             surface: Surface to render on
         """
-        # Ensure button doesn't exceed toolbar height
-        from GUI.design_base import design
-        
         # Get the original rect
         orig_rect = self.rect.copy()
         

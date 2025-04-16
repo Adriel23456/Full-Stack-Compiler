@@ -5,7 +5,8 @@ Defines themes, colors, fonts and other UI elements
 import pygame
 import json
 import os
-from config import BASE_DIR
+from config import (BASE_DIR, DEFAULT_FONT_SIZE_SMALL, DEFAULT_FONT_SIZE_MEDIUM, 
+                       DEFAULT_FONT_SIZE_LARGE)
 
 class DesignSystem:
     """
@@ -53,10 +54,6 @@ class DesignSystem:
         """
         Load settings from JSON file or create with defaults if not exists
         """
-        # Import font settings from config
-        from config import (DEFAULT_FONT_SIZE_SMALL, DEFAULT_FONT_SIZE_MEDIUM, 
-                       DEFAULT_FONT_SIZE_LARGE)
-        
         # Default settings
         defaults = {
             "theme": "light",  # light or dark
@@ -92,9 +89,6 @@ class DesignSystem:
         """
         Update settings to current defaults if any values change in config.py
         """
-        from config import (DEFAULT_FONT_SIZE_SMALL, DEFAULT_FONT_SIZE_MEDIUM, 
-                        DEFAULT_FONT_SIZE_LARGE)
-        
         # Check if current settings match defaults
         current_size = self.settings.get("font_size_option", "small")
         

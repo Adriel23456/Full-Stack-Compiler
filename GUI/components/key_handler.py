@@ -2,6 +2,7 @@
 Keyboard input handler for TextBox component
 """
 import pygame
+from config import KEY_REPEAT_DELAY, KEY_REPEAT_INTERVAL
 
 class KeyHandler:
     """
@@ -12,7 +13,6 @@ class KeyHandler:
         
         # Key repeat tracking
         self.key_states = {}  # Tracks the state of each key for manual repeat
-        from config import KEY_REPEAT_DELAY, KEY_REPEAT_INTERVAL
         self.repeat_delay = KEY_REPEAT_DELAY
         self.repeat_interval = KEY_REPEAT_INTERVAL
         

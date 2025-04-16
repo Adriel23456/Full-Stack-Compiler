@@ -1,20 +1,18 @@
 from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
+from GUI.view_base import ViewBase
 from GUI.views.grammar_view import GrammarView
-
+from fileExp.file_explorer import FileExplorer
+from GUI.design_base import design
+from GUI.components.button import Button, ToolbarButton
+from GUI.components.textbox import TextBox
+from config import States
 import pygame
 import os
 
 """
 Editor view for the Full Stack Compiler
 """
-import pygame
-from GUI.view_base import ViewBase
-from GUI.design_base import design
-from GUI.components.button import Button, ToolbarButton
-from GUI.components.textbox import TextBox
-from config import States
-
 class EditorView(ViewBase):
     """
     Main editor view for the application
@@ -619,9 +617,6 @@ class EditorView(ViewBase):
         Args:
             use_current_path: If True, use the current file path (if available)
         """
-        # Importar el explorador de archivos (asegúrate de haber creado el directorio fileExp)
-        from fileExp.file_explorer import FileExplorer
-        
         # Si usamos path actual y tenemos uno, guardamos directamente
         if use_current_path and self.current_file_path:
             try:
@@ -665,9 +660,6 @@ class EditorView(ViewBase):
         """
         Versión ultra-robusta para cargar archivos que previene errores de índice
         """
-        # Importar el explorador de archivos
-        from fileExp.file_explorer import FileExplorer
-        
         # Obtener el directorio de ejemplos
         examples_dir = os.path.join(os.getcwd(), "Examples")
         # Crear el directorio si no existe

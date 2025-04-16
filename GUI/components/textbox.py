@@ -2,7 +2,6 @@
 TextBox implementation with word wrapping based on Windows Notepad behavior
 """
 import pygame
-import time
 from GUI.design_base import design
 from config import (LINE_NUMBERS_WIDTH, LINE_HEIGHT_MULTIPLIER, 
                    KEY_REPEAT_DELAY, KEY_REPEAT_INTERVAL, 
