@@ -1,6 +1,7 @@
 from lark import Lark, Tree
 from lark.lexer import Token
 import os
+import pydot
 # -*- coding: utf-8 -*-
 
 # Define the complex grammar in Lark format
@@ -79,9 +80,6 @@ try:
     print("--- PARSE TREE ---")
     print(tree.pretty())
     print("-----------------\n")
-    
-    # For graphical visualization, use pydot and graphviz
-    import pydot
     
     def find_node_by_path(tree, path):
         """Find a node by following a path of indices from the root."""
