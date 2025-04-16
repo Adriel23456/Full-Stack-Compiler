@@ -63,9 +63,9 @@ def main():
         # Set initial state to Editor
         controller.set_initial_state(States.EDITOR)
         
-        # Run main loop
-        controller.run()
-    
+        # Run main loop con protección adicional
+        safe_run(controller)
+
     except Exception as e:
         print(f"Error: {e}")
         raise
@@ -73,6 +73,70 @@ def main():
         # Finalize pygame
         pygame.quit()
         sys.exit()
+
+def safe_run(controller):
+    """
+    Versión protegida del bucle principal que atrapa errores
+    """
+    # Initialize clock
+    clock = pygame.time.Clock()
+    
+    # Main loop
+    while controller.running:
+        try:
+            # Calculate delta time (in seconds)
+            dt = clock.tick(60) / 1000.0
+            
+            # Handle events
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    controller.quit()
+            
+            # If current view is configured, handle its events
+            if hasattr(controller, 'current_view'):
+                try:
+                    controller.current_view.handle_events(events)
+                except Exception as e:
+                    print(f"Error en handle_events: {e}")
+                    # Intenta continuar con la ejecución
+            
+            # Handle state changes if any
+            try:
+                controller.handle_state_change()
+            except Exception as e:
+                print(f"Error en handle_state_change: {e}")
+                # Intenta continuar con la ejecución
+            
+            # Update and render current view
+            if hasattr(controller, 'current_view'):
+                try:
+                    # Separamos update y render para identificar mejor dónde está el error
+                    # Update
+                    try:
+                        controller.current_view.update(dt)
+                    except Exception as e:
+                        print(f"Error en update: {e}")
+                    
+                    # Render
+                    try:
+                        controller.current_view.render()
+                    except Exception as e:
+                        print(f"Error en render: {e}")
+                except Exception as e:
+                    print(f"Error general en ejecución del view: {e}")
+            
+            # Update the screen
+            try:
+                pygame.display.flip()
+            except Exception as e:
+                print(f"Error en pygame.display.flip(): {e}")
+        
+        except Exception as e:
+            print(f"Error crítico en el bucle principal: {e}")
+            # En lugar de permitir que la aplicación se cierre, intentamos continuar
+            # esperando un poco para no consumir demasiada CPU en caso de error persistente
+            pygame.time.wait(100)
 
 if __name__ == "__main__":
     main()

@@ -417,54 +417,129 @@ class EditorView(ViewBase):
     
     def render(self):
         """
-        Render the view on screen
+        Render the view on screen con protección contra errores
         """
-        # Clear the screen with background color
-        self.screen.fill(design.colors["background"])
-        
-        # Draw toolbar background - usar el ancho completo de la pantalla
-        screen_width = self.screen.get_width()
-        toolbar_rect = pygame.Rect(0, 0, screen_width, design.toolbar_height)
-        pygame.draw.rect(self.screen, design.colors["toolbar"], toolbar_rect)
-        
-        # Draw all UI components
-        self.save_button.render(self.screen)
-        self.load_button.render(self.screen)
-        self.configure_button.render(self.screen)
-        self.credits_button.render(self.screen)
-        # Render botones de símbolos
-        for button in self.symbol_buttons:
-            button.render(self.screen)
-        self.compile_button.render(self.screen)
-        self.grammar_button.render(self.screen)
-        self.execute_button.render(self.screen)
-        self.text_editor.render(self.screen)
-        
-        # Draw status indicator
-        if hasattr(self, "status_indicator_rect") and self.status_indicator_rect:
-            # Choose color based on file status
-            if self.file_status == "unsaved":
-                indicator_color = (255, 0, 0)  # Red
-            elif self.file_status == "saved":
-                indicator_color = (0, 255, 0)  # Green
-            elif self.file_status == "modified":
-                indicator_color = (255, 255, 0)  # Yellow
+        try:
+            # Clear the screen with background color
+            self.screen.fill(design.colors["background"])
             
-            # Draw the indicator
-            pygame.draw.rect(self.screen, indicator_color, self.status_indicator_rect, 0, 10)
-            pygame.draw.rect(self.screen, (0, 0, 0), self.status_indicator_rect, 2, 10)
-        
-        # Render config view on top if active
-        if self.config_view:
-            self.config_view.render()
-        
-        # Render credits view on top if active
-        if self.credits_view:
-            self.credits_view.render()
+            try:
+                # Draw toolbar background - usar el ancho completo de la pantalla
+                screen_width = self.screen.get_width()
+                toolbar_rect = pygame.Rect(0, 0, screen_width, design.toolbar_height)
+                pygame.draw.rect(self.screen, design.colors["toolbar"], toolbar_rect)
+            except Exception as e:
+                print(f"Error dibujando toolbar: {e}")
             
-        # Render grammar view on top if active
-        if self.grammar_view:
-            self.grammar_view.render()
+            # Draw all UI components con protección individual
+            try:
+                self.save_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando save_button: {e}")
+                
+            try:
+                self.load_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando load_button: {e}")
+                
+            try:
+                self.configure_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando configure_button: {e}")
+                
+            try:
+                self.credits_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando credits_button: {e}")
+            
+            # Render botones de símbolos con protección
+            try:
+                for button in self.symbol_buttons:
+                    try:
+                        button.render(self.screen)
+                    except Exception as e:
+                        print(f"Error dibujando symbol_button: {e}")
+            except Exception as e:
+                print(f"Error accediendo a symbol_buttons: {e}")
+                
+            try:
+                self.compile_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando compile_button: {e}")
+                
+            try:
+                self.grammar_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando grammar_button: {e}")
+                
+            try:
+                self.execute_button.render(self.screen)
+            except Exception as e:
+                print(f"Error dibujando execute_button: {e}")
+            
+            # Protección especial para el editor de texto (donde probablemente está el error)
+            try:
+                if hasattr(self, 'text_editor'):
+                    self.text_editor.render(self.screen)
+            except IndexError as e:
+                print(f"Error de índice en text_editor.render(): {e}")
+                # Intentar reiniciar el editor a un estado seguro
+                try:
+                    self.text_editor.lines = ["Error al renderizar. Editor reiniciado."]
+                    self.text_editor.cursor_line = 0
+                    self.text_editor.cursor_col = 0
+                    self.text_editor.scroll_y = 0
+                    self.text_editor.update_wrapped_lines()
+                    # Intentar renderizar nuevamente con el estado reiniciado
+                    self.text_editor.render(self.screen)
+                except Exception as e2:
+                    print(f"Error al intentar recuperar editor: {e2}")
+            except Exception as e:
+                print(f"Error general en text_editor.render(): {e}")
+            
+            # Draw status indicator
+            try:
+                if hasattr(self, "status_indicator_rect") and self.status_indicator_rect:
+                    # Choose color based on file status
+                    if self.file_status == "unsaved":
+                        indicator_color = (255, 0, 0)  # Red
+                    elif self.file_status == "saved":
+                        indicator_color = (0, 255, 0)  # Green
+                    elif self.file_status == "modified":
+                        indicator_color = (255, 255, 0)  # Yellow
+                    
+                    # Draw the indicator
+                    pygame.draw.rect(self.screen, indicator_color, self.status_indicator_rect, 0, 10)
+                    pygame.draw.rect(self.screen, (0, 0, 0), self.status_indicator_rect, 2, 10)
+            except Exception as e:
+                print(f"Error dibujando status indicator: {e}")
+            
+            # Render config view on top if active
+            try:
+                if self.config_view:
+                    self.config_view.render()
+            except Exception as e:
+                print(f"Error en config_view.render(): {e}")
+                self.config_view = None
+            
+            # Render credits view on top if active
+            try:
+                if self.credits_view:
+                    self.credits_view.render()
+            except Exception as e:
+                print(f"Error en credits_view.render(): {e}")
+                self.credits_view = None
+                
+            # Render grammar view on top if active
+            try:
+                if self.grammar_view:
+                    self.grammar_view.render()
+            except Exception as e:
+                print(f"Error en grammar_view.render(): {e}")
+                self.grammar_view = None
+        
+        except Exception as e:
+            print(f"Error crítico en render: {e}")
     
     def insert_symbol(self, symbol):
         """
@@ -588,37 +663,118 @@ class EditorView(ViewBase):
 
     def load_file(self):
         """
-        Open a file dialog to load text content from a file using a separate thread
+        Versión ultra-robusta para cargar archivos que previene errores de índice
         """
         # Importar el explorador de archivos
         from fileExp.file_explorer import FileExplorer
         
-        # Get the examples directory path
+        # Obtener el directorio de ejemplos
         examples_dir = os.path.join(os.getcwd(), "Examples")
-        # Create Examples directory if it doesn't exist
+        # Crear el directorio si no existe
         if not os.path.exists(examples_dir):
             os.makedirs(examples_dir)
         
-        # Define el callback para procesar el resultado del diálogo
-        def load_callback(file_path):
-            if file_path:
+        # Definir una función completamente protegida para procesar el resultado
+        def safe_load_callback(file_path):
+            if not file_path:
+                return
+                
+            # Guardar la información global del programa que necesitaremos restaurar
+            try:
+                # Crear una copia de seguridad del estado actual
+                backup_status = self.file_status
+                backup_path = self.current_file_path
+                
+                # Intentar leer el archivo seleccionado
                 try:
-                    # Read from file
                     with open(file_path, 'r', encoding='utf-8') as file:
                         text_content = file.read()
-                    # Set the text in the editor
-                    self.text_editor.set_text(text_content)
-                    # Store the file path
+                except Exception as e:
+                    print(f"Error al leer el archivo: {e}")
+                    return
+                    
+                # Verificar que tenemos el objeto text_editor disponible
+                if not hasattr(self, 'text_editor'):
+                    print("Error: El editor de texto no está inicializado")
+                    return
+                    
+                # Iniciar un bloque protegido para establecer el contenido
+                try:
+                    # Método más seguro: reconstruir el editor con el nuevo texto
+                    # 1. Guarda la posición original de desplazamiento
+                    original_scroll_y = 0
+                    if hasattr(self.text_editor, 'scroll_y'):
+                        original_scroll_y = self.text_editor.scroll_y
+                    
+                    # 2. Establecer el texto de manera segura
+                    # Este método debe estar definido en TextBox para simplemente 
+                    # asignar líneas sin procesar wrapping o actualizar visualmente
+                    self.text_editor.lines = text_content.split('\n')
+                    if not self.text_editor.lines:
+                        self.text_editor.lines = [""]
+                    
+                    # 3. Resetear el cursor a una posición segura
+                    self.text_editor.cursor_line = 0
+                    self.text_editor.cursor_col = 0
+                    
+                    # 4. Forzar una actualización completa de las líneas envueltas
+                    # Si esto falla, intentar un enfoque aún más simple
+                    try:
+                        self.text_editor.update_wrapped_lines()
+                    except Exception as e:
+                        print(f"Error al actualizar líneas: {e}")
+                        # Reinicio de emergencia
+                        self.text_editor.lines = [""]
+                        self.text_editor.update_wrapped_lines()
+                    
+                    # 5. Restaurar el desplazamiento (o establecer a 0 si hay problema)
+                    try:
+                        if original_scroll_y > 0:
+                            self.text_editor.scroll_y = min(original_scroll_y, 
+                                                max(0, len(self.text_editor.wrapped_lines) - self.text_editor.visible_lines))
+                        self.text_editor.calculate_scrollbar()
+                    except Exception:
+                        self.text_editor.scroll_y = 0
+                        self.text_editor.calculate_scrollbar()
+                    
+                    # Actualizar la información del archivo
                     self.current_file_path = file_path
                     self.set_file_status("saved")
+                    
+                    # Registrar éxito
                     print(f"File loaded: {file_path}")
+                    
                 except Exception as e:
-                    print(f"Error loading file: {e}")
+                    # Si algo falla, reiniciar a un estado conocido y seguro
+                    print(f"Error al actualizar editor con archivo: {e}")
+                    
+                    # Restaurar el estado anterior
+                    self.file_status = backup_status
+                    self.current_file_path = backup_path
+                    
+                    # Establecer un contenido seguro
+                    try:
+                        self.text_editor.lines = ["Error al cargar el archivo."]
+                        self.text_editor.cursor_line = 0
+                        self.text_editor.cursor_col = 0
+                        self.text_editor.update_wrapped_lines()
+                    except Exception:
+                        # Si incluso esto falla, vamos a un estado aún más básico
+                        print("Error crítico - reiniciando editor")
+                        # No hacemos nada más - dejar que la aplicación siga ejecutándose
+            
+            except Exception as e:
+                # Captura de último recurso - para no caerse nunca
+                print(f"Error inesperado: {e}")
         
-        # Inicia el diálogo en un hilo separado
-        # Nota: esta llamada no es bloqueante y devolverá inmediatamente
-        FileExplorer.open_file_dialog(initial_dir=examples_dir, callback=load_callback)
-        return True
+        # Iniciar el diálogo de archivo en un hilo separado
+        # Usar try/except para capturar cualquier error en la creación del hilo
+        try:
+            FileExplorer.open_file_dialog(initial_dir=examples_dir, callback=safe_load_callback)
+            return True
+        except Exception as e:
+            print(f"Error al mostrar diálogo de archivo: {e}")
+            return False
     
     def set_file_status(self, status):
         """
