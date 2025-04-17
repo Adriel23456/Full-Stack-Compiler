@@ -6,6 +6,7 @@ from ExternalPrograms.fileExplorer import FileExplorer
 from GUI.design_base import design
 from GUI.components.button import Button, ToolbarButton
 from GUI.components.textbox import TextBox
+from GUI.models.execute_model import ExecuteModel
 from config import States
 import pygame
 import os
@@ -28,6 +29,8 @@ class EditorView(ViewBase):
         self.config_view = None
         self.credits_view = None
         self.grammar_view = None
+
+        self.execute_model = ExecuteModel()
         
         # File tracking
         self.current_file_path = None
@@ -273,17 +276,16 @@ class EditorView(ViewBase):
                     symbol = ["(", ")", "{", "}", "[", "]"][i]
                     self.insert_symbol(symbol)
             if self.compile_button.handle_event(event):
-                print("Compile button clicked")
+                # Obtener y mostrar el texto del editor
+                text_content = self.text_editor.get_text()
+                print("Compiler content:")
+                print(text_content)
                 
             if self.grammar_button.handle_event(event):
                 self.open_grammar_view()
             
             if self.execute_button.handle_event(event):
-                print("Execute button clicked")
-                # Obtener y mostrar el texto del editor
-                text_content = self.text_editor.get_text()
-                print("Editor content:")
-                print(text_content)
+                self.execute_model.execute()
     
     def open_config_view(self):
         """Open the configuration view"""
