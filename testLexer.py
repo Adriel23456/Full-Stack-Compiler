@@ -4,6 +4,12 @@ import subprocess
 from antlr4 import *
 import pydot  # Librería para visualizar gráficos
 
+# Asegurar que un directorio existe
+def ensure_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    return os.path.abspath(directory)
+
 # Ejecutar ANTLR para generar el lexer
 def generate_lexer():
     # Verificar que existe el archivo de gramática
@@ -43,7 +49,18 @@ def generate_lexer():
         os.chdir(current_dir)
 
 # Crear un visualizador de tokens usando pydot
-def visualize_tokens(tokens, output_file='token_graph.png'):
+def visualize_tokens(tokens, output_file=None):
+    # Si no se especifica un archivo de salida, usar uno por defecto
+    if output_file is None:
+        # Asegurar que el directorio assets/Images existe
+        images_dir = ensure_dir(os.path.join('assets', 'Images'))
+        output_file = os.path.join(images_dir, 'token_graph.png')
+    else:
+        # Asegurar que el directorio del archivo existe
+        output_dir = os.path.dirname(output_file)
+        if output_dir:
+            ensure_dir(output_dir)
+    
     graph = pydot.Dot(graph_type='digraph', rankdir='LR')
     
     # Nodos para cada token
@@ -67,7 +84,7 @@ def analyze_text(text):
     sys.path.append(os.path.abspath('assets'))
     
     try:
-        from VGraphLexer import VGraphLexer
+        from VGraphLexer import VGraphLexer # type: ignore
     except ImportError:
         print("Error: No se pudo importar VGraphLexer. Asegúrate de que se haya generado correctamente.")
         return []
@@ -95,8 +112,10 @@ def analyze_text(text):
     print("─" * 80)
     print(f"Total de tokens: {len(all_tokens)}")
     
-    # Visualizar los tokens
-    visualize_tokens(all_tokens)
+    # Visualizar los tokens en la nueva ubicación
+    images_dir = ensure_dir(os.path.join('assets', 'Images'))
+    output_file = os.path.join(images_dir, 'token_graph.png')
+    visualize_tokens(all_tokens, output_file)
     
     return all_tokens
 
