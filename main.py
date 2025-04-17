@@ -8,25 +8,14 @@ import os
 from config import WINDOW_TITLE, States
 from GUI.view_controller import ViewController
 from GUI.views.editor_view import EditorView
-
-def ensure_directories():
-    """Asegurar que existen todos los directorios necesarios"""
-    from config import ASSETS_DIR, FONTS_DIR
-    
-    # Crear directorio de assets si no existe
-    if not os.path.exists(ASSETS_DIR):
-        os.makedirs(ASSETS_DIR)
-    
-    # Crear directorio de fuentes si no existe
-    if not os.path.exists(FONTS_DIR):
-        os.makedirs(FONTS_DIR)
+from GUI.views.lexical_analysis_view import LexicalAnalysisView
+from GUI.design_base import design
+from config import ASSETS_DIR, FONTS_DIR
 
 def main():
     """
     Main program function
     """
-    # Asegurar que existen los directorios necesarios
-    ensure_directories()
     
     # Initialize pygame
     pygame.init()
@@ -39,9 +28,6 @@ def main():
     
     # Center the window on the screen
     os.environ['SDL_VIDEO_CENTERED'] = '1'
-    
-    # Load design system to access settings
-    from GUI.design_base import design
     
     # Get configured window size
     window_size = design.get_window_size()
@@ -57,8 +43,9 @@ def main():
         # Create View Controller
         controller = ViewController()
         
-        # Register only the Editor state
+        # Register the posible states
         controller.add_state(States.EDITOR, EditorView)
+        controller.add_state(States.LEXICAL_ANALYSIS, LexicalAnalysisView)
         
         # Set initial state to Editor
         controller.set_initial_state(States.EDITOR)

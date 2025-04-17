@@ -1,5 +1,35 @@
-program Example {
-    var x;
-    x = 10;
-    println(x);
-};
+# Variables para posición y ángulos
+(int) x1, y1, x2, y2, angle, depth;
+(color) c;
+
+# Función recursiva para dibujar el árbol
+function tree(x1, y1, length, angle, depth) {
+    if (depth == 0) {
+        return;
+    }
+
+    # Calcular nueva posición usando trigonometría
+    x2 = x1 + length * cos(angle * 3.1416 / 180);
+    y2 = y1 - length * sin(angle * 3.1416 / 180);
+
+    # Cambiar color según profundidad
+    if (depth % 3 == 0) { c = verde; }
+    else if (depth % 3 == 1) { c = marrón; }
+    else { c = amarillo; }
+
+    setcolor(c);
+    draw line(x1, y1, x2, y2);
+
+    # Llamadas recursivas para las ramas izquierda y derecha
+    tree(x2, y2, length * 0.7, angle - 25, depth - 1);
+    tree(x2, y2, length * 0.7, angle + 25, depth - 1);
+}
+
+# Animación con aumento de profundidad
+frame {
+    loop (depth = 1; depth <= 8; depth = depth + 1) {
+        clear();
+        tree(320, 400, 100, 90, depth);
+        wait(10);
+    }
+}

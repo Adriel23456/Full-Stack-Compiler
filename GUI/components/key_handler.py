@@ -37,124 +37,128 @@ class KeyHandler:
         }
         
     def copy_selected_text(self):
-        """Copy selected text to clipboard"""
+        """Copy selected text to clipboard with platform-specific handling"""
         if self.textbox.selection.is_active():
             selected_text = self.textbox.selection.get_selected_text()
             if selected_text:
-                # Set clipboard text
-                pygame.scrap.put(pygame.SCRAP_TEXT, selected_text.encode('utf-8'))
-                return True
+                try:
+                    # Try platform-specific approaches - xclip for Linux
+                    import subprocess
+                    try:
+                        process = subprocess.Popen(['xclip', '-selection', 'clipboard'], 
+                                                stdin=subprocess.PIPE)
+                        process.communicate(input=selected_text.encode('utf-8'))
+                        return True
+                    except Exception as e:
+                        print(f"xclip error: {e}")
+                        
+                    # Fallback to pygame if xclip fails
+                    try:
+                        pygame.scrap.put(pygame.SCRAP_TEXT, selected_text.encode('utf-8'))
+                        return True
+                    except Exception as e:
+                        print(f"Pygame clipboard error: {e}")
+                except Exception as e:
+                    print('???')
         return False
-    
+
     def paste_text_from_clipboard(self):
-        """Paste text from clipboard at cursor position"""
+        """Paste text from clipboard with Ubuntu compatibility"""
         try:
-            # Get text from clipboard
-            clipboard_data = pygame.scrap.get(pygame.SCRAP_TEXT)
-            if not clipboard_data:
+            clipboard_text = None
+            clipboard_data = None
+            
+            # Try xclip first (Linux)
+            try:
+                import subprocess
+                process = subprocess.Popen(['xclip', '-selection', 'clipboard', '-o'], 
+                                        stdout=subprocess.PIPE)
+                clipboard_data = process.stdout.read()
+                if clipboard_data:
+                    clipboard_text = clipboard_data.decode('utf-8', errors='replace')
+            except Exception as e:
+                print(f"xclip paste error: {e}")
+            
+            # If xclip failed, try pygame
+            if not clipboard_text:
+                try:
+                    clipboard_data = pygame.scrap.get(pygame.SCRAP_TEXT)
+                    if clipboard_data:
+                        # Try various encodings
+                        for encoding in ['utf-8', 'latin-1', 'cp1252']:
+                            try:
+                                clipboard_text = clipboard_data.decode(encoding)
+                                break
+                            except UnicodeDecodeError:
+                                continue
+                        
+                        # Last resort
+                        if not clipboard_text:
+                            clipboard_text = clipboard_data.decode('latin-1', errors='replace')
+                except Exception as e:
+                    print(f"Pygame clipboard error: {e}")
+            
+            if not clipboard_text:
                 return False
                 
-            # Intentar varias codificaciones comunes
-            clipboard_text = None
-            encodings_to_try = ['utf-8', 'latin-1', 'cp1252', 'ascii']
-            
-            for encoding in encodings_to_try:
-                try:
-                    clipboard_text = clipboard_data.decode(encoding)
-                    # Si llegamos aquí, la decodificación tuvo éxito
-                    break
-                except UnicodeDecodeError:
-                    continue
-            
-            # Si ninguna decodificación funcionó, usamos latin-1 que acepta todos los bytes
-            if clipboard_text is None:
-                clipboard_text = clipboard_data.decode('latin-1', errors='replace')
-            
-            # Limpieza del texto para quitar caracteres nulos y otros caracteres problemáticos
+            # Clean up the text
             clipboard_text = clipboard_text.replace('\0', '')
+            clipboard_text = clipboard_text.replace('\r\n', '\n')
             
-            # En Windows, el portapapeles a veces contiene caracteres de control indeseados
-            # Filtramos solo los caracteres imprimibles y los saltos de línea comunes
+            # Filter unwanted control characters
             printable_chars = []
             for char in clipboard_text:
                 if char.isprintable() or char in ['\n', '\r', '\t']:
                     printable_chars.append(char)
             clipboard_text = ''.join(printable_chars)
             
-            # Normalizar saltos de línea (Windows usa \r\n, Unix usa \n)
-            clipboard_text = clipboard_text.replace('\r\n', '\n')
-            
-            # Si después de la limpieza no queda texto, salimos
             if not clipboard_text:
                 return False
             
-            # Si selection is active, delete selected text first
+            # Process the text normally
+            
+            # If selection is active, delete selected text first
             if self.textbox.selection.is_active():
                 self.textbox.selection.delete_selected_text()
             
-            # Verificar el límite de líneas antes de pegar
-            current_line_count = len(self.textbox.lines)
-            
-            # Insert clipboard text at cursor position
-            current_line = self.textbox.lines[self.textbox.cursor_line]
-            
             # Handle multi-line paste
             if '\n' in clipboard_text:
-                # Split clipboard text into lines
                 paste_lines = clipboard_text.split('\n')
                 
-                # Calcular cuántas líneas se agregarán realmente
+                # Check line limit
+                current_line_count = len(self.textbox.lines)
                 lines_to_add = len(paste_lines) - 1
-                
-                # Comprobar si excederemos el límite
                 if current_line_count + lines_to_add > 2500:
-                    # Calcular cuántas líneas podemos añadir
-                    max_lines_to_add = 2500 - current_line_count
-                    if max_lines_to_add <= 0:
-                        # No podemos añadir líneas, solo modificar la actual
-                        paste_lines = [paste_lines[0]]
-                    else:
-                        # Truncar a las líneas que podemos añadir
-                        paste_lines = paste_lines[:max_lines_to_add + 1]  # +1 porque la primera reemplaza
+                    max_lines = 2500 - current_line_count
+                    paste_lines = paste_lines[:max(1, max_lines+1)]
                 
-                
-                # First line replaces from cursor to end of current line
+                # Process the paste
+                current_line = self.textbox.lines[self.textbox.cursor_line]
                 first_part = current_line[:self.textbox.cursor_col]
                 self.textbox.lines[self.textbox.cursor_line] = first_part + paste_lines[0]
                 
-                # Insert middle lines
+                # Insert remaining lines
                 for i, line in enumerate(paste_lines[1:-1], 1):
                     self.textbox.lines.insert(self.textbox.cursor_line + i, line)
                 
-                # Last line is inserted before remainder of current line
+                # Handle last line
                 if len(paste_lines) > 1:
                     last_part = current_line[self.textbox.cursor_col:]
                     last_line = paste_lines[-1] + last_part
                     self.textbox.lines.insert(self.textbox.cursor_line + len(paste_lines) - 1, last_line)
                 
-                # Update cursor position to end of pasted text
+                # Update cursor position
                 self.textbox.cursor_line = min(self.textbox.cursor_line + len(paste_lines) - 1, 2499)
-                self.textbox.cursor_col = len(paste_lines[-1]) if len(paste_lines) > 0 else 0
+                self.textbox.cursor_col = len(paste_lines[-1])
             else:
                 # Single line paste
+                current_line = self.textbox.lines[self.textbox.cursor_line]
                 self.textbox.lines[self.textbox.cursor_line] = current_line[:self.textbox.cursor_col] + clipboard_text + current_line[self.textbox.cursor_col:]
                 self.textbox.cursor_col += len(clipboard_text)
             
-            # Aplicar límite estricto después del pegado
-            if len(self.textbox.lines) > 2500:
-                self.textbox.lines = self.textbox.lines[:2500]
-                # Ajustar cursor si está fuera de límites
-                if self.textbox.cursor_line >= 2500:
-                    self.textbox.cursor_line = 2499
-                    self.textbox.cursor_col = len(self.textbox.lines[2499])
-            
-            # Clear selection
+            # Update UI
             self.textbox.selection.clear()
-            
-            # Update wrapped lines
             self.textbox.update_wrapped_lines()
-            
-            # Make sure cursor is visible
             self.textbox.ensure_cursor_visible()
             
             return True
@@ -228,6 +232,8 @@ class KeyHandler:
     
     def handle_keydown(self, event):
         """Process a keystroke"""
+        if hasattr(self.textbox, 'error_highlights') and self.textbox.error_highlights:
+            self.textbox.clear_error_highlights()
         # Check for keyboard shortcuts (CTRL+Key)
         if pygame.key.get_mods() & pygame.KMOD_CTRL:
             # CTRL+Z (Undo)

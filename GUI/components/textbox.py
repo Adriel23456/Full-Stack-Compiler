@@ -75,6 +75,8 @@ class TextBox:
         self.scrollbar_click_y = 0
         self.scrollbar_thumb_y = 0
         self.scrollbar_thumb_height = 30  # Will be calculated based on content
+
+        self.error_highlights = []
         
         # Initialize wrapped lines
         self.update_wrapped_lines()
@@ -766,6 +768,62 @@ class TextBox:
         try:
             # Draw background
             pygame.draw.rect(surface, design.colors["textbox_bg"], self.rect)
+
+            if hasattr(self, 'error_highlights') and self.error_highlights:
+                for highlight in self.error_highlights:
+                    # Get the line and column of the error
+                    error_line = highlight['line']
+                    error_col = highlight['column']
+                    error_len = highlight['length']
+                    
+                    # Find all wrapped lines that correspond to this original line
+                    for i, wrapped_info in enumerate(self.wrapped_lines):
+                        # Extract information from wrapped_lines
+                        # Note: wrapped_lines format is [(line_idx, start_col, text), ...]
+                        if len(wrapped_info) >= 3:  # Make sure the tuple has at least 3 elements
+                            wrapped_line_idx, wrapped_start_col, wrapped_text = wrapped_info
+                            
+                            # Check if this wrapped line belongs to the error line
+                            if wrapped_line_idx == error_line:
+                                # Calculate end column for this wrapped segment
+                                wrapped_end_col = wrapped_start_col + len(wrapped_text)
+                                
+                                # Check if error overlaps with this segment
+                                if (error_col < wrapped_end_col and 
+                                    error_col + error_len > wrapped_start_col):
+                                    
+                                    # Calculate visible part of the error in this segment
+                                    highlight_start = max(error_col, wrapped_start_col) - wrapped_start_col
+                                    highlight_end = min(error_col + error_len, wrapped_end_col) - wrapped_start_col
+                                    
+                                    # If this wrapped line is visible on screen
+                                    if self.scroll_y <= i < self.scroll_y + self.visible_lines:
+                                        # Calculate display position
+                                        y_pos = self.text_rect.top + (i - self.scroll_y) * self.line_height
+                                        
+                                        # Get text width before highlight
+                                        if highlight_start > 0:
+                                            start_width = self.font.size(wrapped_text[:highlight_start])[0]
+                                        else:
+                                            start_width = 0
+                                            
+                                        # Get highlight width
+                                        if highlight_end > highlight_start:
+                                            highlight_width = self.font.size(wrapped_text[highlight_start:highlight_end])[0]
+                                        else:
+                                            highlight_width = self.font.size("W")[0]  # Use a default width
+                                        
+                                        # Create highlight rectangle
+                                        highlight_rect = pygame.Rect(
+                                            self.text_rect.left + 5 + start_width,
+                                            y_pos,
+                                            highlight_width,
+                                            self.line_height
+                                        )
+                                        
+                                        # Draw the highlight
+                                        pygame.draw.rect(surface, (255, 150, 150), highlight_rect)
+
             
             # Draw line numbers background
             pygame.draw.rect(surface, design.colors["toolbar"], self.line_numbers_rect)
@@ -972,3 +1030,69 @@ class TextBox:
         
         # Ensure cursor is visible
         self.ensure_cursor_visible()
+    
+    def highlight_error(self, line, column, length=1):
+        """
+        Highlight an error in the text
+        
+        Args:
+            line: Line number (1-based)
+            column: Column number (0-based)
+            length: Length of the text to highlight
+        """
+        # Convert to 0-based line index
+        line_idx = line - 1
+        
+        # Ensure the line exists
+        if line_idx < 0 or line_idx >= len(self.lines):
+            print(f"Error: Cannot highlight line {line}, only {len(self.lines)} lines exist")
+            # Use first line if the specified line doesn't exist
+            line_idx = 0
+        
+        # Ensure we don't highlight beyond the end of the line
+        line_text = self.lines[line_idx]
+        if column >= len(line_text):
+            column = max(0, len(line_text) - 1)
+        
+        # Limit highlight length to not go beyond the end of the line
+        actual_length = min(length, len(line_text) - column)
+        if actual_length <= 0:
+            actual_length = 1  # Ensure we highlight at least one character
+        
+        # Add highlight to the error highlights list
+        self.error_highlights.append({
+            'line': line_idx,
+            'column': column,
+            'length': actual_length
+        })
+
+    def highlight_errors(self, errors):
+        """
+        Highlight multiple errors at once
+        
+        Args:
+            errors: List of error dictionaries with line, column, and length keys
+        """
+        # Clear existing highlights
+        self.clear_error_highlights()
+        
+        # Add each error highlight
+        for error in errors:
+            line = error.get('line', 1)  # Default to line 1 if not specified
+            if line < 1:
+                line = 1  # Ensure line is at least 1
+                
+            column = error.get('column', 0)
+            length = error.get('length', 1)
+            
+            # Ensure length is at least 1
+            if length < 1:
+                length = 1
+                
+            self.highlight_error(line, column, length)
+
+    def clear_error_highlights(self):
+        """
+        Clear all error highlights
+        """
+        self.error_highlights = []

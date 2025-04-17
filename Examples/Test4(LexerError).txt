@@ -1,5 +1,7 @@
+#Ejemplo de error Lexico
+
 # Definir variables para la espiral
-(int) x, y, t;
+(int) ñññx, ñy, ñññt;
 (color) c;
 
 frame {
@@ -10,7 +12,7 @@ frame {
 
         # Cambiar color en cada iteración
         if (t % 3 == 0) { c = rojo; }
-        else if (t % 3 == 1) { c = azul; }
+        elseñ if (t % 3 == 1) { c = azul; }
         else { c = verde; }
 
         setcolor(c);

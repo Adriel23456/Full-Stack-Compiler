@@ -1,3 +1,4 @@
+from GUI.components.pop_up_dialog import PopupDialog
 from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
 from GUI.view_base import ViewBase
@@ -7,6 +8,7 @@ from GUI.design_base import design
 from GUI.components.button import Button, ToolbarButton
 from GUI.components.textbox import TextBox
 from GUI.models.execute_model import ExecuteModel
+from CompilerLogic.lexicalAnalyzer import LexicalAnalyzer
 from config import States
 import pygame
 import os
@@ -168,7 +170,7 @@ class EditorView(ViewBase):
 
         # Set initial content if not already set
         if not hasattr(self, '_initialized_content'):
-            self.text_editor.set_text("#Example of a comment\nprintln('Hello world');")
+            self.text_editor.set_text("#Example of a comment\n(int) x1, y1, x2, y2, angle, depth;")
             self.text_editor.is_focused = True
             self._initialized_content = True
 
@@ -276,10 +278,8 @@ class EditorView(ViewBase):
                     symbol = ["(", ")", "{", "}", "[", "]"][i]
                     self.insert_symbol(symbol)
             if self.compile_button.handle_event(event):
-                # Obtener y mostrar el texto del editor
-                text_content = self.text_editor.get_text()
-                print("Compiler content:")
-                print(text_content)
+                # Run lexical analysis when compile button is pressed
+                self.run_lexical_analysis()
                 
             if self.grammar_button.handle_event(event):
                 self.open_grammar_view()
@@ -411,6 +411,12 @@ class EditorView(ViewBase):
         # Update grammar view if active
         if self.grammar_view:
             self.grammar_view.update(dt)
+        
+        # Update popup if active
+        if hasattr(self, 'popup') and self.popup.active:
+            self.popup.update()
+            if not self.popup.active:
+                delattr(self, 'popup')
             
         # Update text editor
         self.text_editor.update()
@@ -537,6 +543,14 @@ class EditorView(ViewBase):
             except Exception as e:
                 print(f"Error en grammar_view.render(): {e}")
                 self.grammar_view = None
+            
+            # Render grammar view on top if active
+            try:
+                if hasattr(self, 'popup') and self.popup.active:
+                    self.popup.update()
+                    self.popup.render()
+            except Exception as e:
+                print(f"Error en popUp.render(): {e}")
         
         except Exception as e:
             print(f"Error crítico en render: {e}")
@@ -794,3 +808,65 @@ class EditorView(ViewBase):
     def close_grammar_view(self):
         """Close the grammar view"""
         self.grammar_view = None
+    
+    def run_lexical_analysis(self):
+        """
+        Run lexical analysis on the current editor text
+        First saves the file if modified, then runs analysis
+        """
+        # Auto-save if file is modified and has a path
+        if self.file_status == "modified" and self.current_file_path:
+            self.save_file(use_current_path=True)
+        # If file is unsaved or hasn't been saved yet, prompt user to save
+        elif (self.file_status == "unsaved" or self.file_status == "modified") and not self.current_file_path:
+            # Save to a default location in Examples if needed
+            self.popup = PopupDialog(self.screen, "Please save before compiling")
+            return True
+            
+        # Continue with the actual analysis
+        self.run_lexical_analysis_internal()
+
+    def run_lexical_analysis_internal(self):
+        """
+        Internal method to run lexical analysis after any needed saving
+        """
+        # Get the current text
+        code_text = self.text_editor.get_text()
+        
+        # Initialize lexical analyzer
+        analyzer = LexicalAnalyzer()
+        
+        try:
+            # Mark this view instance for the view controller to use
+            self.view_controller.editor_view_instance = self
+            
+            # Run analysis 
+            success, errors, token_graph_path = analyzer.analyze(code_text)
+            
+            # Clear any existing highlights first
+            if hasattr(self.text_editor, 'clear_error_highlights'):
+                self.text_editor.clear_error_highlights()
+                
+            if success and not errors:
+                # If analysis succeeded with no errors, change to lexical analysis view
+                self.view_controller.token_graph_path = token_graph_path
+                self.view_controller.change_state(States.LEXICAL_ANALYSIS)
+            else:
+                # If there were errors, stay in editor view and highlight errors
+                if errors and hasattr(self.text_editor, 'highlight_errors'):
+                    # Make sure line numbers are valid
+                    for error in errors:
+                        if error.get('line', 1) < 1:
+                            error['line'] = 1
+                    
+                    # Highlight errors in editor
+                    self.text_editor.highlight_errors(errors)
+                
+                # Display a message about the errors
+                print(f"Lexical analysis found {len(errors)} errors:")
+                for error in errors:
+                    print(f"  Line {error.get('line')}, Column {error.get('column')}: {error.get('message')}")
+        except Exception as e:
+            print(f"Error running lexical analysis: {e}")
+            import traceback
+            traceback.print_exc()

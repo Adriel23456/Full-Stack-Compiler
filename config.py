@@ -21,6 +21,7 @@ GRAY = (128, 128, 128)
 # Application states
 class States:
     EDITOR = "EDITOR"  # Main editor state
+    LEXICAL_ANALYSIS = "LEXICAL_ANALYSIS"  #1st compilation state
 
 # Font size configurations
 # Tamaños para la opción "small"

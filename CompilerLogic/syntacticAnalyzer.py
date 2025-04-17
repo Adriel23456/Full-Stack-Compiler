@@ -1,1 +1,6 @@
-print('Place holder')
+class SyntacticAnalyzer:
+    """
+    Handles lexical analysis of code
+    """
+    def __init__(self):
+        return True

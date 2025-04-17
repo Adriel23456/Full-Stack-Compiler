@@ -1,9 +1,30 @@
-program miprograma {
-    var x;
-    x = 5;
-    if (true || false){
-        println(mutGen([0b1010, 0b1100, 0b1111], 0.2, 3));
-    } else {
-        println(x);
+# Variables para las posiciones y colores
+(int) x, y, r, t;
+(color) c;
+
+frame {
+    loop (t = 0; t < 360; t = t + 10) {
+        # Dibujar circulos concentricos
+        loop (r = 20; r < 200; r = r + 20) {
+            if (r % 40 == 0) { c = amarillo; }
+            else { c = cyan; }
+
+            setcolor(c);
+            draw circle(320, 240, r);
+        }
+
+        # Dibujar lineas radiales giratorias
+        loop (r = 0; r < 200; r = r + 10) {
+            x = 320 + r * cos((t + r) * 3.1416 / 180);
+            y = 240 + r * sin((t + r) * 3.1416 / 180);
+
+            if (r % 30 == 0) { c = magenta; }
+            else { c = blanco; }
+
+            setcolor(c);
+            draw pixel(x, y);
+        }
+
+        wait(5);  # Pausa para animacion suave
     }
-};
+}
