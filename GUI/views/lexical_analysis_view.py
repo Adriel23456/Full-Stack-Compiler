@@ -61,7 +61,9 @@ class LexicalAnalysisView(ViewBase):
             pygame.Rect(screen_width - button_width - button_margin, 
                        screen_height - button_height - bottom_margin,
                        button_width, button_height),
-            "Next"
+            "Next",
+            fixed_width=button_width,
+            fixed_height=button_height     # Fija la altura
         )
         
         # Create image display area with proper spacing
