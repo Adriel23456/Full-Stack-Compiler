@@ -1,94 +1,179 @@
-# Full-Stack-Compiler
+```markdown
+# Full‑Stack‑Compiler
 
-A comprehensive compiler implementation covering all stages from lexical analysis to machine code generation.
+![status-badge](https://img.shields.io/badge/status-WIP-orange)
+
+An **end‑to‑end educational compiler** written in Python that translates **VGraph** source
+code into an x86 executable, updates a `800 × 600` memory buffer **in real time**, and—if
+an HDMI port is detected—mirrors the live image to an external monitor. citeturn0file0
+
+---
+
+## Table of Contents
+1. [Overview](#overview)  
+2. [Architecture](#architecture)  
+3. [VGraph Language](#vgraph-language)  
+4. [Project Layout](#project-layout)  
+5. [Installation](#installation)  
+6. [Basic Usage](#basic-usage)  
+7. [Road‑map (Sprints)](#road-map-sprints)  
+8. [Tool Stack](#tool-stack)  
+9. [License](#license)  
+
+---
 
 ## Overview
+The goal is to cover **every** compilation phase:
 
-The Full-Stack-Compiler is an educational and practical project that implements a complete compilation pipeline. Unlike interpreters that execute source code directly, this compiler transforms high-level code into optimized machine code through a series of well-defined stages.
+| Phase | Purpose | Key Files |
+|-------|---------|-----------|
+| Front End | Lexical, syntactic, and semantic analysis | `CompilerLogic/lexicalAnalyzer.py`, `syntacticAnalyzer.py`, `semanticAnalyzer.py` |
+| Middle End | High‑ & low‑level IR + optimisations | `intermediateCodeGenerator.py`, `optimizer.py` |
+| Back End | Register allocation & code generation | `codeGenerator.py` |
+| Support | IDE/GUI, image viewer, file browser | `GUI/`, `ExternalPrograms/` |
+
+The produced executable (`out/vGraph.exe`) writes directly into
+`out/image.bin`; the Python viewer (`ExternalPrograms/imageViewer.py`)
+memory‑maps that file and displays it via **SDL 2 / Pygame**. citeturn0file0
+
+---
 
 ## Architecture
+```
+┌──────────────┐     ┌────────────┐     ┌────────────┐
+│  Lexer/      │──► │  IR &      │──► │  ASM/EXE    │
+│  Parser      │     │  Optimiser │     │  Generator │
+└──────────────┘     └────────────┘     └────────────┘
+        ▲                   │                   │
+        │ GUI/IDE           │ LLVM passes       │ HDMI output
+```
 
-This compiler follows the traditional three-phase architecture:
+* **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing.  
+* **LLVM (llvmlite)** for IR, optimisation, and x86 back‑end.  
+* Fully modular pipeline. citeturn0file0
 
-### 1. Front End
+---
 
-- **Lexical Analysis (Scanning)**: Processes source code through a Lexer using regular grammar to produce a token stream.
-- **Syntax Analysis (Parsing)**: Employs a Parser with context-free grammar to transform tokens into a concrete parse tree.
-- **Semantic Analysis**: Applies attribute grammar to build an abstract syntax tree (AST) that captures the program's essential meaning.
+## VGraph Language
+### Main Tokens
+Keywords like `draw`, `setcolor`, `frame`, `loop`, `if`, `else`, etc.
+Identifiers are **alphanumeric, ≤ 10 chars, start with a lowercase letter**.
+Integers range 0‑639 / 0‑479. Comments start with `#`. citeturn0file0  
 
-### 2. Middle End
+### Minimal Example
+```text
+(color) c = red;
+frame {
+    loop (i = 0; i < 100; i = i + 10) {
+        draw circle(i, 120, 15);
+        wait(3);
+    }
+}
+```
+Larger programs (spiral, mandala, fractal tree) live in `Examples/`. citeturn0file0  
 
-- **Intermediate Representation (IR)**: Converts the AST into both high-level and low-level intermediate representations.
-- **IR Lowering**: Transforms high-level IR into three-address code for optimization.
-- **Optimization**: Implements various passes to eliminate redundant operations, simplify expressions, and improve performance.
+---
 
-### 3. Back End
+## Project Layout
+```
+FULL-STACK-COMPILER
+├── assets/                 # Grammar, fonts, sample images
+│   ├── Images/ej?.png
+│   └── VGraph.g4
+├── CompilerLogic/          # Compiler core
+│   ├── lexicalAnalyzer.py
+│   ├── syntacticAnalyzer.py
+│   ├── semanticAnalyzer.py
+│   ├── intermediateCodeGenerator.py
+│   ├── optimizer.py
+│   └── codeGenerator.py
+├── GUI/                    # Minimal IDE (MVC)
+│   ├── components/…        # button.py, textbox.py, …
+│   ├── models/execute_model.py
+│   ├── views/
+│   │   ├── editor_view.py
+│   │   ├── grammar_view.py
+│   │   ├── lexical_analysis_view.py
+│   │   └── … (other views WIP)
+│   └── view_controller.py
+├── ExternalPrograms/       # Auxiliary tools
+│   ├── fileExplorer.py
+│   └── imageViewer.py
+├── Examples/Test?.txt      # Test cases
+├── out/                    # Build artefacts
+│   ├── image.bin
+│   ├── vGraph.asm
+│   └── vGraph.exe
+├── config.py               # Global settings
+├── design_settings.json    # GUI theme
+├── main.py                 # CLI / GUI entry‑point
+└── README.md
+```
 
-- **Parallelism Preparation**: Identifies opportunities for parallel execution.
-- **Register Allocation**: Efficiently assigns variables to hardware registers.
-- **Code Generation**: Produces target machine code or assembly language.
-
-## Features
-
-- Complete compilation pipeline from source code to executable
-- Modular architecture with clearly separated components
-- Configurable optimization levels
-- Detailed error reporting and debugging information
-- Support for [language features to be implemented]
+---
 
 ## Installation
-
 ```bash
-git clone https://github.com/username/full-stack-compiler.git
+# 1 – clone repo
+git clone https://github.com/<user>/full-stack-compiler.git
 cd full-stack-compiler
-make install
+
+# 2 – create venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3 – install deps
+pip install -r requirements.txt   # pygame, llvmlite, antlr4-python3-runtime, …
+
+# 4 – assembler & linker (Linux)
+sudo apt-get install nasm gcc
+
+# 5 – generate lexer/parser (first time or on .g4 change)
+antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 ```
 
-## Usage
+---
 
-```bash
-# Basic compilation
-fsc source.xyz -o executable
+## Basic Usage
 
-# With optimization level
-fsc source.xyz -o executable -O2
+| Action | Command |
+|--------|---------|
+| Compile → `.exe` | `python main.py build Examples/Test1.txt` |
+| Compile + O2     | `python main.py build Examples/Test1.txt -O2` |
+| Emit IR          | `python main.py ir Examples/Test1.txt` |
+| Launch IDE GUI   | `python main.py gui` |
+| Live image view  | `python ExternalPrograms/imageViewer.py out/image.bin` |
 
-# Generate intermediate output
-fsc source.xyz --emit=ir
-```
+> The generated executable writes into `out/image.bin`;  
+> the viewer maps that buffer and refreshes the SDL window / HDMI at 60 FPS.
 
-## Project Structure
+---
 
-```
-full-stack-compiler/
-├── src/
-│   ├── frontend/
-│   │   ├── lexer/
-│   │   ├── parser/
-│   │   └── semantic/
-│   ├── middleend/
-│   │   ├── ir/
-│   │   └── optimization/
-│   └── backend/
-│       ├── codegen/
-│       └── register/
-├── include/
-├── tests/
-├── examples/
-└── docs/
-```
+## Road‑map (Sprints)
+1. **IDE & framework integration**  
+2. **Lexical + syntactic analysis**  
+3. **Semantic analysis**  
+4. **IR + basic optimiser**  
+5. **x86 code generator**  
+6. **Real‑time HDMI visualisation** citeturn0file0  
 
-## Development Roadmap
+---
 
-- [ ] Implement lexical analyzer
-- [ ] Develop parser for context-free grammar
-- [ ] Build semantic analyzer with attribute grammar
-- [ ] Create intermediate representation
-- [ ] Implement basic optimizations
-- [ ] Develop code generation for target architecture
-- [ ] Add advanced optimization passes
-- [ ] Support multiple target architectures
+## Tool Stack
+| Purpose | Tech |
+|---------|------|
+| Main language | Python 3.12 |
+| Lexer / Parser | **ANTLR 4** |
+| IR & back‑end | **llvmlite** (LLVM) |
+| Assembler / Linker | `nasm`, `gcc` |
+| Visualisation | `pygame` / `PySDL2`, `mmap`, `pyudev` |
+| GUI | Custom MVC + SDL2 |
+| Target OS | Linux (Ubuntu) | citeturn0file0 |
+
+---
 
 ## License
+Released under the **MIT License**. See [LICENSE](LICENSE) for details.
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Feel free to copy‑paste this directly over your existing `README.md`. If you later add new *views* or modules, just update the **Project Layout** section accordingly. Happy hacking!
