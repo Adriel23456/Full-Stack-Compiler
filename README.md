@@ -1,4 +1,3 @@
-```markdown
 # Full‑Stack‑Compiler
 
 ![status-badge](https://img.shields.io/badge/status-WIP-orange)
@@ -174,6 +173,3 @@ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 
 ## License
 Released under the **MIT License**. See [LICENSE](LICENSE) for details.
-```
-
-Feel free to copy‑paste this directly over your existing `README.md`. If you later add new *views* or modules, just update the **Project Layout** section accordingly. Happy hacking!
