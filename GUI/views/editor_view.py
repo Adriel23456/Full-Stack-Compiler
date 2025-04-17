@@ -2,7 +2,7 @@ from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
 from GUI.view_base import ViewBase
 from GUI.views.grammar_view import GrammarView
-from fileExp.file_explorer import FileExplorer
+from ExternalPrograms.fileExplorer import FileExplorer
 from GUI.design_base import design
 from GUI.components.button import Button, ToolbarButton
 from GUI.components.textbox import TextBox
