@@ -62,6 +62,24 @@ class VGraphListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by VGraphParser#block.
+    def enterBlock(self, ctx:VGraphParser.BlockContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#block.
+    def exitBlock(self, ctx:VGraphParser.BlockContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#assignmentExpression.
+    def enterAssignmentExpression(self, ctx:VGraphParser.AssignmentExpressionContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#assignmentExpression.
+    def exitAssignmentExpression(self, ctx:VGraphParser.AssignmentExpressionContext):
+        pass
+
+
     # Enter a parse tree produced by VGraphParser#assignmentStatement.
     def enterAssignmentStatement(self, ctx:VGraphParser.AssignmentStatementContext):
         pass

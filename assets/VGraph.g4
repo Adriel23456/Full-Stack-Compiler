@@ -1,24 +1,32 @@
 grammar VGraph;
 
 // Parser rules
-program : declaration* statement* EOF;
 
-declaration 
-    : typeDeclaration ID ('=' expr)? ';'
-    | typeDeclaration idList ';'
+program
+    : statement* EOF
     ;
 
-typeDeclaration : '(' vartype ')';
+declaration
+    : typeDeclaration ID (ASSIGN expr)? SEMICOLON
+    | typeDeclaration idList SEMICOLON
+    ;
 
-vartype 
+typeDeclaration
+    : LPAREN vartype RPAREN
+    ;
+
+vartype
     : INT_TYPE
     | COLOR_TYPE
     ;
 
-idList : ID (',' ID)*;
+idList
+    : ID (COMMA ID)*
+    ;
 
 statement
-    : drawStatement
+    : declaration               
+    | drawStatement
     | setColorStatement
     | frameStatement
     | loopStatement
@@ -31,128 +39,153 @@ statement
     | clearStatement
     ;
 
-assignmentStatement : ID '=' expr ';';
+block
+    : LBRACE statement* RBRACE
+    ;
 
-drawStatement 
-    : DRAW drawObject ';'
+assignmentExpression
+    : ID ASSIGN expr
+    ;
+
+assignmentStatement
+    : assignmentExpression SEMICOLON
+    ;
+
+drawStatement
+    : DRAW drawObject SEMICOLON
     ;
 
 drawObject
-    : LINE '(' expr ',' expr ',' expr ',' expr ')'
-    | CIRCLE '(' expr ',' expr ',' expr ')'
-    | RECT '(' expr ',' expr ',' expr ',' expr ')'
-    | PIXEL '(' expr ',' expr ')'
+    : LINE   LPAREN expr COMMA expr COMMA expr COMMA expr RPAREN
+    | CIRCLE LPAREN expr COMMA expr COMMA expr RPAREN
+    | RECT   LPAREN expr COMMA expr COMMA expr COMMA expr RPAREN
+    | PIXEL  LPAREN expr COMMA expr RPAREN
     ;
 
-setColorStatement : SETCOLOR '(' (ID | COLOR_CONST) ')' ';';
-
-frameStatement : FRAME '{' statement* '}';
-
-loopStatement : LOOP '(' assignmentStatement expr ';' expr ')' '{' statement* '}';
-
-ifStatement 
-    : IF '(' expr ')' '{' statement* '}' 
-      (ELSE '{' statement* '}')?
+setColorStatement
+    : SETCOLOR LPAREN (ID | COLOR_CONST) RPAREN SEMICOLON
     ;
 
-waitStatement : WAIT '(' expr ')' ';';
+frameStatement
+    : FRAME block
+    ;
 
-functionDeclStatement : FUNCTION ID '(' paramList? ')' '{' statement* '}';
+loopStatement
+    : LOOP LPAREN
+        assignmentExpression SEMICOLON
+        expr                  SEMICOLON
+        assignmentExpression
+      RPAREN
+      block
+    ;
 
-paramList : ID (',' ID)*;
+ifStatement
+    : IF LPAREN expr RPAREN block
+      ( ELSE ( ifStatement | block ) )?
+    ;
 
-functionCallStatement : ID '(' argumentList? ')' ';';
+waitStatement
+    : WAIT LPAREN expr RPAREN SEMICOLON
+    ;
 
-argumentList : expr (',' expr)*;
+functionDeclStatement
+    : FUNCTION ID LPAREN paramList? RPAREN block
+    ;
 
-returnStatement : RETURN expr? ';';
+paramList
+    : ID (COMMA ID)*
+    ;
 
-clearStatement : CLEAR '(' ')' ';';
+functionCallStatement
+    : ID LPAREN argumentList? RPAREN SEMICOLON
+    ;
+
+argumentList
+    : expr (COMMA expr)*
+    ;
+
+returnStatement
+    : RETURN expr? SEMICOLON
+    ;
+
+clearStatement
+    : CLEAR LPAREN RPAREN SEMICOLON
+    ;
 
 expr
-    : '(' expr ')'                               # ParenExpr
-    | COS '(' expr ')'                           # CosExpr
-    | SIN '(' expr ')'                           # SinExpr
-    | expr op=(MULT|DIV|MOD) expr                # MulDivExpr
-    | expr op=(PLUS|MINUS) expr                  # AddSubExpr
-    | expr op=(EQ|NE|LT|LE|GT|GE) expr           # CompExpr
-    | NUMBER                                     # NumberExpr
-    | ID                                         # IdExpr
-    | COLOR_CONST                                # ColorExpr
-    | functionCall                               # FunctionCallExpr
+    : LPAREN expr RPAREN                             # ParenExpr
+    | COS LPAREN expr RPAREN                         # CosExpr
+    | SIN LPAREN expr RPAREN                         # SinExpr
+    | expr op=(MULT | DIV | MOD) expr                # MulDivExpr
+    | expr op=(PLUS | MINUS) expr                    # AddSubExpr
+    | expr op=(EQ | NE | LT | LE | GT | GE) expr     # CompExpr
+    | NUMBER                                         # NumberExpr
+    | ID                                             # IdExpr
+    | COLOR_CONST                                    # ColorExpr
+    | functionCall                                   # FunctionCallExpr
     ;
 
-functionCall : ID '(' argumentList? ')';
+functionCall
+    : ID LPAREN argumentList? RPAREN
+    ;
 
-// Palabras clave
-DRAW: 'draw';
-SETCOLOR: 'setcolor';
-FRAME: 'frame';
-LOOP: 'loop';
-IF: 'if';
-ELSE: 'else';
-END: 'end';
-WAIT: 'wait';
-LINE: 'line';
-CIRCLE: 'circle';
-RECT: 'rect';
-MOVE: 'move';
-ANIMATE: 'animate';
-COS: 'cos';
-SIN: 'sin';
-PIXEL: 'pixel';
-FUNCTION: 'function';
-RETURN: 'return';
-CLEAR: 'clear';
+// Lexer rules
 
-// Tipos
-INT_TYPE: 'int';
-COLOR_TYPE: 'color';
+DRAW       : 'draw';
+SETCOLOR   : 'setcolor';
+FRAME      : 'frame';
+LOOP       : 'loop';
+IF         : 'if';
+ELSE       : 'else';
+END        : 'end';
+WAIT       : 'wait';
+LINE       : 'line';
+CIRCLE     : 'circle';
+RECT       : 'rect';
+MOVE       : 'move';
+ANIMATE    : 'animate';
+COS        : 'cos';
+SIN        : 'sin';
+PIXEL      : 'pixel';
+FUNCTION   : 'function';
+RETURN     : 'return';
+CLEAR      : 'clear';
 
-// Paréntesis y corchetes
-LPAREN: '(';
-RPAREN: ')';
-LBRACK: '[';
-RBRACK: ']';
+INT_TYPE   : 'int';
+COLOR_TYPE : 'color';
 
-// Operadores
-PLUS: '+';
-MINUS: '-';
-MULT: '*';
-DIV: '/';
-MOD: '%';
-ASSIGN: '=';
-EQ: '==';
-LT: '<';
-GT: '>';
-LE: '<=';
-GE: '>=';
-NE: '!=';
+LPAREN     : '(';
+RPAREN     : ')';
+LBRACE     : '{';
+RBRACE     : '}';
+LBRACK     : '[';
+RBRACK     : ']';
 
-// Delimitadores
-LBRACE: '{';
-RBRACE: '}';
-SEMICOLON: ';';
-COMMA: ',';
+PLUS       : '+';
+MINUS      : '-';
+MULT       : '*';
+DIV        : '/';
+MOD        : '%';
+ASSIGN     : '=';
+EQ         : '==';
+LT         : '<';
+GT         : '>';
+LE         : '<=';
+GE         : '>=';
+NE         : '!=';
 
-// Definir fragmentos para mejorar legibilidad
-fragment MINUSCULA: 'a'..'z';
-fragment MAYUSCULA: 'A'..'Z';
-fragment DIGITO: '0'..'9';
-fragment LETRA: MINUSCULA | MAYUSCULA;
-fragment ALFANUMERICO: LETRA | DIGITO;
+SEMICOLON  : ';';
+COMMA      : ',';
 
-// Identificadores (inician con minúscula, sin límite de longitud)
-ID: MINUSCULA ALFANUMERICO*;
+fragment MINUSCULA    : [a-z];
+fragment MAYUSCULA    : [A-Z];
+fragment DIGITO       : [0-9];
+fragment LETRA        : MINUSCULA | MAYUSCULA;
+fragment ALFANUMERICO : LETRA | DIGITO;
 
-// Números (enteros o decimales)
-NUMBER: DIGITO+ ('.' DIGITO+)?;
+ID          : MINUSCULA ALFANUMERICO*;
+NUMBER      : DIGITO+ ('.' DIGITO+)?;
+COLOR_CONST : 'rojo' | 'azul' | 'verde' | 'amarillo' | 'cyan' | 'magenta' | 'blanco' | 'negro' | 'marrón';
 
-// Colores (constantes predefinidas)
-COLOR_CONST: 'rojo' | 'azul' | 'verde' | 'amarillo' | 'cyan' | 'magenta' | 'blanco' | 'negro' | 'marrón';
-
-// Comentarios
-COMMENT: '#' ~[\r\n]* -> skip;
-
-// Espacios en blanco
-WS: [ \t\r\n]+ -> skip;
+COMMENT     : '#' ~[\r\n]* -> skip;
+WS          : [ \t\r\n]+ -> skip;

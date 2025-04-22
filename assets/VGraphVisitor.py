@@ -39,6 +39,16 @@ class VGraphVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by VGraphParser#block.
+    def visitBlock(self, ctx:VGraphParser.BlockContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#assignmentExpression.
+    def visitAssignmentExpression(self, ctx:VGraphParser.AssignmentExpressionContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by VGraphParser#assignmentStatement.
     def visitAssignmentStatement(self, ctx:VGraphParser.AssignmentStatementContext):
         return self.visitChildren(ctx)

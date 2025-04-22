@@ -63,84 +63,91 @@ class SyntacticAnalyzer:
             # Create a proper symbol table collector
             class SymbolTableCollector(VGraphListener):
                 def __init__(self):
+                    # Tabla de símbolos global: nombre → info
                     self.symbol_table = {}
-                    self.current_scope = "global"
-                
-                # Required by the listener interface
-                def enterEveryRule(self, ctx):
-                    pass
-                
-                def exitEveryRule(self, ctx):
-                    pass
-                
-                def visitTerminal(self, node):
-                    pass
-                
-                def visitErrorNode(self, node):
-                    pass
-                
+                    # Pila de ámbitos; arrancamos en "global"
+                    self.scope_stack = ["global"]
+
+                def current_scope(self):
+                    return self.scope_stack[-1]
+
+                # ----- Scope management -----
                 def enterProgram(self, ctx):
-                    self.symbol_table = {}
-                    self.current_scope = "global"
-                
+                    self.symbol_table.clear()
+                    self.scope_stack = ["global"]
+
                 def enterFunctionDeclStatement(self, ctx):
-                    function_name = ctx.ID().getText()
-                    self.current_scope = function_name
-                    
-                    self.symbol_table[function_name] = {
+                    fname = ctx.ID().getText()
+                    # registramos la función en el scope "global"
+                    self.symbol_table[fname] = {
                         'type': 'function',
                         'scope': 'global',
                         'line': ctx.start.line
                     }
-                    
+                    # entramos en el nuevo scope de la función
+                    self.scope_stack.append(fname)
+                    # parámetros quedan en el scope de la función
                     param_list = ctx.paramList()
                     if param_list:
-                        for param in param_list.ID():
-                            param_name = param.getText()
-                            self.symbol_table[param_name] = {
+                        for p in param_list.ID():
+                            pname = p.getText()
+                            self.symbol_table[pname] = {
                                 'type': 'parameter',
-                                'scope': self.current_scope,
-                                'line': param.symbol.line
+                                'scope': fname,
+                                'line': p.symbol.line
                             }
-                
+
                 def exitFunctionDeclStatement(self, ctx):
-                    self.current_scope = "global"
-                
+                    # salimos del scope de la función
+                    self.scope_stack.pop()
+
+                def enterFrameStatement(self, ctx):
+                    # creamos un scope genérico "frame"
+                    # si quieres distinguir varios frames, podrías usar ctx.start.line
+                    self.scope_stack.append("frame")
+
+                def exitFrameStatement(self, ctx):
+                    self.scope_stack.pop()
+
+                # ----- Declaraciones y asignaciones -----
                 def enterDeclaration(self, ctx):
-                    if ctx.typeDeclaration():
-                        type_decl = ctx.typeDeclaration()
-                        if type_decl.vartype():
-                            var_type = type_decl.vartype().getText()
-                            
-                            # If it's a single variable
-                            if ctx.ID():
-                                var_name = ctx.ID().getText()
-                                self.symbol_table[var_name] = {
-                                    'type': var_type,
-                                    'scope': self.current_scope,
-                                    'line': ctx.start.line
-                                }
-                            
-                            # If it's a list of variables
-                            if ctx.idList():
-                                for id_node in ctx.idList().ID():
-                                    var_name = id_node.getText()
-                                    self.symbol_table[var_name] = {
-                                        'type': var_type,
-                                        'scope': self.current_scope,
-                                        'line': id_node.symbol.line
-                                    }
-                
-                def enterAssignmentStatement(self, ctx):
-                    var_name = ctx.ID().getText()
-                    
-                    # Only add to symbol table if not already present
-                    if var_name not in self.symbol_table:
-                        self.symbol_table[var_name] = {
-                            'type': 'unknown',  # Type is unknown if not declared
-                            'scope': self.current_scope,
+                    # puede ser single ID o lista
+                    vartype = ctx.typeDeclaration().vartype().getText()
+                    # caso ID único
+                    if ctx.ID():
+                        name = ctx.ID().getText()
+                        self.symbol_table[name] = {
+                            'type': vartype,
+                            'scope': self.current_scope(),
                             'line': ctx.start.line
                         }
+                    # caso lista
+                    if ctx.idList():
+                        for id_node in ctx.idList().ID():
+                            name = id_node.getText()
+                            self.symbol_table[name] = {
+                                'type': vartype,
+                                'scope': self.current_scope(),
+                                'line': id_node.symbol.line
+                            }
+
+                def enterAssignmentStatement(self, ctx):
+                    # el ID está dentro de assignmentExpression()
+                    assignCtx = ctx.assignmentExpression()
+                    name = assignCtx.ID().getText()
+                    if name not in self.symbol_table:
+                        self.symbol_table[name] = {
+                            'type': 'unknown',
+                            'scope': self.current_scope(),
+                            'line': ctx.start.line
+                        }
+
+                # Métodos vacíos del listener
+                def enterEveryRule(self, ctx): pass
+                def exitEveryRule(self, ctx): pass
+                def visitTerminal(self, node): pass
+                def visitErrorNode(self, node): pass
+
             
             # Create input stream 
             input_stream = InputStream(code_text)
@@ -340,60 +347,71 @@ class SyntacticAnalyzer:
     
     def _visualize_symbol_table(self):
         """
-        Create a visualization of the symbol table using pydot
+        Create a visualization of the symbol table using pydot with an HTML table label.
         """
         try:
             graph = pydot.Dot(graph_type='digraph', rankdir='TB')
-            
-            # Create a title node
-            title_node = pydot.Node("title", label="Symbol Table", shape="plaintext",
-                                  fontsize=18, fontcolor="blue")
+
+            # Nodo título
+            title_node = pydot.Node(
+                "title",
+                label="Symbol Table",
+                shape="plaintext",
+                fontsize="18",
+                fontcolor="blue"
+            )
             graph.add_node(title_node)
-            
-            # Create a table node with proper HTML syntax
-            table_label = '''
-            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">
-            <TR>
-                <TD BGCOLOR="#d0e0ff"><B>ID</B></TD>
-                <TD BGCOLOR="#d0e0ff"><B>Type</B></TD>
-                <TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>
-                <TD BGCOLOR="#d0e0ff"><B>Line</B></TD>
-            </TR>'''
-            
-            # Add rows for each symbol
+
+            # Construimos el label HTML de la tabla
+            html_parts = [
+                '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
+                '<TR>'
+                  '<TD BGCOLOR="#d0e0ff"><B>ID</B></TD>'
+                  '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
+                  '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
+                  '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
+                '</TR>'
+            ]
+
+            # Una fila por cada símbolo
             for symbol, info in self.symbol_table.items():
-                symbol_escaped = symbol.replace("<", "&lt;").replace(">", "&gt;")
-                type_escaped = info.get('type', 'unknown').replace("<", "&lt;").replace(">", "&gt;")
-                scope_escaped = info.get('scope', 'global').replace("<", "&lt;").replace(">", "&gt;")
+                sym = symbol.replace("<", "&lt;").replace(">", "&gt;")
+                typ = info.get('type', 'unknown').replace("<", "&lt;").replace(">", "&gt;")
+                scp = info.get('scope', 'global').replace("<", "&lt;").replace(">", "&gt;")
                 line = info.get('line', 0)
-                
-                table_label += f'''
-                <TR>
-                    <TD>{symbol_escaped}</TD>
-                    <TD>{type_escaped}</TD>
-                    <TD>{scope_escaped}</TD>
-                    <TD>{line}</TD>
-                </TR>'''
-            
-            table_label += '''
-            </TABLE>
-            >'''
-            
-            table_node = pydot.Node("symbol_table", label=table_label, shape="none")
+
+                html_parts.append(
+                    f'<TR>'
+                      f'<TD>{sym}</TD>'
+                      f'<TD>{typ}</TD>'
+                      f'<TD>{scp}</TD>'
+                      f'<TD>{line}</TD>'
+                    f'</TR>'
+                )
+
+            # Cerramos la tabla y el label HTML
+            html_parts.append('</TABLE>>')
+            table_label = "".join(html_parts)
+
+            # Creamos el nodo con HTML-like label
+            table_node = pydot.Node(
+                "symbol_table",
+                label=table_label,
+                shape="plaintext"
+            )
             graph.add_node(table_node)
-            
-            # Add edge from title to table
-            edge = pydot.Edge("title", "symbol_table", style="invis")
-            graph.add_edge(edge)
-            
-            # Save the graph
+
+            # Conectamos título y tabla (invisible)
+            graph.add_edge(pydot.Edge("title", "symbol_table", style="invis"))
+
+            # Guardamos
             graph.write_png(self.symbol_table_path)
-            
+
         except Exception as e:
             print(f"Error visualizing symbol table: {e}")
             import traceback
             traceback.print_exc()
-            # Create a simple error image if visualization fails
+            # En caso de fallo, mostramos un mensaje de error
             self._create_error_image(f"Error visualizing symbol table: {e}", self.symbol_table_path)
     
     def _create_error_image(self, error_message, output_path):
