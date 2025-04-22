@@ -64,7 +64,7 @@ class LexicalAnalysisView(ViewBase):
                        button_width, button_height),
             "Next",
             fixed_width=button_width,
-            fixed_height=button_height     # Fija la altura
+            fixed_height=button_height
         )
         
         # Create image display area with proper spacing
