@@ -1,0 +1,13 @@
+# Ejemplo con 3 errores sintácticos
+
+(int) x y;            # Error 1: falta la coma entre ‘x’ y ‘y’ en la declaración
+
+if (x > 5 {           # Error 2: falta el paréntesis de cierre ‘)’ antes de la llave
+    setcolor(azul);
+} else {
+    draw pixel(x, 10);
+}
+
+loop (i = 0; i < 10 i = i + 1) {  # Error 3: falta el ‘;’ entre la condición y la actualización
+    wait(1);
+}
