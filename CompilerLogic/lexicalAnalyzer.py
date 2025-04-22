@@ -155,29 +155,29 @@ class LexicalAnalyzer:
                 # Try to download ANTLR jar
                 print("Downloading ANTLR jar...")
                 subprocess.run(['wget', 'https://www.antlr.org/download/antlr-4.9.2-complete.jar', '-P', '/tmp/'], 
-                              check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 print("ANTLR jar downloaded successfully")
             except Exception as e:
                 print(f"Failed to download ANTLR jar: {e}")
                 return False
         
-        # Check if lexer is already generated
-        lexer_file = os.path.join(ASSETS_DIR, 'VGraphLexer.py')
-        if os.path.exists(lexer_file):
-            # Check if lexer is older than grammar file
-            if os.path.getmtime(lexer_file) > os.path.getmtime(grammar_file):
-                # Lexer is up to date
-                return True
-        
-        # Generate lexer
+        # Always regenerate lexer to ensure consistency
         try:
             current_dir = os.getcwd()
             os.chdir(ASSETS_DIR)
             
+            # Generate lexer
             cmd = ['java', '-jar', antlr_jar, '-Dlanguage=Python3', 'VGraph.g4']
-            result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print("Lexer generated successfully")
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
+            # Check if command was successful
+            if result.returncode != 0:
+                error_message = result.stderr.decode('utf-8')
+                print(f"Error generating lexer: {error_message}")
+                os.chdir(current_dir)
+                return False
+                
+            print("Lexer generated successfully")
             os.chdir(current_dir)
             return True
         except Exception as e:

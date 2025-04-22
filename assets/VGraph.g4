@@ -8,9 +8,9 @@ declaration
     | typeDeclaration idList ';'
     ;
 
-typeDeclaration : '(' type ')';
+typeDeclaration : '(' vartype ')';
 
-type 
+vartype 
     : INT_TYPE
     | COLOR_TYPE
     ;

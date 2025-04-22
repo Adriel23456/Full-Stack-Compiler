@@ -6,21 +6,10 @@ import os
 import sys
 import subprocess
 from antlr4 import *
+from antlr4.tree.Trees import Trees
+from antlr4.error.ErrorListener import ErrorListener
 import pydot
 from config import BASE_DIR, ASSETS_DIR, States
-from antlr4.error.ErrorListener import ErrorListener
-
-# Try importing the ANTLR-generated listener class
-try:
-    sys.path.append(os.path.abspath(ASSETS_DIR))
-    from VGraphListener import VGraphListener
-except ImportError:
-    # Fallback for when the class hasn't been generated yet
-    print("VGraphListener not found. Make sure to generate parser files first.")
-    # Define a base class that does nothing
-    class VGraphListener:
-        def __init__(self):
-            pass
 
 class SyntacticAnalyzer:
     """
@@ -71,6 +60,88 @@ class SyntacticAnalyzer:
             from VGraphParser import VGraphParser
             from VGraphListener import VGraphListener
             
+            # Create a proper symbol table collector
+            class SymbolTableCollector(VGraphListener):
+                def __init__(self):
+                    self.symbol_table = {}
+                    self.current_scope = "global"
+                
+                # Required by the listener interface
+                def enterEveryRule(self, ctx):
+                    pass
+                
+                def exitEveryRule(self, ctx):
+                    pass
+                
+                def visitTerminal(self, node):
+                    pass
+                
+                def visitErrorNode(self, node):
+                    pass
+                
+                def enterProgram(self, ctx):
+                    self.symbol_table = {}
+                    self.current_scope = "global"
+                
+                def enterFunctionDeclStatement(self, ctx):
+                    function_name = ctx.ID().getText()
+                    self.current_scope = function_name
+                    
+                    self.symbol_table[function_name] = {
+                        'type': 'function',
+                        'scope': 'global',
+                        'line': ctx.start.line
+                    }
+                    
+                    param_list = ctx.paramList()
+                    if param_list:
+                        for param in param_list.ID():
+                            param_name = param.getText()
+                            self.symbol_table[param_name] = {
+                                'type': 'parameter',
+                                'scope': self.current_scope,
+                                'line': param.symbol.line
+                            }
+                
+                def exitFunctionDeclStatement(self, ctx):
+                    self.current_scope = "global"
+                
+                def enterDeclaration(self, ctx):
+                    if ctx.typeDeclaration():
+                        type_decl = ctx.typeDeclaration()
+                        if type_decl.vartype():
+                            var_type = type_decl.vartype().getText()
+                            
+                            # If it's a single variable
+                            if ctx.ID():
+                                var_name = ctx.ID().getText()
+                                self.symbol_table[var_name] = {
+                                    'type': var_type,
+                                    'scope': self.current_scope,
+                                    'line': ctx.start.line
+                                }
+                            
+                            # If it's a list of variables
+                            if ctx.idList():
+                                for id_node in ctx.idList().ID():
+                                    var_name = id_node.getText()
+                                    self.symbol_table[var_name] = {
+                                        'type': var_type,
+                                        'scope': self.current_scope,
+                                        'line': id_node.symbol.line
+                                    }
+                
+                def enterAssignmentStatement(self, ctx):
+                    var_name = ctx.ID().getText()
+                    
+                    # Only add to symbol table if not already present
+                    if var_name not in self.symbol_table:
+                        self.symbol_table[var_name] = {
+                            'type': 'unknown',  # Type is unknown if not declared
+                            'scope': self.current_scope,
+                            'line': ctx.start.line
+                        }
+            
             # Create input stream 
             input_stream = InputStream(code_text)
             
@@ -115,6 +186,8 @@ class SyntacticAnalyzer:
                 
             except Exception as e:
                 print(f"Parser exception: {e}")
+                import traceback
+                traceback.print_exc()
                 self.errors = error_listener.errors
                 if not self.errors:
                     # If no specific errors were captured by the listener,
@@ -129,6 +202,8 @@ class SyntacticAnalyzer:
             
         except Exception as e:
             print(f"Error in syntactic analysis: {e}")
+            import traceback
+            traceback.print_exc()
             self.errors.append({
                 'message': f"Syntactic analysis error: {str(e)}",
                 'line': 1,
@@ -166,23 +241,23 @@ class SyntacticAnalyzer:
                 print(f"Failed to download ANTLR jar: {e}")
                 return False
         
-        # Check if parser is already generated
-        parser_file = os.path.join(ASSETS_DIR, 'VGraphParser.py')
-        if os.path.exists(parser_file):
-            # Check if parser is older than grammar file
-            if os.path.getmtime(parser_file) > os.path.getmtime(grammar_file):
-                # Parser is up to date
-                return True
-        
-        # Generate parser
+        # Always regenerate parser for consistency
         try:
             current_dir = os.getcwd()
             os.chdir(ASSETS_DIR)
             
+            # Generate parser with visitor option
             cmd = ['java', '-jar', antlr_jar, '-Dlanguage=Python3', '-visitor', 'VGraph.g4']
-            result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print("Parser generated successfully")
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
+            # Check if command was successful
+            if result.returncode != 0:
+                error_message = result.stderr.decode('utf-8')
+                print(f"Error generating parser: {error_message}")
+                os.chdir(current_dir)
+                return False
+                
+            print("Parser generated successfully")
             os.chdir(current_dir)
             return True
         except Exception as e:
@@ -275,16 +350,15 @@ class SyntacticAnalyzer:
                                   fontsize=18, fontcolor="blue")
             graph.add_node(title_node)
             
-            # Create a table node
-            table_label = """
+            # Create a table node with proper HTML syntax
+            table_label = '''
             <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">
             <TR>
                 <TD BGCOLOR="#d0e0ff"><B>ID</B></TD>
                 <TD BGCOLOR="#d0e0ff"><B>Type</B></TD>
                 <TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>
                 <TD BGCOLOR="#d0e0ff"><B>Line</B></TD>
-            </TR>
-            """
+            </TR>'''
             
             # Add rows for each symbol
             for symbol, info in self.symbol_table.items():
@@ -293,16 +367,17 @@ class SyntacticAnalyzer:
                 scope_escaped = info.get('scope', 'global').replace("<", "&lt;").replace(">", "&gt;")
                 line = info.get('line', 0)
                 
-                table_label += f"""
+                table_label += f'''
                 <TR>
                     <TD>{symbol_escaped}</TD>
                     <TD>{type_escaped}</TD>
                     <TD>{scope_escaped}</TD>
                     <TD>{line}</TD>
-                </TR>
-                """
+                </TR>'''
             
-            table_label += "</TABLE>>"
+            table_label += '''
+            </TABLE>
+            >'''
             
             table_node = pydot.Node("symbol_table", label=table_label, shape="none")
             graph.add_node(table_node)
@@ -316,6 +391,8 @@ class SyntacticAnalyzer:
             
         except Exception as e:
             print(f"Error visualizing symbol table: {e}")
+            import traceback
+            traceback.print_exc()
             # Create a simple error image if visualization fails
             self._create_error_image(f"Error visualizing symbol table: {e}", self.symbol_table_path)
     
@@ -374,89 +451,3 @@ class SyntaxErrorListener(ErrorListener):
         Handle context sensitivity report (optional)
         """
         pass
-
-class SymbolTableCollector(VGraphListener):
-    """
-    Parse tree walker to collect symbols into a symbol table
-    """
-    def __init__(self):
-        self.symbol_table = {}
-        self.current_scope = "global"
-    
-    def enterProgram(self, ctx):
-        """
-        Enter program rule
-        """
-        self.symbol_table = {}
-        self.current_scope = "global"
-    
-    def enterFunctionDeclStatement(self, ctx):
-        """
-        Enter function declaration - change scope
-        """
-        function_name = ctx.ID().getText()
-        self.current_scope = function_name
-        
-        # Add function itself to symbol table
-        self.symbol_table[function_name] = {
-            'type': 'function',
-            'scope': 'global',
-            'line': ctx.start.line
-        }
-        
-        # Add parameters to symbol table
-        param_list = ctx.paramList()
-        if param_list:
-            for param in param_list.ID():
-                param_name = param.getText()
-                self.symbol_table[param_name] = {
-                    'type': 'parameter',
-                    'scope': self.current_scope,
-                    'line': param.symbol.line
-                }
-    
-    def exitFunctionDeclStatement(self, ctx):
-        """
-        Exit function declaration - restore scope
-        """
-        self.current_scope = "global"
-    
-    def enterDeclaration(self, ctx):
-        """
-        Enter declaration rule to collect variables
-        """
-        if ctx.type_():
-            var_type = ctx.type_().getText()
-            
-            # If it's a single variable
-            if ctx.ID():
-                var_name = ctx.ID().getText()
-                self.symbol_table[var_name] = {
-                    'type': var_type,
-                    'scope': self.current_scope,
-                    'line': ctx.start.line
-                }
-            
-            # If it's a list of variables
-            if ctx.idList():
-                for id_node in ctx.idList().ID():
-                    var_name = id_node.getText()
-                    self.symbol_table[var_name] = {
-                        'type': var_type,
-                        'scope': self.current_scope,
-                        'line': id_node.symbol.line
-                    }
-    
-    def enterAssignmentStatement(self, ctx):
-        """
-        Enter assignment to capture variables that might not be declared
-        """
-        var_name = ctx.ID().getText()
-        
-        # Only add to symbol table if not already present
-        if var_name not in self.symbol_table:
-            self.symbol_table[var_name] = {
-                'type': 'unknown',  # Type is unknown if not declared
-                'scope': self.current_scope,
-                'line': ctx.start.line
-            }

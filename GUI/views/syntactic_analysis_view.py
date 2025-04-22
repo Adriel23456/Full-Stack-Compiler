@@ -4,7 +4,7 @@ Displays the parse tree and symbol table
 """
 import pygame
 import os
-from GUI.components.scrollbar import Scrollbar
+from GUI.components.horizontal_scrollbar import HorizontalScrollbar
 from GUI.view_base import ViewBase
 from GUI.components.button import Button
 from GUI.design_base import design
@@ -133,7 +133,7 @@ class SyntacticAnalysisView(ViewBase):
                 
                 # Create scrollbar if needed
                 if self.left_max_scroll_y > 0:
-                    self.left_scrollbar = Scrollbar(
+                    self.left_scrollbar = HorizontalScrollbar(
                         self.left_scrollbar_rect,
                         self.parse_tree_surface.get_height(),
                         self.parse_tree_rect.height
@@ -153,7 +153,7 @@ class SyntacticAnalysisView(ViewBase):
                 
                 # Create scrollbar if needed
                 if self.right_max_scroll_y > 0:
-                    self.right_scrollbar = Scrollbar(
+                    self.right_scrollbar = HorizontalScrollbar(
                         self.right_scrollbar_rect,
                         self.symbol_table_surface.get_height(),
                         self.symbol_table_rect.height
