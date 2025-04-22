@@ -90,6 +90,16 @@ class ViewController:
                     self.editor_view_instance, 
                     self.token_graph_path
                 )
+            
+            elif self.next_state == States.SYNTACTIC_ANALYSIS:
+                # Pass editor view reference and parse tree/symbol table paths
+                print("Creating syntactic analysis view with editor reference")
+                self.current_view = self.states[self.next_state](
+                    self, 
+                    self.editor_view_instance, 
+                    self.parse_tree_path, 
+                    self.symbol_table_path
+                )
                 
             else:
                 # Standard case - create new view instance

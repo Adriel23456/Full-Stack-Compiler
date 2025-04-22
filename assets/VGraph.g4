@@ -1,8 +1,88 @@
 grammar VGraph;
 
 // Parser rules
-program: statement* EOF;
-statement: ';'; // Placeholder para esta fase
+program : declaration* statement* EOF;
+
+declaration 
+    : typeDeclaration ID ('=' expr)? ';'
+    | typeDeclaration idList ';'
+    ;
+
+typeDeclaration : '(' type ')';
+
+type 
+    : INT_TYPE
+    | COLOR_TYPE
+    ;
+
+idList : ID (',' ID)*;
+
+statement
+    : drawStatement
+    | setColorStatement
+    | frameStatement
+    | loopStatement
+    | ifStatement
+    | waitStatement
+    | functionDeclStatement
+    | functionCallStatement
+    | assignmentStatement
+    | returnStatement
+    | clearStatement
+    ;
+
+assignmentStatement : ID '=' expr ';';
+
+drawStatement 
+    : DRAW drawObject ';'
+    ;
+
+drawObject
+    : LINE '(' expr ',' expr ',' expr ',' expr ')'
+    | CIRCLE '(' expr ',' expr ',' expr ')'
+    | RECT '(' expr ',' expr ',' expr ',' expr ')'
+    | PIXEL '(' expr ',' expr ')'
+    ;
+
+setColorStatement : SETCOLOR '(' (ID | COLOR_CONST) ')' ';';
+
+frameStatement : FRAME '{' statement* '}';
+
+loopStatement : LOOP '(' assignmentStatement expr ';' expr ')' '{' statement* '}';
+
+ifStatement 
+    : IF '(' expr ')' '{' statement* '}' 
+      (ELSE '{' statement* '}')?
+    ;
+
+waitStatement : WAIT '(' expr ')' ';';
+
+functionDeclStatement : FUNCTION ID '(' paramList? ')' '{' statement* '}';
+
+paramList : ID (',' ID)*;
+
+functionCallStatement : ID '(' argumentList? ')' ';';
+
+argumentList : expr (',' expr)*;
+
+returnStatement : RETURN expr? ';';
+
+clearStatement : CLEAR '(' ')' ';';
+
+expr
+    : '(' expr ')'                               # ParenExpr
+    | COS '(' expr ')'                           # CosExpr
+    | SIN '(' expr ')'                           # SinExpr
+    | expr op=(MULT|DIV|MOD) expr                # MulDivExpr
+    | expr op=(PLUS|MINUS) expr                  # AddSubExpr
+    | expr op=(EQ|NE|LT|LE|GT|GE) expr           # CompExpr
+    | NUMBER                                     # NumberExpr
+    | ID                                         # IdExpr
+    | COLOR_CONST                                # ColorExpr
+    | functionCall                               # FunctionCallExpr
+    ;
+
+functionCall : ID '(' argumentList? ')';
 
 // Palabras clave
 DRAW: 'draw';
@@ -74,5 +154,5 @@ COLOR_CONST: 'rojo' | 'azul' | 'verde' | 'amarillo' | 'cyan' | 'magenta' | 'blan
 // Comentarios
 COMMENT: '#' ~[\r\n]* -> skip;
 
-// Espacios en blanco (este es el cambio principal)
+// Espacios en blanco
 WS: [ \t\r\n]+ -> skip;

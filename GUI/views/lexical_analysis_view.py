@@ -7,6 +7,7 @@ from GUI.view_base import ViewBase
 from GUI.components.button import Button
 from GUI.design_base import design
 from GUI.components.horizontal_scrollbar import HorizontalScrollbar
+from CompilerLogic.syntacticAnalyzer import SyntacticAnalyzer
 from config import States
 
 class LexicalAnalysisView(ViewBase):
@@ -235,8 +236,32 @@ class LexicalAnalysisView(ViewBase):
             
             # Handle next button
             if self.next_button.handle_event(event):
-                # This will be connected to the next phase of compilation
-                print("Next button pressed - no action yet")
+                # Run syntactic analysis
+                analyzer = SyntacticAnalyzer()
+                
+                # Get the current code from the editor
+                if self.editor_view and hasattr(self.editor_view, 'text_editor'):
+                    code_text = self.editor_view.text_editor.get_text()
+                    
+                    # Run analysis
+                    success, errors, parse_tree_path, symbol_table_path = analyzer.analyze(code_text)
+                    
+                    if success:
+                        # Move to syntactic analysis view
+                        self.view_controller.parse_tree_path = parse_tree_path
+                        self.view_controller.symbol_table_path = symbol_table_path
+                        self.view_controller.change_state(States.SYNTACTIC_ANALYSIS)
+                    else:
+                        # Show errors in editor view
+                        if self.editor_view and hasattr(self.editor_view, 'text_editor'):
+                            self.editor_view.text_editor.clear_error_highlights()
+                            self.editor_view.text_editor.highlight_errors(errors)
+                            
+                        # Return to editor view to show errors
+                        self.view_controller.change_state(States.EDITOR)
+                else:
+                    print("Cannot access editor content")
+                
                 return True
             
             # Handle scrollbar events with the horizontal scrollbar

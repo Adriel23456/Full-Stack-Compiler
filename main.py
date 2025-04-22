@@ -9,6 +9,7 @@ from config import WINDOW_TITLE, States
 from GUI.view_controller import ViewController
 from GUI.views.editor_view import EditorView
 from GUI.views.lexical_analysis_view import LexicalAnalysisView
+from GUI.views.syntactic_analysis_view import SyntacticAnalysisView
 from GUI.design_base import design
 from config import ASSETS_DIR, FONTS_DIR
 
@@ -46,6 +47,7 @@ def main():
         # Register the posible states
         controller.add_state(States.EDITOR, EditorView)
         controller.add_state(States.LEXICAL_ANALYSIS, LexicalAnalysisView)
+        controller.add_state(States.SYNTACTIC_ANALYSIS, SyntacticAnalysisView)
         
         # Set initial state to Editor
         controller.set_initial_state(States.EDITOR)
