@@ -1,6 +1,6 @@
 #Ejemplo de error Lexico
 
-# Definir variables para la espiral
+# Definir variables para la espiralññññ
 (int) ñññx, ñy, ñññt;
 (color) c;
 

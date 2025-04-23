@@ -11,7 +11,6 @@ from GUI.views.editor_view import EditorView
 from GUI.views.lexical_analysis_view import LexicalAnalysisView
 from GUI.views.syntactic_analysis_view import SyntacticAnalysisView
 from GUI.design_base import design
-from config import ASSETS_DIR, FONTS_DIR
 
 def main():
     """
