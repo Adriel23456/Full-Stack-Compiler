@@ -154,7 +154,7 @@ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 3. **Semantic analysis**  
 4. **IR + basic optimiser**  
 5. **x86 code generator**  
-6. **Real‑time HDMI visualisation** 
+6. **Real‑time HDMI visualization** 
 
 ---
 
