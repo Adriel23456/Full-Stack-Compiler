@@ -282,7 +282,20 @@ class SyntacticAnalyzer:
             parser: ANTLR parser
         """
         try:
-            graph = pydot.Dot(graph_type='graph', rankdir='TB')
+            # Modificar la configuración del grafo para agregar más espacio
+            graph = pydot.Dot(
+                graph_type='graph', 
+                rankdir='TB',      # Top to Bottom layout
+                ranksep='1.2',     # Aumentar espacio vertical entre rangos (niveles)
+                nodesep='1.0',     # Aumentar espacio horizontal entre nodos
+                ratio='expand',  # Ajustar ratio para mejor uso del espacio
+                splines='polyline'  # Segmentos de línea conectados
+            )
+            
+            # Configuración adicional para mejorar la legibilidad
+            graph.set_graph_defaults(fontname='Arial')
+            graph.set_node_defaults(fontname='Arial', fontsize='12')
+            graph.set_edge_defaults(fontname='Arial', fontsize='10')
             
             # Add nodes and edges for the parse tree
             self._build_parse_tree_graph(graph, parse_tree, parser, None, 0)

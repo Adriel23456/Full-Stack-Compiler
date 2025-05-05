@@ -79,11 +79,6 @@ except Exception as e:
     print(f"Error al leer el archivo de gramática: {e}")
     GRAMMAR = ""  # Valor por defecto en caso de error
 
-
-# Camera view settings for parse tree visualization
-PARSE_TREE_CAMERA_WIDTH = 750
-PARSE_TREE_CAMERA_HEIGHT = 515
-
 # Camera view settings for symbol table visualization
 SYMBOL_TABLE_CAMERA_WIDTH = 350
 SYMBOL_TABLE_CAMERA_HEIGHT = 350

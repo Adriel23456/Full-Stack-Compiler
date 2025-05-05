@@ -206,6 +206,78 @@ class VGraphListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by VGraphParser#AndExpr.
+    def enterAndExpr(self, ctx:VGraphParser.AndExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#AndExpr.
+    def exitAndExpr(self, ctx:VGraphParser.AndExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#ParenBoolExpr.
+    def enterParenBoolExpr(self, ctx:VGraphParser.ParenBoolExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#ParenBoolExpr.
+    def exitParenBoolExpr(self, ctx:VGraphParser.ParenBoolExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#BoolConstExpr.
+    def enterBoolConstExpr(self, ctx:VGraphParser.BoolConstExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#BoolConstExpr.
+    def exitBoolConstExpr(self, ctx:VGraphParser.BoolConstExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#ComparisonExpr.
+    def enterComparisonExpr(self, ctx:VGraphParser.ComparisonExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#ComparisonExpr.
+    def exitComparisonExpr(self, ctx:VGraphParser.ComparisonExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#BoolIdExpr.
+    def enterBoolIdExpr(self, ctx:VGraphParser.BoolIdExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#BoolIdExpr.
+    def exitBoolIdExpr(self, ctx:VGraphParser.BoolIdExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#NotExpr.
+    def enterNotExpr(self, ctx:VGraphParser.NotExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#NotExpr.
+    def exitNotExpr(self, ctx:VGraphParser.NotExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#OrExpr.
+    def enterOrExpr(self, ctx:VGraphParser.OrExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#OrExpr.
+    def exitOrExpr(self, ctx:VGraphParser.OrExprContext):
+        pass
+
+
+    # Enter a parse tree produced by VGraphParser#BoolLiteralExpr.
+    def enterBoolLiteralExpr(self, ctx:VGraphParser.BoolLiteralExprContext):
+        pass
+
+    # Exit a parse tree produced by VGraphParser#BoolLiteralExpr.
+    def exitBoolLiteralExpr(self, ctx:VGraphParser.BoolLiteralExprContext):
+        pass
+
+
     # Enter a parse tree produced by VGraphParser#FunctionCallExpr.
     def enterFunctionCallExpr(self, ctx:VGraphParser.FunctionCallExprContext):
         pass
@@ -251,12 +323,12 @@ class VGraphListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by VGraphParser#CompExpr.
-    def enterCompExpr(self, ctx:VGraphParser.CompExprContext):
+    # Enter a parse tree produced by VGraphParser#NegExpr.
+    def enterNegExpr(self, ctx:VGraphParser.NegExprContext):
         pass
 
-    # Exit a parse tree produced by VGraphParser#CompExpr.
-    def exitCompExpr(self, ctx:VGraphParser.CompExprContext):
+    # Exit a parse tree produced by VGraphParser#NegExpr.
+    def exitNegExpr(self, ctx:VGraphParser.NegExprContext):
         pass
 
 

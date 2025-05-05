@@ -9,7 +9,6 @@ from GUI.components.button import Button
 from GUI.design_base import design
 from GUI.views.symbol_table_view import SymbolTableView
 from config import States
-from config import PARSE_TREE_CAMERA_WIDTH, PARSE_TREE_CAMERA_HEIGHT
 
 class SyntacticAnalysisView(ViewBase):
     """
@@ -22,11 +21,20 @@ class SyntacticAnalysisView(ViewBase):
         self.symbol_table_path = symbol_table_path
         self.parse_tree_surface = None
         
-        # Replace simple scroll_y with camera position
+        # Camera position for navigation (center of view in image coordinates)
         self.camera_x = 0
         self.camera_y = 0
+        
+        # Min and max camera positions
+        self.min_camera_x = 0
+        self.min_camera_y = 0
         self.max_camera_x = 0
         self.max_camera_y = 0
+        
+        # For scaling
+        self.scale_factor = 1.0
+        self.original_width = 0
+        self.original_height = 0
         
         self.symbol_table_view = None
         self.is_dragging = False
@@ -71,7 +79,7 @@ class SyntacticAnalysisView(ViewBase):
             fixed_height=button_height
         )
         
-        # Full display area for parse tree scrollbar
+        # Full display area for parse tree
         display_height = screen_height - title_height - button_height - bottom_margin - button_margin
         
         # Parse tree display area - full width
@@ -90,18 +98,62 @@ class SyntacticAnalysisView(ViewBase):
             try:
                 self.parse_tree_surface = pygame.image.load(self.parse_tree_path)
                 
-                # Calculate maximum camera positions
-                from config import PARSE_TREE_CAMERA_WIDTH, PARSE_TREE_CAMERA_HEIGHT
-                self.max_camera_x = max(0, self.parse_tree_surface.get_width() - PARSE_TREE_CAMERA_WIDTH)
-                self.max_camera_y = max(0, self.parse_tree_surface.get_height() - PARSE_TREE_CAMERA_HEIGHT)
+                # Store original dimensions
+                self.original_width = self.parse_tree_surface.get_width()
+                self.original_height = self.parse_tree_surface.get_height()
                 
-                # No need for scrollbar with camera control
-                self.scrollbar = None
+                # Calculate initial scale factor to fit the view rect
+                self.calculate_scale_factor()
+                
+                # Set initial camera position to center of image
+                self.camera_x = self.original_width / 2
+                self.camera_y = self.original_height / 2
+                
+                # Update camera limits
+                self.update_camera_limits()
+                
             except Exception as e:
                 print(f"Error loading parse tree image: {e}")
                 self.parse_tree_surface = self.create_placeholder_image("Error loading parse tree image")
         else:
             self.parse_tree_surface = self.create_placeholder_image("Parse tree image not available")
+    
+    def calculate_scale_factor(self):
+        """Calculate scale factor to fit the parse tree in the view rect"""
+        if not self.parse_tree_surface or not hasattr(self, 'parse_tree_rect'):
+            return
+            
+        # Calculate scale factor to fit the view rect while maintaining aspect ratio
+        width_ratio = self.parse_tree_rect.width / self.original_width
+        height_ratio = self.parse_tree_rect.height / self.original_height
+        
+        # Use the smallest ratio to ensure the image fits completely
+        self.scale_factor = min(width_ratio, height_ratio) * 0.9  # 90% to leave some margin
+    
+    def update_camera_limits(self):
+        """Update camera limits based on current scale factor"""
+        if not self.parse_tree_surface:
+            return
+        
+        # Calculate half of the view size in image coordinates
+        view_width_half = self.parse_tree_rect.width / (2 * self.scale_factor)
+        view_height_half = self.parse_tree_rect.height / (2 * self.scale_factor)
+        
+        # Set camera limits to allow the full image to be viewed
+        # The camera position represents the center of the view in image coordinates
+        self.min_camera_x = view_width_half
+        self.min_camera_y = view_height_half
+        self.max_camera_x = self.original_width - view_width_half
+        self.max_camera_y = self.original_height - view_height_half
+        
+        # Ensure min doesn't exceed max (can happen with small images or high zoom)
+        if self.min_camera_x > self.max_camera_x:
+            avg = (self.min_camera_x + self.max_camera_x) / 2
+            self.min_camera_x = self.max_camera_x = avg
+            
+        if self.min_camera_y > self.max_camera_y:
+            avg = (self.min_camera_y + self.max_camera_y) / 2
+            self.min_camera_y = self.max_camera_y = avg
     
     def create_placeholder_image(self, message):
         surface = pygame.Surface((400, 300))
@@ -120,8 +172,9 @@ class SyntacticAnalysisView(ViewBase):
                 return True
             return True
         
+        # Check if we're already dragging before processing events
         mouse_buttons = pygame.mouse.get_pressed()
-        if not mouse_buttons[0] and self.is_dragging:  # Left button not pressed
+        if self.is_dragging and not mouse_buttons[0]:  # Left button was released outside an event
             self.is_dragging = False
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         
@@ -153,23 +206,44 @@ class SyntacticAnalysisView(ViewBase):
                     self.last_mouse_y = event.pos[1]
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     return True
-
-            # Replace the mouse button up handling:
+            
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                # Important: Reset dragging regardless of where the mouse is
                 if self.is_dragging:
                     self.is_dragging = False
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
                     return True
-
+            
+            # Handle zooming with mousewheel
+            elif event.type == pygame.MOUSEWHEEL:
+                if self.parse_tree_rect.collidepoint(pygame.mouse.get_pos()):
+                    # Save old scale for calculating camera adjustment
+                    old_scale = self.scale_factor
+                    
+                    # Zoom in/out
+                    zoom_factor = 1.1
+                    if event.y > 0:  # Scroll up = zoom in
+                        self.scale_factor *= zoom_factor
+                    else:  # Scroll down = zoom out
+                        self.scale_factor /= zoom_factor
+                    
+                    # Limit zoom
+                    min_scale = 0.1
+                    max_scale = 2.0
+                    self.scale_factor = max(min_scale, min(max_scale, self.scale_factor))
+                    
+                    # Calculate zoom factor change
+                    scale_change = self.scale_factor / old_scale
+                    
+                    # Update camera limits first
+                    self.update_camera_limits()
+                    
+                    # Ensure camera stays within bounds
+                    self.camera_x = max(self.min_camera_x, min(self.max_camera_x, self.camera_x))
+                    self.camera_y = max(self.min_camera_y, min(self.max_camera_y, self.camera_y))
+                    
+                    return True
+            
             elif event.type == pygame.MOUSEMOTION:
-                # Update cursor
-                if not self.is_dragging:
-                    if self.parse_tree_rect.collidepoint(event.pos):
-                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                    else:
-                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-                
                 # Handle camera dragging
                 if self.is_dragging:
                     # Calculate delta movement
@@ -180,16 +254,43 @@ class SyntacticAnalysisView(ViewBase):
                     self.last_mouse_x = event.pos[0]
                     self.last_mouse_y = event.pos[1]
                     
-                    # Move camera (inverted direction: dragging moves viewport in opposite direction)
-                    self.camera_x = max(0, min(self.max_camera_x, self.camera_x + dx))
-                    self.camera_y = max(0, min(self.max_camera_y, self.camera_y + dy))
+                    # Convert screen distance to image distance based on scale
+                    scaled_dx = dx / self.scale_factor
+                    scaled_dy = dy / self.scale_factor
+                    
+                    # Move camera (dragging moves viewport in opposite direction)
+                    self.camera_x = max(self.min_camera_x, min(self.max_camera_x, self.camera_x + scaled_dx))
+                    self.camera_y = max(self.min_camera_y, min(self.max_camera_y, self.camera_y + scaled_dy))
+                    
                     return True
+                else:
+                    # Update cursor based on hover
+                    if self.parse_tree_rect.collidepoint(event.pos):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    else:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+            
+            # Handle window resize events
+            elif event.type == pygame.VIDEORESIZE:
+                # Recalculate layout
+                self.setup()
+                return True
         
         return False
     
     def update(self, dt):
         if self.symbol_table_view:
             self.symbol_table_view.update(dt)
+            
+        # Check if window size has changed and recalculate
+        current_rect = self.screen.get_rect()
+        if (hasattr(self, 'last_screen_size') and 
+                (current_rect.width != self.last_screen_size[0] or 
+                 current_rect.height != self.last_screen_size[1])):
+            self.setup()
+        
+        # Store current screen size
+        self.last_screen_size = (current_rect.width, current_rect.height)
     
     def render(self):
         # Fill background
@@ -206,39 +307,30 @@ class SyntacticAnalysisView(ViewBase):
         pygame.draw.rect(self.screen, design.colors["textbox_border"], self.parse_tree_rect, 1)
         
         if self.parse_tree_surface:
-            # Calculate the viewport size while maintaining aspect ratio
-            view_width = self.parse_tree_rect.width
-            view_height = self.parse_tree_rect.height
-            
-            # Calculate the subsection of the image to display
-            subsection = pygame.Rect(
-                self.camera_x, 
-                self.camera_y, 
-                PARSE_TREE_CAMERA_WIDTH, 
-                PARSE_TREE_CAMERA_HEIGHT
-            )
-            
-            # Create a surface for the subsection
-            subsection_surface = pygame.Surface((PARSE_TREE_CAMERA_WIDTH, PARSE_TREE_CAMERA_HEIGHT))
-            subsection_surface.fill((255, 255, 255))
-            
-            # Blit only the visible part of the image
-            subsection_surface.blit(self.parse_tree_surface, (0, 0), subsection)
-            
-            # Scale to fit the view rect while maintaining aspect ratio
-            scale_factor = min(view_width / PARSE_TREE_CAMERA_WIDTH, view_height / PARSE_TREE_CAMERA_HEIGHT)
-            scaled_width = int(PARSE_TREE_CAMERA_WIDTH * scale_factor)
-            scaled_height = int(PARSE_TREE_CAMERA_HEIGHT * scale_factor)
-            
-            # Scale the subsection
-            scaled_surface = pygame.transform.smoothscale(subsection_surface, (scaled_width, scaled_height))
-            
-            # Calculate position to center the scaled surface in the view rect
-            pos_x = self.parse_tree_rect.left + (view_width - scaled_width) // 2
-            pos_y = self.parse_tree_rect.top + (view_height - scaled_height) // 2
-            
-            # Blit the scaled surface
-            self.screen.blit(scaled_surface, (pos_x, pos_y))
+            try:
+                # Create a subsurface of the screen for the image area to clip the content
+                image_view = self.screen.subsurface(self.parse_tree_rect)
+                
+                # Calculate scaled dimensions
+                scaled_width = int(self.original_width * self.scale_factor)
+                scaled_height = int(self.original_height * self.scale_factor)
+                
+                # Create a scaled surface with current scale factor
+                # Using smoothscale for better quality
+                scaled_surface = pygame.transform.smoothscale(
+                    self.parse_tree_surface, (scaled_width, scaled_height)
+                )
+                
+                # Calculate position to center the view - this is the key change
+                # We use the camera position as the center of our view
+                view_x = (self.parse_tree_rect.width / 2) - (self.camera_x * self.scale_factor)
+                view_y = (self.parse_tree_rect.height / 2) - (self.camera_y * self.scale_factor)
+                
+                # Blit the image with calculated position
+                image_view.blit(scaled_surface, (view_x, view_y))
+                
+            except Exception as e:
+                print(f"Error rendering parse tree: {e}")
         
         # Draw buttons
         self.back_button.render(self.screen)

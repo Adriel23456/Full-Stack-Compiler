@@ -119,6 +119,46 @@ class VGraphVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by VGraphParser#AndExpr.
+    def visitAndExpr(self, ctx:VGraphParser.AndExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#ParenBoolExpr.
+    def visitParenBoolExpr(self, ctx:VGraphParser.ParenBoolExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#BoolConstExpr.
+    def visitBoolConstExpr(self, ctx:VGraphParser.BoolConstExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#ComparisonExpr.
+    def visitComparisonExpr(self, ctx:VGraphParser.ComparisonExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#BoolIdExpr.
+    def visitBoolIdExpr(self, ctx:VGraphParser.BoolIdExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#NotExpr.
+    def visitNotExpr(self, ctx:VGraphParser.NotExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#OrExpr.
+    def visitOrExpr(self, ctx:VGraphParser.OrExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by VGraphParser#BoolLiteralExpr.
+    def visitBoolLiteralExpr(self, ctx:VGraphParser.BoolLiteralExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by VGraphParser#FunctionCallExpr.
     def visitFunctionCallExpr(self, ctx:VGraphParser.FunctionCallExprContext):
         return self.visitChildren(ctx)
@@ -144,8 +184,8 @@ class VGraphVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by VGraphParser#CompExpr.
-    def visitCompExpr(self, ctx:VGraphParser.CompExprContext):
+    # Visit a parse tree produced by VGraphParser#NegExpr.
+    def visitNegExpr(self, ctx:VGraphParser.NegExprContext):
         return self.visitChildren(ctx)
 
 

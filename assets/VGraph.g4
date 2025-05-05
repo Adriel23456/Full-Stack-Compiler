@@ -18,6 +18,7 @@ typeDeclaration
 vartype
     : INT_TYPE
     | COLOR_TYPE
+    | BOOL_TYPE
     ;
 
 idList
@@ -73,14 +74,14 @@ frameStatement
 loopStatement
     : LOOP LPAREN
         assignmentExpression SEMICOLON
-        expr                  SEMICOLON
+        boolExpr SEMICOLON
         assignmentExpression
       RPAREN
       block
     ;
 
 ifStatement
-    : IF LPAREN expr RPAREN block
+    : IF LPAREN boolExpr RPAREN block
       ( ELSE ( ifStatement | block ) )?
     ;
 
@@ -112,16 +113,29 @@ clearStatement
     : CLEAR LPAREN RPAREN SEMICOLON
     ;
 
+// Expresiones booleanas - usadas en if y loop
+boolExpr
+    : expr op=(EQ | NE | LT | LE | GT | GE) expr     # ComparisonExpr
+    | boolExpr AND boolExpr                          # AndExpr
+    | boolExpr OR boolExpr                           # OrExpr
+    | NOT boolExpr                                   # NotExpr
+    | LPAREN boolExpr RPAREN                         # ParenBoolExpr
+    | BOOL_CONST                                     # BoolConstExpr
+    | ID                                             # BoolIdExpr
+    ;
+
+// Expresiones generales (valores, operaciones aritméticas)
 expr
     : LPAREN expr RPAREN                             # ParenExpr
     | COS LPAREN expr RPAREN                         # CosExpr
     | SIN LPAREN expr RPAREN                         # SinExpr
     | expr op=(MULT | DIV | MOD) expr                # MulDivExpr
     | expr op=(PLUS | MINUS) expr                    # AddSubExpr
-    | expr op=(EQ | NE | LT | LE | GT | GE) expr     # CompExpr
+    | MINUS expr                                     # NegExpr
     | NUMBER                                         # NumberExpr
     | ID                                             # IdExpr
     | COLOR_CONST                                    # ColorExpr
+    | BOOL_CONST                                     # BoolLiteralExpr
     | functionCall                                   # FunctionCallExpr
     ;
 
@@ -137,13 +151,10 @@ FRAME      : 'frame';
 LOOP       : 'loop';
 IF         : 'if';
 ELSE       : 'else';
-END        : 'end';
 WAIT       : 'wait';
 LINE       : 'line';
 CIRCLE     : 'circle';
 RECT       : 'rect';
-MOVE       : 'move';
-ANIMATE    : 'animate';
 COS        : 'cos';
 SIN        : 'sin';
 PIXEL      : 'pixel';
@@ -153,6 +164,7 @@ CLEAR      : 'clear';
 
 INT_TYPE   : 'int';
 COLOR_TYPE : 'color';
+BOOL_TYPE  : 'bool';
 
 LPAREN     : '(';
 RPAREN     : ')';
@@ -174,8 +186,14 @@ LE         : '<=';
 GE         : '>=';
 NE         : '!=';
 
+AND        : '&&';
+OR         : '||';
+NOT        : '!';
+
 SEMICOLON  : ';';
 COMMA      : ',';
+
+BOOL_CONST : 'true' | 'false';
 
 fragment MINUSCULA    : [a-z];
 fragment MAYUSCULA    : [A-Z];
