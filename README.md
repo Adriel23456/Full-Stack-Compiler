@@ -4,7 +4,7 @@
 
 An **end‑to‑end educational compiler** written in Python that translates **VGraph** source
 code into an x86 executable, updates a `800 × 600` memory buffer **in real time**, and—if
-an HDMI port is detected—mirrors the live image to an external monitor. citeturn0file0
+an HDMI port is detected—mirrors the live image to an external monitor.
 
 ---
 
@@ -33,7 +33,7 @@ The goal is to cover **every** compilation phase:
 
 The produced executable (`out/vGraph.exe`) writes directly into
 `out/image.bin`; the Python viewer (`ExternalPrograms/imageViewer.py`)
-memory‑maps that file and displays it via **SDL 2 / Pygame**. citeturn0file0
+memory‑maps that file and displays it via **SDL 2 / Pygame**.
 
 ---
 
@@ -49,7 +49,7 @@ memory‑maps that file and displays it via **SDL 2 / Pygame**. citeturn0
 
 * **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing.  
 * **LLVM (llvmlite)** for IR, optimisation, and x86 back‑end.  
-* Fully modular pipeline. citeturn0file0
+* Fully modular pipeline.
 
 ---
 
@@ -57,7 +57,7 @@ memory‑maps that file and displays it via **SDL 2 / Pygame**. citeturn0
 ### Main Tokens
 Keywords like `draw`, `setcolor`, `frame`, `loop`, `if`, `else`, etc.
 Identifiers are **alphanumeric, ≤ 10 chars, start with a lowercase letter**.
-Integers range 0‑639 / 0‑479. Comments start with `#`. citeturn0file0  
+Integers range 0‑639 / 0‑479. Comments start with `#`.
 
 ### Minimal Example
 ```text
@@ -69,7 +69,7 @@ frame {
     }
 }
 ```
-Larger programs (spiral, mandala, fractal tree) live in `Examples/`. citeturn0file0  
+Larger programs (spiral, mandala, fractal tree) live in `Examples/`. 
 
 ---
 
@@ -154,7 +154,7 @@ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 3. **Semantic analysis**  
 4. **IR + basic optimiser**  
 5. **x86 code generator**  
-6. **Real‑time HDMI visualisation** citeturn0file0  
+6. **Real‑time HDMI visualisation** 
 
 ---
 
@@ -167,7 +167,7 @@ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 | Assembler / Linker | `nasm`, `gcc` |
 | Visualisation | `pygame` / `PySDL2`, `mmap`, `pyudev` |
 | GUI | Custom MVC + SDL2 |
-| Target OS | Linux (Ubuntu) | citeturn0file0 |
+| Target OS | Linux (Ubuntu) |
 
 ---
 
