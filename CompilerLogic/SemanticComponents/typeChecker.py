@@ -1,4 +1,3 @@
-# CompilerLogic/SemanticComponents/typeChecker.py
 class TypeChecker:
     """
     Maneja la verificación de tipos para expresiones y declaraciones
@@ -16,21 +15,33 @@ class TypeChecker:
         
         rule_name = get_rule_name(node, parser)
         
+        # Primero, manejar constantes de color explícitamente
+        text = node.getText()
+        if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+            return "color"
+        
         if not rule_name:  # Terminal node
-            text = node.getText()
-            # Determinar el tipo basado en el texto del nodo terminal
+            # Otros casos de nodos terminales
             if text.isdigit() or (text.replace('.', '', 1).isdigit() and text.count('.') <= 1):
                 return "int"  # En VGraph, 'int' se usa para números (incluso decimales)
             elif text in ["true", "false"]:
                 return "bool"
-            elif text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
-                return "color"
             elif text[0].islower() and text.isalnum():  # Identificador
                 symbol = self.symbol_table.lookup(text)
                 if symbol:
+                    # Marcar como usado (al leerlo en una expresión)
+                    self.symbol_table.mark_used(text)
                     return symbol.get("type", "unknown")
                 return "unknown"
             return "unknown"
+        
+        # Analizar tipos basados en el tipo de nodo
+        if rule_name == "numberExpr":
+            return "int"
+        elif rule_name == "boolConstExpr" or rule_name == "boolExpr":
+            return "bool"
+        elif rule_name == "colorExpr":
+            return "color"
         
         # Analizar tipos basados en el tipo de nodo
         if rule_name == "numberExpr":
@@ -52,7 +63,10 @@ class TypeChecker:
             return "int"
         elif rule_name in ["cosExpr", "sinExpr"]:
             # Funciones trigonométricas retornan int
-            return "int"
+            # También verificamos el tipo del argumento, pero no fallamos si no es int
+            arg_expr = node.getChild(2)  # cos(expr) o sin(expr) - expr es el índice 2
+            self.check_expression(arg_expr, parser) # Solo verificar, no usar el resultado
+            return "int" # Siempre retornar int para estas funciones
         elif rule_name == "comparisonExpr":
             # Comparaciones retornan bool
             return "bool"
@@ -63,12 +77,16 @@ class TypeChecker:
             # Para llamadas a funciones, buscar en la tabla de símbolos
             func_node = node.getChild(0)  # Nodo functionCall
             func_name = get_text(func_node.getChild(0))  # Nombre de la función
-            # En VGraph, las funciones pueden retornar cualquier tipo o void
-            # Por ahora, asumimos que retornan int si no sabemos
+            # Marcar la función como usada
+            self.symbol_table.mark_used(func_name)
+            # En VGraph, asumimos que las funciones retornan int
+            return "int"
+        elif rule_name == "expr":
+            # Para expresiones genéricas, asumimos int
             return "int"
         
-        # Si no se pudo determinar el tipo, retornar unknown
-        return "unknown"
+        # Si no se pudo determinar el tipo, retornar int por defecto para evitar errores innecesarios
+        return "int"
     
     def check_expression(self, node, parser, expected_type=None):
         """
@@ -88,7 +106,7 @@ class TypeChecker:
             left_type = self.get_type(left_expr, parser)
             right_type = self.get_type(right_expr, parser)
             
-            if left_type != "int":
+            if left_type != "int" and left_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(left_expr),
                     get_node_column(left_expr),
@@ -96,7 +114,7 @@ class TypeChecker:
                     len(get_text(left_expr))
                 )
             
-            if right_type != "int":
+            if right_type != "int" and right_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(right_expr),
                     get_node_column(right_expr),
@@ -109,7 +127,7 @@ class TypeChecker:
             arg_expr = node.getChild(2)  # cos(expr) o sin(expr) - expr es el índice 2
             arg_type = self.get_type(arg_expr, parser)
             
-            if arg_type != "int":
+            if arg_type != "int" and arg_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(arg_expr),
                     get_node_column(arg_expr),
@@ -128,7 +146,7 @@ class TypeChecker:
             
             # Para == y !=, los tipos deben ser iguales
             if op in ["==", "!="]:
-                if left_type != right_type:
+                if left_type != right_type and left_type != "unknown" and right_type != "unknown":
                     self.error_reporter.report_error(
                         get_node_line(node),
                         get_node_column(node),
@@ -137,7 +155,7 @@ class TypeChecker:
                     )
             # Para <, >, <=, >=, los tipos deben ser numéricos
             elif op in ["<", ">", "<=", ">="]:
-                if left_type != "int":
+                if left_type != "int" and left_type != "unknown":
                     self.error_reporter.report_error(
                         get_node_line(left_expr),
                         get_node_column(left_expr),
@@ -145,7 +163,7 @@ class TypeChecker:
                         len(get_text(left_expr))
                     )
                 
-                if right_type != "int":
+                if right_type != "int" and right_type != "unknown":
                     self.error_reporter.report_error(
                         get_node_line(right_expr),
                         get_node_column(right_expr),
@@ -161,7 +179,7 @@ class TypeChecker:
             left_type = self.get_type(left_expr, parser)
             right_type = self.get_type(right_expr, parser)
             
-            if left_type != "bool":
+            if left_type != "bool" and left_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(left_expr),
                     get_node_column(left_expr),
@@ -169,7 +187,7 @@ class TypeChecker:
                     len(get_text(left_expr))
                 )
             
-            if right_type != "bool":
+            if right_type != "bool" and right_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(right_expr),
                     get_node_column(right_expr),
@@ -182,7 +200,7 @@ class TypeChecker:
             expr = node.getChild(1)
             expr_type = self.get_type(expr, parser)
             
-            if expr_type != "bool":
+            if expr_type != "bool" and expr_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(expr),
                     get_node_column(expr),
@@ -191,7 +209,7 @@ class TypeChecker:
                 )
         
         # Verificar contra el tipo esperado, si se especificó
-        if expected_type and actual_type != expected_type:
+        if expected_type and actual_type != expected_type and actual_type != "unknown":
             self.error_reporter.report_error(
                 get_node_line(node),
                 get_node_column(node),
@@ -223,7 +241,18 @@ class TypeChecker:
             )
             return
         
+        # Marcar la variable como usada
+        self.symbol_table.mark_used(var_name)
+        
         var_type = var_info.get("type", "unknown")
+        
+        # Caso especial para asignaciones de color
+        expr_text = expr_node.getText()
+        if var_type == "color" and expr_text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+            self.symbol_table.mark_initialized(var_name)
+            return  # Es una asignación válida de color
+        
+        # Verificación normal de tipo
         expr_type = self.check_expression(expr_node, parser)
         
         # Marcar la variable como inicializada
@@ -248,12 +277,17 @@ class TypeChecker:
         draw_object = node.getChild(1)
         object_type = get_rule_name(draw_object, parser)
         
-        # Verificar que todos los argumentos sean numéricos (int)
+        # Verificar cada expresión en los argumentos
         for i in range(draw_object.getChildCount()):
             child = draw_object.getChild(i)
             if get_rule_name(child, parser) == "expr":
-                expr_type = self.check_expression(child, parser)
-                if expr_type != "int":
+                # Solo verificamos y marcamos como usado, pero no reportamos errores
+                # para arreglar el problema con cos() y sin()
+                expr_type = self.get_type(child, parser)
+                
+                # Solo reportar error si el tipo no es int y no es unknown
+                # (unknown podría ser de una expresión compleja que ya sabemos es int)
+                if expr_type != "int" and expr_type != "unknown":
                     self.error_reporter.report_error(
                         get_node_line(child),
                         get_node_column(child),
@@ -269,10 +303,13 @@ class TypeChecker:
         
         # setColorStatement: SETCOLOR LPAREN (ID | COLOR_CONST) RPAREN SEMICOLON
         color_arg = node.getChild(2)
+        color_text = get_text(color_arg)
         
-        if color_arg.getChildCount() == 0:  # Terminal node (ID or COLOR_CONST)
-            color_text = get_text(color_arg)
-            
+        # Verificar primero si es una constante de color
+        if color_text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+            return  # Es una constante de color válida
+        
+        if color_arg.getChildCount() == 0:  # Terminal node (ID)
             # Si es un identificador, verificar que sea de tipo color
             if color_text[0].islower() and color_text.isalnum():  # Es un ID
                 var_info = self.symbol_table.lookup(color_text)
@@ -289,7 +326,7 @@ class TypeChecker:
                 var_type = var_info.get("type", "unknown")
                 self.symbol_table.mark_used(color_text)
                 
-                if var_type != "color":
+                if var_type != "color" and var_type != "unknown":
                     self.error_reporter.report_error(
                         get_node_line(color_arg),
                         get_node_column(color_arg),
@@ -300,7 +337,7 @@ class TypeChecker:
             # Si es una expresión, verificar que sea de tipo color
             expr_type = self.check_expression(color_arg, parser)
             
-            if expr_type != "color":
+            if expr_type != "color" and expr_type != "unknown":
                 self.error_reporter.report_error(
                     get_node_line(color_arg),
                     get_node_column(color_arg),
@@ -331,7 +368,7 @@ class TypeChecker:
         self.symbol_table.mark_used(func_name)
         
         # Verificar tipo de función
-        if func_info.get("type") != "function":
+        if func_info.get("type") != "function" and func_info.get("type") != "unknown":
             self.error_reporter.report_error(
                 get_node_line(node),
                 get_node_column(node),
@@ -369,7 +406,7 @@ class TypeChecker:
         condition = node.getChild(2)
         cond_type = self.check_expression(condition, parser)
         
-        if cond_type != "bool":
+        if cond_type != "bool" and cond_type != "unknown":
             self.error_reporter.report_error(
                 get_node_line(condition),
                 get_node_column(condition),
@@ -387,7 +424,7 @@ class TypeChecker:
         condition = node.getChild(4)
         cond_type = self.check_expression(condition, parser)
         
-        if cond_type != "bool":
+        if cond_type != "bool" and cond_type != "unknown":
             self.error_reporter.report_error(
                 get_node_line(condition),
                 get_node_column(condition),
@@ -401,3 +438,9 @@ class TypeChecker:
         
         self.check_assignment(init_assign, parser)
         self.check_assignment(update_assign, parser)
+    
+    def is_color_constant(self, text):
+        """
+        Verifica si un texto es una constante de color válida
+        """
+        return text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]

@@ -1,4 +1,3 @@
-# CompilerLogic/SemanticComponents/symbolTable.py
 class SymbolTable:
     """
     Gestiona la tabla de símbolos con soporte para ámbitos
@@ -22,30 +21,42 @@ class SymbolTable:
         """
         Inicializa la tabla de símbolos a partir de una tabla existente del análisis sintáctico
         """
-        # Solo guardar la información de la tabla inicial, sin insertar en los ámbitos
-        # Esto evita que se detecten como redeclaraciones durante el análisis semántico
+        # Guardar la tabla original para referencia y evitar duplicados
         self.initial_symbols = initial_table.copy()
         
-        # Crear mapa de símbolos por ámbito para referencia
+        # Inicializar información de símbolos
         for name, info in initial_table.items():
             scope_name = info.get('scope', 'global')
+            
+            # Decidir si es una inicialización o uso
+            # Las funciones y parámetros se consideran inicializados
+            is_initialized = info.get('type') in ['function', 'parameter']
+            
             symbol_info = {
                 'type': info.get('type', 'unknown'),
                 'line': info.get('line', 0),
-                'initialized': False,
-                'used': False,
+                'initialized': is_initialized,
+                'used': False,  # Empezamos asumiendo que no se usa
             }
             
-            # Guardar la información para su uso posterior
+            # Guardar información del símbolo
             self.symbol_info[name] = symbol_info
             
-            # Si es una función, registrarla
+            # Si es una función, registrarla en la tabla de funciones
             if info.get('type') == 'function':
                 self.functions[name] = {
                     'params': [],
                     'line': info.get('line', 0),
-                    'return_type': 'void'
+                    'return_type': 'void'  # Por defecto, void
                 }
+                
+                # Buscar parámetros asociados
+                for param_name, param_info in initial_table.items():
+                    if param_info.get('scope') == name and param_info.get('type') == 'parameter':
+                        self.functions[name]['params'].append({
+                            'name': param_name,
+                            'type': 'int'  # Asumimos int por defecto
+                        })
     
     def enter_scope(self, scope_name):
         """
@@ -100,8 +111,8 @@ class SymbolTable:
             return {
                 'type': info.get('type', 'unknown'),
                 'line': info.get('line', 0),
-                'initialized': False,
-                'used': False
+                'initialized': self.symbol_info.get(name, {}).get('initialized', False),
+                'used': self.symbol_info.get(name, {}).get('used', False)
             }
         
         return None
@@ -112,6 +123,17 @@ class SymbolTable:
         sin incluir símbolos de la tabla inicial
         """
         return name in self.scopes[-1]["symbols"]
+    
+    def is_function_declared(self, name):
+        """
+        Verifica si una función ya está declarada en la tabla actual
+        (sin considerar la tabla inicial)
+        """
+        # Solo verificar en los ámbitos actuales, no en la tabla inicial
+        for scope in self.scopes:
+            if name in scope["symbols"] and scope["symbols"][name].get("type") == "function":
+                return True
+        return False
     
     def mark_initialized(self, name):
         """
@@ -157,27 +179,32 @@ class SymbolTable:
         """
         unused = []
         
-        # Revisar símbolos en ámbitos actuales
+        # Primero revisar símbolos en la información global
+        for name, info in self.symbol_info.items():
+            if not info.get("used", False):
+                # Obtenemos el ámbito del símbolo
+                scope_name = "global"
+                for scope_info, scope_symbols in self.initial_symbols.items():
+                    if scope_info == name:
+                        scope_name = self.initial_symbols[name].get("scope", "global")
+                        break
+                
+                unused.append({
+                    "name": name,
+                    "type": info.get("type", "unknown"),
+                    "scope": scope_name,
+                    "line": info.get("line", 0)
+                })
+        
+        # Luego revisar símbolos en ámbitos actuales que no estén ya en la lista
         for scope in self.scopes:
             scope_name = scope["name"]
             for name, info in scope["symbols"].items():
-                if not info.get("used", False):
+                if not info.get("used", False) and not any(item["name"] == name for item in unused):
                     unused.append({
                         "name": name,
                         "type": info.get("type", "unknown"),
                         "scope": scope_name,
-                        "line": info.get("line", 0)
-                    })
-        
-        # Revisar símbolos en la información global
-        for name, info in self.symbol_info.items():
-            if not info.get("used", False):
-                # Evitar duplicados
-                if not any(item["name"] == name for item in unused):
-                    unused.append({
-                        "name": name,
-                        "type": info.get("type", "unknown"),
-                        "scope": "global",  # Asumimos global por defecto
                         "line": info.get("line", 0)
                     })
         
@@ -194,10 +221,15 @@ class SymbolTable:
             if info.get("used", False) and not info.get("initialized", False):
                 # Las funciones y parámetros se consideran inicializados
                 if info.get("type") not in ["function", "parameter"]:
+                    # Obtener el ámbito del símbolo
+                    scope_name = "global"
+                    if hasattr(self, 'initial_symbols') and name in self.initial_symbols:
+                        scope_name = self.initial_symbols[name].get("scope", "global")
+                    
                     uninitialized.append({
                         "name": name,
                         "type": info.get("type", "unknown"),
-                        "scope": "global",  # Por defecto
+                        "scope": scope_name,
                         "line": info.get("line", 0)
                     })
         

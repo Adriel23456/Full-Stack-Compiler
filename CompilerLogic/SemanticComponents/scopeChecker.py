@@ -101,8 +101,8 @@ class ScopeChecker:
         # functionDeclStatement: FUNCTION ID LPAREN paramList? RPAREN block
         func_name = get_text(node.getChild(1))
         
-        # Verificar si ya existe en el ámbito global
-        if self.symbol_table.lookup(func_name):
+        # Verificar si ya existe en el ámbito global SOLO en la tabla actual
+        if self.symbol_table.is_function_declared(func_name):
             self.error_reporter.report_error(
                 get_node_line(node.getChild(1)),
                 get_node_column(node.getChild(1)),
