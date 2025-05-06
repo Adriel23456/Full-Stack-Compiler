@@ -83,3 +83,73 @@ except Exception as e:
 # Camera view settings for symbol table visualization
 SYMBOL_TABLE_CAMERA_WIDTH = 350
 SYMBOL_TABLE_CAMERA_HEIGHT = 350
+
+# Rutas para archivos del análisis semántico
+SEMANTIC_GRAPH_PATH = os.path.join(ASSETS_DIR, "Images", "semantic_graph.png")
+ENHANCED_SYMBOL_TABLE_PATH = os.path.join(ASSETS_DIR, "Images", "enhanced_symbol_table.png")
+
+# Datos compartidos entre analizadores
+class CompilerData:
+    """Clase estática para almacenar datos compartidos entre las fases del compilador"""
+    # Rutas a archivos de visualización
+    token_graph_path = None
+    parse_tree_path = None
+    symbol_table_path = None
+    semantic_graph_path = None
+    enhanced_symbol_table_path = None
+    
+    # Datos del análisis léxico
+    tokens = []
+    lexical_errors = []
+    
+    # Datos del análisis sintáctico
+    ast = None  # Abstract Syntax Tree
+    parser = None  # Parser reference (needed for tree traversal)
+    symbol_table = {}  # Tabla de símbolos inicial
+    syntactic_errors = []
+    
+    # Datos del análisis semántico
+    semantic_errors = []
+    enhanced_symbol_table = {}  # Tabla de símbolos con información de tipos
+    
+    @staticmethod
+    def reset_lexical():
+        """Resetea los datos del análisis léxico"""
+        CompilerData.tokens = []
+        CompilerData.lexical_errors = []
+        CompilerData.token_graph_path = None
+    
+    @staticmethod
+    def reset_syntactic():
+        """Resetea los datos del análisis sintáctico"""
+        CompilerData.ast = None
+        CompilerData.parser = None
+        CompilerData.symbol_table = {}
+        CompilerData.syntactic_errors = []
+        CompilerData.parse_tree_path = None
+        CompilerData.symbol_table_path = None
+    
+    @staticmethod
+    def reset_semantic():
+        """Resetea los datos del análisis semántico"""
+        CompilerData.semantic_errors = []
+        CompilerData.enhanced_symbol_table = {}
+        CompilerData.semantic_graph_path = None
+        CompilerData.enhanced_symbol_table_path = None
+    
+    @staticmethod
+    def reset_all():
+        """Resetea todos los datos del compilador"""
+        CompilerData.reset_lexical()
+        CompilerData.reset_syntactic()
+        CompilerData.reset_semantic()
+
+    @staticmethod
+    def get_ast_visualization():
+        """Genera una visualización del AST almacenado"""
+        if not CompilerData.ast or not CompilerData.parser:
+            return "No hay árbol de análisis sintáctico disponible"
+        
+        # Importar dinámicamente para evitar dependencias circulares
+        from CompilerLogic.SemanticComponents.astUtil import print_ast
+        return print_ast(CompilerData.ast, CompilerData.parser)

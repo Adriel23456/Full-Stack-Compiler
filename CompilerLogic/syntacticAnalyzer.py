@@ -9,7 +9,7 @@ from antlr4 import *
 from antlr4.tree.Trees import Trees
 from antlr4.error.ErrorListener import ErrorListener
 import pydot
-from config import BASE_DIR, ASSETS_DIR, States
+from config import BASE_DIR, ASSETS_DIR, CompilerData, States
 
 class SyntacticAnalyzer:
     """
@@ -42,6 +42,7 @@ class SyntacticAnalyzer:
         # Reset state
         self.errors = []
         self.symbol_table = {}
+        CompilerData.reset_syntactic()
         
         # Ensure the ANTLR parser files are generated
         if not self._ensure_parser_generated():
@@ -188,6 +189,12 @@ class SyntacticAnalyzer:
                 
                 # Generate symbol table visualization
                 self._visualize_symbol_table()
+
+                CompilerData.symbol_table = self.symbol_table
+                CompilerData.parse_tree_path = self.parse_tree_path
+                CompilerData.symbol_table_path = self.symbol_table_path
+                CompilerData.parser = parser
+                CompilerData.ast = parse_tree
                 
                 return True, [], self.parse_tree_path, self.symbol_table_path
                 
@@ -205,6 +212,7 @@ class SyntacticAnalyzer:
                         'column': 0,
                         'length': 0
                     })
+                CompilerData.syntactic_errors = self.errors
                 return False, self.errors, None, None
             
         except Exception as e:
@@ -217,6 +225,7 @@ class SyntacticAnalyzer:
                 'column': 0,
                 'length': 0
             })
+            CompilerData.syntactic_errors = self.errors
             return False, self.errors, None, None
     
     def _ensure_parser_generated(self):

@@ -10,6 +10,9 @@ from GUI.components.button import Button
 from GUI.design_base import design
 from GUI.views.symbol_table_view import SymbolTableView
 from config import States
+from CompilerLogic.semanticAnalyzer import SemanticAnalyzer
+from GUI.components.pop_up_dialog import PopupDialog
+from config import CompilerData
 
 class SyntacticAnalysisView(ViewBase):
     """
@@ -196,60 +199,70 @@ class SyntacticAnalysisView(ViewBase):
             
             # Handle next button - Semantic Analysis transition
             if self.next_button.handle_event(event):
-                # Import needed here to avoid circular imports
-                from CompilerLogic.semanticAnalyzer import SemanticAnalyzer
-                from GUI.components.pop_up_dialog import PopupDialog
-                
                 try:
-                    # Create semantic analyzer
-                    analyzer = SemanticAnalyzer()
+                    # Obtener el código actual desde el editor para reporte de errores
+                    source_code = ""
+                    if self.editor_view and hasattr(self.editor_view, 'text_editor'):
+                        source_code = self.editor_view.text_editor.get_text()
                     
-                    # The parse tree might not be available directly in view_controller
-                    # We'll use None and let the analyzer handle it
-                    parse_tree = None  # Este es el problema, no estamos guardando el parse_tree
-                    symbol_table = {}  # Inicializamos con un diccionario vacío
-                    
-                    # Si tenemos acceso a la tabla de símbolos en la vista
-                    if hasattr(self, 'editor_view') and self.editor_view:
-                        symbol_table = getattr(self.editor_view, 'symbol_table', {})
-                    
-                    # Run semantic analysis
-                    success, errors, semantic_analysis_path, enhanced_symbol_table_path = analyzer.analyze(parse_tree, symbol_table)
-                    
-                    if success and not errors:
-                        # Set paths in view_controller for the next view to use
-                        self.view_controller.semantic_analysis_path = semantic_analysis_path
-                        self.view_controller.enhanced_symbol_table_path = enhanced_symbol_table_path
+                    # Verificar que el AST y la tabla de símbolos estén disponibles
+                    if CompilerData.ast and CompilerData.symbol_table:
+                        # Crear analizador semántico
+                        semantic_analyzer = SemanticAnalyzer()
+
+                        #print('================================')
+                        #print('Compiler Data AST:')
+                        #print(CompilerData.get_ast_visualization())
+                        #print('================================')
+                        #print('Compiler Data Symbol Table:')
+                        #print(CompilerData.symbol_table)
+                        #print('================================')
+                        #print('Compiler Data Parser:')
+                        #print(CompilerData.parser)
+                        #print('================================')
+                        #print('Compiler Data Paths:')
+                        #print(CompilerData.parse_tree_path)
+                        #print(CompilerData.token_graph_path)
+                        #print(CompilerData.symbol_table_path)
+                        #print('================================')
                         
-                        # Change to semantic analysis view
-                        self.view_controller.change_state(States.SEMANTIC_ANALYSIS)
-                    else:
-                        # If there were errors, go back to editor view and show errors
-                        if hasattr(self, 'editor_view') and self.editor_view:
-                            # Clear any existing highlights first
-                            if hasattr(self.editor_view.text_editor, 'clear_error_highlights'):
+                        # Realizar análisis semántico (ya no pasamos el código fuente como primer parámetro)
+                        success, errors, semantic_graph_path, enhanced_symbol_table_path = semantic_analyzer.analyze(source_code)
+                        
+                        if success:
+                            # Guardar rutas para la vista semántica
+                            self.view_controller.semantic_analysis_path = semantic_graph_path
+                            self.view_controller.enhanced_symbol_table_path = enhanced_symbol_table_path
+                            
+                            # Cambiar a la vista de análisis semántico
+                            self.view_controller.change_state(States.SEMANTIC_ANALYSIS)
+                        else:
+                            # Mostrar errores en la vista del editor
+                            if self.editor_view and hasattr(self.editor_view, 'text_editor'):
                                 self.editor_view.text_editor.clear_error_highlights()
-                            
-                            # Highlight errors in editor
-                            if errors and hasattr(self.editor_view.text_editor, 'highlight_errors'):
-                                self.editor_view.text_editor.highlight_errors(errors)
-                                
-                                # Create popup for the first error
                                 if errors:
-                                    first_error = errors[0]
-                                    # Asegurar que el mensaje sea visible - usar el mensaje del error
-                                    error_message = first_error.get('message', 'Error semántico sin detalles')
-                                    # Configurar un tiempo más largo (10 segundos) para que sea visible
-                                    self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)
+                                    self.editor_view.text_editor.highlight_errors(errors)
                             
-                            # Go back to editor view
+                            # Crear popup para mostrar el error
+                            if errors and self.editor_view:
+                                error_message = errors[0].get('message', 'Error en análisis semántico')
+                                self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)
+                            
+                            # Volver a la vista del editor
                             self.view_controller.change_state(States.EDITOR)
+                    else:
+                        # No hay AST o tabla de símbolos disponible
+                        error_message = "No hay datos de análisis sintáctico disponibles"
+                        if self.editor_view:
+                            self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)
+                            self.view_controller.change_state(States.EDITOR)
+                
                 except Exception as e:
                     print(f"Error in semantic analysis button handler: {e}")
                     import traceback
                     traceback.print_exc()
                     
-                    # Show a popup with the exception message
+                    # Mostrar error en un popup
                     if hasattr(self, 'editor_view') and self.editor_view:
                         error_message = f"Error en análisis semántico: {str(e)}"
                         self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)

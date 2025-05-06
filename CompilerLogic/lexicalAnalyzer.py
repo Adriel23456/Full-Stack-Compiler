@@ -7,7 +7,7 @@ import sys
 import subprocess
 from antlr4 import *
 import pydot
-from config import BASE_DIR, ASSETS_DIR
+from config import BASE_DIR, ASSETS_DIR, CompilerData
 
 class LexicalAnalyzer:
     """
@@ -39,6 +39,7 @@ class LexicalAnalyzer:
         # Reset state
         self.tokens = []
         self.errors = []
+        CompilerData.reset_all()  # Resetear todos los datos cuando inicia un nuevo análisis
         
         # Ensure the ANTLR lexer files are generated
         if not self._ensure_lexer_generated():
@@ -116,10 +117,13 @@ class LexicalAnalyzer:
             # Generate token graph if no errors
             if not lexical_errors:
                 self._visualize_tokens(all_tokens)
+                CompilerData.tokens = all_tokens
+                CompilerData.token_graph_path = self.token_graph_path
                 return True, [], self.token_graph_path
             else:
                 # Return errors
                 self.errors = lexical_errors
+                CompilerData.lexical_errors = lexical_errors
                 return False, lexical_errors, None
             
         except Exception as e:

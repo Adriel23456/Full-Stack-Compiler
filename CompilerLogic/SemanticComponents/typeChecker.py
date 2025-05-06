@@ -1,0 +1,403 @@
+# CompilerLogic/SemanticComponents/typeChecker.py
+class TypeChecker:
+    """
+    Maneja la verificación de tipos para expresiones y declaraciones
+    """
+    def __init__(self, symbol_table, error_reporter):
+        self.symbol_table = symbol_table
+        self.error_reporter = error_reporter
+        self.current_function = None  # Para verificación de return
+    
+    def get_type(self, node, parser):
+        """
+        Determina el tipo de una expresión
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_text, get_text
+        
+        rule_name = get_rule_name(node, parser)
+        
+        if not rule_name:  # Terminal node
+            text = node.getText()
+            # Determinar el tipo basado en el texto del nodo terminal
+            if text.isdigit() or (text.replace('.', '', 1).isdigit() and text.count('.') <= 1):
+                return "int"  # En VGraph, 'int' se usa para números (incluso decimales)
+            elif text in ["true", "false"]:
+                return "bool"
+            elif text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+                return "color"
+            elif text[0].islower() and text.isalnum():  # Identificador
+                symbol = self.symbol_table.lookup(text)
+                if symbol:
+                    return symbol.get("type", "unknown")
+                return "unknown"
+            return "unknown"
+        
+        # Analizar tipos basados en el tipo de nodo
+        if rule_name == "numberExpr":
+            return "int"
+        elif rule_name == "boolConstExpr" or rule_name == "boolExpr":
+            return "bool"
+        elif rule_name == "colorExpr":
+            return "color"
+        elif rule_name == "idExpr":
+            var_name = get_text(node.getChild(0))
+            symbol = self.symbol_table.lookup(var_name)
+            if symbol:
+                # Marcar como usado
+                self.symbol_table.mark_used(var_name)
+                return symbol.get("type", "unknown")
+            return "unknown"
+        elif rule_name in ["addSubExpr", "mulDivExpr", "parenExpr", "negExpr"]:
+            # Operaciones aritméticas siempre retornan int
+            return "int"
+        elif rule_name in ["cosExpr", "sinExpr"]:
+            # Funciones trigonométricas retornan int
+            return "int"
+        elif rule_name == "comparisonExpr":
+            # Comparaciones retornan bool
+            return "bool"
+        elif rule_name in ["andExpr", "orExpr", "notExpr", "parenBoolExpr"]:
+            # Operaciones lógicas retornan bool
+            return "bool"
+        elif rule_name == "functionCallExpr":
+            # Para llamadas a funciones, buscar en la tabla de símbolos
+            func_node = node.getChild(0)  # Nodo functionCall
+            func_name = get_text(func_node.getChild(0))  # Nombre de la función
+            # En VGraph, las funciones pueden retornar cualquier tipo o void
+            # Por ahora, asumimos que retornan int si no sabemos
+            return "int"
+        
+        # Si no se pudo determinar el tipo, retornar unknown
+        return "unknown"
+    
+    def check_expression(self, node, parser, expected_type=None):
+        """
+        Verifica el tipo de una expresión y reporta errores si no coincide con el tipo esperado
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_line, get_node_column, get_text
+        
+        actual_type = self.get_type(node, parser)
+        rule_name = get_rule_name(node, parser)
+        
+        # Verificaciones específicas según el tipo de expresión
+        if rule_name in ["addSubExpr", "mulDivExpr", "modExpr"]:
+            # Verificar que las operaciones aritméticas se realicen entre valores numéricos
+            left_expr = node.getChild(0)
+            right_expr = node.getChild(2)
+            
+            left_type = self.get_type(left_expr, parser)
+            right_type = self.get_type(right_expr, parser)
+            
+            if left_type != "int":
+                self.error_reporter.report_error(
+                    get_node_line(left_expr),
+                    get_node_column(left_expr),
+                    f"Operación aritmética requiere tipo numérico (int), pero se encontró {left_type}",
+                    len(get_text(left_expr))
+                )
+            
+            if right_type != "int":
+                self.error_reporter.report_error(
+                    get_node_line(right_expr),
+                    get_node_column(right_expr),
+                    f"Operación aritmética requiere tipo numérico (int), pero se encontró {right_type}",
+                    len(get_text(right_expr))
+                )
+        
+        elif rule_name in ["cosExpr", "sinExpr"]:
+            # Verificar que los argumentos de las funciones trigonométricas sean numéricos
+            arg_expr = node.getChild(2)  # cos(expr) o sin(expr) - expr es el índice 2
+            arg_type = self.get_type(arg_expr, parser)
+            
+            if arg_type != "int":
+                self.error_reporter.report_error(
+                    get_node_line(arg_expr),
+                    get_node_column(arg_expr),
+                    f"Función {rule_name[:-4]} requiere argumento numérico (int), pero se encontró {arg_type}",
+                    len(get_text(arg_expr))
+                )
+        
+        elif rule_name == "comparisonExpr":
+            # Verificar que las comparaciones se realicen entre valores compatibles
+            left_expr = node.getChild(0)
+            right_expr = node.getChild(2)
+            op = get_text(node.getChild(1))
+            
+            left_type = self.get_type(left_expr, parser)
+            right_type = self.get_type(right_expr, parser)
+            
+            # Para == y !=, los tipos deben ser iguales
+            if op in ["==", "!="]:
+                if left_type != right_type:
+                    self.error_reporter.report_error(
+                        get_node_line(node),
+                        get_node_column(node),
+                        f"Comparación {op} requiere tipos iguales, pero se encontró {left_type} y {right_type}",
+                        len(get_text(node.getChild(1)))
+                    )
+            # Para <, >, <=, >=, los tipos deben ser numéricos
+            elif op in ["<", ">", "<=", ">="]:
+                if left_type != "int":
+                    self.error_reporter.report_error(
+                        get_node_line(left_expr),
+                        get_node_column(left_expr),
+                        f"Comparación {op} requiere tipo numérico (int), pero se encontró {left_type}",
+                        len(get_text(left_expr))
+                    )
+                
+                if right_type != "int":
+                    self.error_reporter.report_error(
+                        get_node_line(right_expr),
+                        get_node_column(right_expr),
+                        f"Comparación {op} requiere tipo numérico (int), pero se encontró {right_type}",
+                        len(get_text(right_expr))
+                    )
+        
+        elif rule_name in ["andExpr", "orExpr"]:
+            # Verificar que las operaciones lógicas se realicen entre valores booleanos
+            left_expr = node.getChild(0)
+            right_expr = node.getChild(2)
+            
+            left_type = self.get_type(left_expr, parser)
+            right_type = self.get_type(right_expr, parser)
+            
+            if left_type != "bool":
+                self.error_reporter.report_error(
+                    get_node_line(left_expr),
+                    get_node_column(left_expr),
+                    f"Operación lógica requiere tipo bool, pero se encontró {left_type}",
+                    len(get_text(left_expr))
+                )
+            
+            if right_type != "bool":
+                self.error_reporter.report_error(
+                    get_node_line(right_expr),
+                    get_node_column(right_expr),
+                    f"Operación lógica requiere tipo bool, pero se encontró {right_type}",
+                    len(get_text(right_expr))
+                )
+        
+        elif rule_name == "notExpr":
+            # Verificar que la operación NOT se realice sobre un valor booleano
+            expr = node.getChild(1)
+            expr_type = self.get_type(expr, parser)
+            
+            if expr_type != "bool":
+                self.error_reporter.report_error(
+                    get_node_line(expr),
+                    get_node_column(expr),
+                    f"Operación ! requiere tipo bool, pero se encontró {expr_type}",
+                    len(get_text(expr))
+                )
+        
+        # Verificar contra el tipo esperado, si se especificó
+        if expected_type and actual_type != expected_type:
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                f"Se esperaba tipo {expected_type}, pero se encontró {actual_type}",
+                len(get_text(node))
+            )
+        
+        return actual_type
+    
+    def check_assignment(self, node, parser):
+        """
+        Verifica que una asignación sea válida
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
+        
+        # assignmentExpression: ID ASSIGN expr
+        id_node = node.getChild(0)
+        expr_node = node.getChild(2)
+        
+        var_name = get_text(id_node)
+        var_info = self.symbol_table.lookup(var_name)
+        
+        if not var_info:
+            self.error_reporter.report_error(
+                get_node_line(id_node),
+                get_node_column(id_node),
+                f"Variable no declarada: {var_name}",
+                len(var_name)
+            )
+            return
+        
+        var_type = var_info.get("type", "unknown")
+        expr_type = self.check_expression(expr_node, parser)
+        
+        # Marcar la variable como inicializada
+        self.symbol_table.mark_initialized(var_name)
+        
+        # Verificar compatibilidad de tipos
+        if var_type != expr_type and var_type != "unknown" and expr_type != "unknown":
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                f"No se puede asignar {expr_type} a variable de tipo {var_type}",
+                len(get_text(node))
+            )
+    
+    def check_draw_statement(self, node, parser):
+        """
+        Verifica que los argumentos de una instrucción draw sean válidos
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_line, get_node_column
+        
+        # drawStatement: DRAW drawObject SEMICOLON
+        draw_object = node.getChild(1)
+        object_type = get_rule_name(draw_object, parser)
+        
+        # Verificar que todos los argumentos sean numéricos (int)
+        for i in range(draw_object.getChildCount()):
+            child = draw_object.getChild(i)
+            if get_rule_name(child, parser) == "expr":
+                expr_type = self.check_expression(child, parser)
+                if expr_type != "int":
+                    self.error_reporter.report_error(
+                        get_node_line(child),
+                        get_node_column(child),
+                        f"Las coordenadas y dimensiones deben ser numéricas (int), pero se encontró {expr_type}",
+                        len(child.getText())
+                    )
+    
+    def check_setcolor_statement(self, node, parser):
+        """
+        Verifica que el argumento de setcolor sea de tipo color
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
+        
+        # setColorStatement: SETCOLOR LPAREN (ID | COLOR_CONST) RPAREN SEMICOLON
+        color_arg = node.getChild(2)
+        
+        if color_arg.getChildCount() == 0:  # Terminal node (ID or COLOR_CONST)
+            color_text = get_text(color_arg)
+            
+            # Si es un identificador, verificar que sea de tipo color
+            if color_text[0].islower() and color_text.isalnum():  # Es un ID
+                var_info = self.symbol_table.lookup(color_text)
+                
+                if not var_info:
+                    self.error_reporter.report_error(
+                        get_node_line(color_arg),
+                        get_node_column(color_arg),
+                        f"Variable no declarada: {color_text}",
+                        len(color_text)
+                    )
+                    return
+                
+                var_type = var_info.get("type", "unknown")
+                self.symbol_table.mark_used(color_text)
+                
+                if var_type != "color":
+                    self.error_reporter.report_error(
+                        get_node_line(color_arg),
+                        get_node_column(color_arg),
+                        f"La función setcolor requiere un argumento de tipo color, pero {color_text} es de tipo {var_type}",
+                        len(color_text)
+                    )
+        else:
+            # Si es una expresión, verificar que sea de tipo color
+            expr_type = self.check_expression(color_arg, parser)
+            
+            if expr_type != "color":
+                self.error_reporter.report_error(
+                    get_node_line(color_arg),
+                    get_node_column(color_arg),
+                    f"La función setcolor requiere un argumento de tipo color, pero se encontró {expr_type}",
+                    len(get_text(color_arg))
+                )
+    
+    def check_function_call(self, node, parser):
+        """
+        Verifica que una llamada a función sea válida
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text, get_rule_name
+        
+        # functionCall: ID LPAREN argumentList? RPAREN
+        func_name = get_text(node.getChild(0))
+        func_info = self.symbol_table.lookup(func_name)
+        
+        if not func_info:
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                f"Función no declarada: {func_name}",
+                len(func_name)
+            )
+            return
+        
+        # Marcar la función como usada
+        self.symbol_table.mark_used(func_name)
+        
+        # Verificar tipo de función
+        if func_info.get("type") != "function":
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                f"{func_name} no es una función",
+                len(func_name)
+            )
+            return
+        
+        # Verificar el número de argumentos (si tenemos la información)
+        if func_name in self.symbol_table.functions:
+            expected_params = self.symbol_table.functions[func_name]["params"]
+            
+            # Contar argumentos
+            arg_count = 0
+            if node.getChildCount() > 3:  # ID LPAREN argumentList RPAREN
+                arg_list = node.getChild(2)
+                # argumentList: expr (COMMA expr)*
+                arg_count = (arg_list.getChildCount() + 1) // 2  # +1 por el primer expr, //2 porque cada expr adicional viene con una coma
+            
+            if len(expected_params) != arg_count:
+                self.error_reporter.report_error(
+                    get_node_line(node),
+                    get_node_column(node),
+                    f"La función {func_name} espera {len(expected_params)} argumentos, pero se proporcionaron {arg_count}",
+                    len(func_name) + 2  # +2 por los paréntesis
+                )
+    
+    def check_if_statement(self, node, parser):
+        """
+        Verifica que la condición de un if sea booleana
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
+        
+        # ifStatement: IF LPAREN boolExpr RPAREN block (ELSE (ifStatement | block))?
+        condition = node.getChild(2)
+        cond_type = self.check_expression(condition, parser)
+        
+        if cond_type != "bool":
+            self.error_reporter.report_error(
+                get_node_line(condition),
+                get_node_column(condition),
+                f"La condición del if debe ser de tipo bool, pero se encontró {cond_type}",
+                len(get_text(condition))
+            )
+    
+    def check_loop_statement(self, node, parser):
+        """
+        Verifica que la condición de un loop sea booleana
+        """
+        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
+        
+        # loopStatement: LOOP LPAREN assignmentExpression SEMICOLON boolExpr SEMICOLON assignmentExpression RPAREN block
+        condition = node.getChild(4)
+        cond_type = self.check_expression(condition, parser)
+        
+        if cond_type != "bool":
+            self.error_reporter.report_error(
+                get_node_line(condition),
+                get_node_column(condition),
+                f"La condición del loop debe ser de tipo bool, pero se encontró {cond_type}",
+                len(get_text(condition))
+            )
+        
+        # Verificar las asignaciones de inicialización y actualización
+        init_assign = node.getChild(2)
+        update_assign = node.getChild(6)
+        
+        self.check_assignment(init_assign, parser)
+        self.check_assignment(update_assign, parser)
