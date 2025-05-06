@@ -100,6 +100,16 @@ class ViewController:
                     self.parse_tree_path, 
                     self.symbol_table_path
                 )
+            
+            elif self.next_state == States.SEMANTIC_ANALYSIS:
+                # Pass editor view reference and semantic analysis/enhanced symbol table paths
+                print("Creating semantic analysis view with editor reference")
+                self.current_view = self.states[self.next_state](
+                    self, 
+                    self.editor_view_instance, 
+                    self.semantic_analysis_path, 
+                    self.enhanced_symbol_table_path
+                )
                 
             else:
                 # Standard case - create new view instance

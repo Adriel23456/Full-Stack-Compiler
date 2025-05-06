@@ -1,26 +1,25 @@
 """
-Syntactic Analysis View for the Full Stack Compiler
-Displays the parse tree and provides access to symbol table
+Semantic Analysis View for the Full Stack Compiler
+Displays the semantic analysis graph and enhanced symbol table
 """
 import pygame
 import os
-from GUI.components.pop_up_dialog import PopupDialog
 from GUI.view_base import ViewBase
 from GUI.components.button import Button
 from GUI.design_base import design
 from GUI.views.symbol_table_view import SymbolTableView
 from config import States
 
-class SyntacticAnalysisView(ViewBase):
+class SemanticAnalysisView(ViewBase):
     """
-    View for displaying syntactic analysis results
+    View for displaying semantic analysis results
     """
-    def __init__(self, view_controller, editor_view=None, parse_tree_path=None, symbol_table_path=None):
+    def __init__(self, view_controller, editor_view=None, semantic_analysis_path=None, enhanced_symbol_table_path=None):
         super().__init__(view_controller)
         self.editor_view = editor_view
-        self.parse_tree_path = parse_tree_path
-        self.symbol_table_path = symbol_table_path
-        self.parse_tree_surface = None
+        self.semantic_analysis_path = semantic_analysis_path
+        self.enhanced_symbol_table_path = enhanced_symbol_table_path
+        self.semantic_analysis_surface = None
         
         # Camera position for navigation (center of view in image coordinates)
         self.camera_x = 0
@@ -80,28 +79,28 @@ class SyntacticAnalysisView(ViewBase):
             fixed_height=button_height
         )
         
-        # Full display area for parse tree
+        # Full display area for semantic analysis graph
         display_height = screen_height - title_height - button_height - bottom_margin - button_margin
         
-        # Parse tree display area - full width
-        self.parse_tree_rect = pygame.Rect(
+        # Semantic analysis display area - full width
+        self.semantic_analysis_rect = pygame.Rect(
             button_margin, 
             title_height,
             screen_width - 2 * button_margin,
             display_height
         )
         
-        # Load parse tree image
-        self.load_parse_tree()
+        # Load semantic analysis image
+        self.load_semantic_analysis()
     
-    def load_parse_tree(self):
-        if self.parse_tree_path and os.path.exists(self.parse_tree_path):
+    def load_semantic_analysis(self):
+        if self.semantic_analysis_path and os.path.exists(self.semantic_analysis_path):
             try:
-                self.parse_tree_surface = pygame.image.load(self.parse_tree_path)
+                self.semantic_analysis_surface = pygame.image.load(self.semantic_analysis_path)
                 
                 # Store original dimensions
-                self.original_width = self.parse_tree_surface.get_width()
-                self.original_height = self.parse_tree_surface.get_height()
+                self.original_width = self.semantic_analysis_surface.get_width()
+                self.original_height = self.semantic_analysis_surface.get_height()
                 
                 # Calculate initial scale factor to fit the view rect
                 self.calculate_scale_factor()
@@ -114,31 +113,31 @@ class SyntacticAnalysisView(ViewBase):
                 self.update_camera_limits()
                 
             except Exception as e:
-                print(f"Error loading parse tree image: {e}")
-                self.parse_tree_surface = self.create_placeholder_image("Error loading parse tree image")
+                print(f"Error loading semantic analysis image: {e}")
+                self.semantic_analysis_surface = self.create_placeholder_image("Error loading semantic analysis image")
         else:
-            self.parse_tree_surface = self.create_placeholder_image("Parse tree image not available")
+            self.semantic_analysis_surface = self.create_placeholder_image("Semantic analysis image not available")
     
     def calculate_scale_factor(self):
-        """Calculate scale factor to fit the parse tree in the view rect"""
-        if not self.parse_tree_surface or not hasattr(self, 'parse_tree_rect'):
+        """Calculate scale factor to fit the semantic analysis graph in the view rect"""
+        if not self.semantic_analysis_surface or not hasattr(self, 'semantic_analysis_rect'):
             return
             
         # Calculate scale factor to fit the view rect while maintaining aspect ratio
-        width_ratio = self.parse_tree_rect.width / self.original_width
-        height_ratio = self.parse_tree_rect.height / self.original_height
+        width_ratio = self.semantic_analysis_rect.width / self.original_width
+        height_ratio = self.semantic_analysis_rect.height / self.original_height
         
         # Use the smallest ratio to ensure the image fits completely
         self.scale_factor = min(width_ratio, height_ratio) * 0.9  # 90% to leave some margin
     
     def update_camera_limits(self):
         """Update camera limits based on current scale factor"""
-        if not self.parse_tree_surface:
+        if not self.semantic_analysis_surface:
             return
         
         # Calculate half of the view size in image coordinates
-        view_width_half = self.parse_tree_rect.width / (2 * self.scale_factor)
-        view_height_half = self.parse_tree_rect.height / (2 * self.scale_factor)
+        view_width_half = self.semantic_analysis_rect.width / (2 * self.scale_factor)
+        view_height_half = self.semantic_analysis_rect.height / (2 * self.scale_factor)
         
         # Set camera limits to allow the full image to be viewed
         # The camera position represents the center of the view in image coordinates
@@ -194,72 +193,38 @@ class SyntacticAnalysisView(ViewBase):
                 self.show_symbol_table_view()
                 return True
             
-            # Handle next button - Semantic Analysis transition
+            # Handle next button - Simulate semantic error
             if self.next_button.handle_event(event):
-                # Import needed here to avoid circular imports
-                from CompilerLogic.semanticAnalyzer import SemanticAnalyzer
-                from GUI.components.pop_up_dialog import PopupDialog
+                # Simulate a semantic error
+                error = {
+                    'message': "Example of a failure!",
+                    'line': 5,
+                    'column': 1,
+                    'length': 10
+                }
                 
-                try:
-                    # Create semantic analyzer
-                    analyzer = SemanticAnalyzer()
+                # If we have an editor view reference, highlight the error and create popup
+                if hasattr(self, 'editor_view') and self.editor_view:
+                    # Clear any existing highlights first
+                    if hasattr(self.editor_view.text_editor, 'clear_error_highlights'):
+                        self.editor_view.text_editor.clear_error_highlights()
                     
-                    # The parse tree might not be available directly in view_controller
-                    # We'll use None and let the analyzer handle it
-                    parse_tree = None  # Este es el problema, no estamos guardando el parse_tree
-                    symbol_table = {}  # Inicializamos con un diccionario vacío
+                    # Highlight error in editor
+                    if hasattr(self.editor_view.text_editor, 'highlight_errors'):
+                        self.editor_view.text_editor.highlight_errors([error])
                     
-                    # Si tenemos acceso a la tabla de símbolos en la vista
-                    if hasattr(self, 'editor_view') and self.editor_view:
-                        symbol_table = getattr(self.editor_view, 'symbol_table', {})
-                    
-                    # Run semantic analysis
-                    success, errors, semantic_analysis_path, enhanced_symbol_table_path = analyzer.analyze(parse_tree, symbol_table)
-                    
-                    if success and not errors:
-                        # Set paths in view_controller for the next view to use
-                        self.view_controller.semantic_analysis_path = semantic_analysis_path
-                        self.view_controller.enhanced_symbol_table_path = enhanced_symbol_table_path
-                        
-                        # Change to semantic analysis view
-                        self.view_controller.change_state(States.SEMANTIC_ANALYSIS)
-                    else:
-                        # If there were errors, go back to editor view and show errors
-                        if hasattr(self, 'editor_view') and self.editor_view:
-                            # Clear any existing highlights first
-                            if hasattr(self.editor_view.text_editor, 'clear_error_highlights'):
-                                self.editor_view.text_editor.clear_error_highlights()
-                            
-                            # Highlight errors in editor
-                            if errors and hasattr(self.editor_view.text_editor, 'highlight_errors'):
-                                self.editor_view.text_editor.highlight_errors(errors)
-                                
-                                # Create popup for the first error
-                                if errors:
-                                    first_error = errors[0]
-                                    # Asegurar que el mensaje sea visible - usar el mensaje del error
-                                    error_message = first_error.get('message', 'Error semántico sin detalles')
-                                    # Configurar un tiempo más largo (10 segundos) para que sea visible
-                                    self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)
-                            
-                            # Go back to editor view
-                            self.view_controller.change_state(States.EDITOR)
-                except Exception as e:
-                    print(f"Error in semantic analysis button handler: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    
-                    # Show a popup with the exception message
-                    if hasattr(self, 'editor_view') and self.editor_view:
-                        error_message = f"Error en análisis semántico: {str(e)}"
-                        self.editor_view.popup = PopupDialog(self.editor_view.screen, error_message, 10000)
-                        self.view_controller.change_state(States.EDITOR)
+                    # Create popup for the error - PUNTO CLAVE
+                    from GUI.components.pop_up_dialog import PopupDialog
+                    # Asignar el popup al editor_view
+                    self.editor_view.popup = PopupDialog(self.editor_view.screen, error['message'], 10000)
                 
+                # Change back to editor view to show the error
+                self.view_controller.change_state(States.EDITOR)
                 return True
             
             # Handle mouse dragging for camera control
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.parse_tree_rect.collidepoint(event.pos):
+                if self.semantic_analysis_rect.collidepoint(event.pos):
                     self.is_dragging = True
                     self.last_mouse_x = event.pos[0]
                     self.last_mouse_y = event.pos[1]
@@ -274,7 +239,7 @@ class SyntacticAnalysisView(ViewBase):
             
             # Handle zooming with mousewheel
             elif event.type == pygame.MOUSEWHEEL:
-                if self.parse_tree_rect.collidepoint(pygame.mouse.get_pos()):
+                if self.semantic_analysis_rect.collidepoint(pygame.mouse.get_pos()):
                     # Save old scale for calculating camera adjustment
                     old_scale = self.scale_factor
                     
@@ -289,9 +254,6 @@ class SyntacticAnalysisView(ViewBase):
                     min_scale = 0.1
                     max_scale = 2.0
                     self.scale_factor = max(min_scale, min(max_scale, self.scale_factor))
-                    
-                    # Calculate zoom factor change
-                    scale_change = self.scale_factor / old_scale
                     
                     # Update camera limits first
                     self.update_camera_limits()
@@ -324,7 +286,7 @@ class SyntacticAnalysisView(ViewBase):
                     return True
                 else:
                     # Update cursor based on hover
-                    if self.parse_tree_rect.collidepoint(event.pos):
+                    if self.semantic_analysis_rect.collidepoint(event.pos):
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     else:
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -357,18 +319,18 @@ class SyntacticAnalysisView(ViewBase):
         
         # Draw title
         title_font = design.get_font("large")
-        title_text = title_font.render("Syntactic Analysis - Parse Tree", True, design.colors["text"])
+        title_text = title_font.render("Semantic Analysis", True, design.colors["text"])
         title_rect = title_text.get_rect(centerx=self.screen_rect.centerx, top=15)
         self.screen.blit(title_text, title_rect)
         
-        # Draw parse tree area
-        pygame.draw.rect(self.screen, (255, 255, 255), self.parse_tree_rect)
-        pygame.draw.rect(self.screen, design.colors["textbox_border"], self.parse_tree_rect, 1)
+        # Draw semantic analysis area
+        pygame.draw.rect(self.screen, (255, 255, 255), self.semantic_analysis_rect)
+        pygame.draw.rect(self.screen, design.colors["textbox_border"], self.semantic_analysis_rect, 1)
         
-        if self.parse_tree_surface:
+        if self.semantic_analysis_surface:
             try:
                 # Create a subsurface of the screen for the image area to clip the content
-                image_view = self.screen.subsurface(self.parse_tree_rect)
+                image_view = self.screen.subsurface(self.semantic_analysis_rect)
                 
                 # Calculate scaled dimensions
                 scaled_width = int(self.original_width * self.scale_factor)
@@ -377,19 +339,18 @@ class SyntacticAnalysisView(ViewBase):
                 # Create a scaled surface with current scale factor
                 # Using smoothscale for better quality
                 scaled_surface = pygame.transform.smoothscale(
-                    self.parse_tree_surface, (scaled_width, scaled_height)
+                    self.semantic_analysis_surface, (scaled_width, scaled_height)
                 )
                 
-                # Calculate position to center the view - this is the key change
-                # We use the camera position as the center of our view
-                view_x = (self.parse_tree_rect.width / 2) - (self.camera_x * self.scale_factor)
-                view_y = (self.parse_tree_rect.height / 2) - (self.camera_y * self.scale_factor)
+                # Calculate position to center the view
+                view_x = (self.semantic_analysis_rect.width / 2) - (self.camera_x * self.scale_factor)
+                view_y = (self.semantic_analysis_rect.height / 2) - (self.camera_y * self.scale_factor)
                 
                 # Blit the image with calculated position
                 image_view.blit(scaled_surface, (view_x, view_y))
                 
             except Exception as e:
-                print(f"Error rendering parse tree: {e}")
+                print(f"Error rendering semantic analysis: {e}")
         
         # Draw buttons
         self.back_button.render(self.screen)
@@ -401,7 +362,7 @@ class SyntacticAnalysisView(ViewBase):
             self.symbol_table_view.render()
     
     def show_symbol_table_view(self):
-        self.symbol_table_view = SymbolTableView(self, self.symbol_table_path, 
+        self.symbol_table_view = SymbolTableView(self, self.enhanced_symbol_table_path, 
                                                 on_close=self.close_symbol_table_view)
     
     def close_symbol_table_view(self):
