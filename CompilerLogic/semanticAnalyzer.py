@@ -236,13 +236,13 @@ class SemanticAnalyzer:
             html_parts = [
                 '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
                 '<TR>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Identifier</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Initialized</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Used</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Status</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Identifier</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Initialized</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Used</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Status</B></TD>'
                 '</TR>'
             ]
             
@@ -260,19 +260,23 @@ class SemanticAnalyzer:
                     used = "Yes" if info.get('used', False) else "No"
                     
                     # Determine status
-                    status = "Valid"
-                    status_color = "#90EE90"  # Light green
+                    status = "Invalid"  # Por defecto, consideramos variables sin inicializar como inválidas
+                    status_color = "#FFCCCB"  # Light red
                     
                     if var_type == "unknown":
                         status = "Undeclared"
                         status_color = "#FFCCCB"  # Light red
-                    elif not info.get('initialized', False) and info.get('used', False):
-                        if var_type not in ["function", "parameter"]:  # Funciones y parámetros siempre son inicializados
+                    elif info.get('initialized', False):
+                        if not info.get('used', False):
+                            status = "Unused"
+                            status_color = "#FFFFB1"  # Light yellow
+                        else:
+                            status = "Valid"
+                            status_color = "#90EE90"  # Light green
+                    elif info.get('used', False):
+                        if var_type not in ["function", "parameter"]:
                             status = "Used Before Init"
                             status_color = "#FFD580"  # Light orange
-                    elif info.get('initialized', False) and not info.get('used', False):
-                        status = "Unused"
-                        status_color = "#FFFFB1"  # Light yellow
                     
                     # Agregar fila a la lista
                     all_rows.append({
@@ -323,7 +327,7 @@ class SemanticAnalyzer:
                 error_html = [
                     '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
                     '<TR>'
-                      '<TD BGCOLOR="#FFB6C1"><B>Semantic Errors</B></TD>'
+                    '<TD BGCOLOR="#FFB6C1"><B>Semantic Errors</B></TD>'
                     '</TR>'
                 ]
                 

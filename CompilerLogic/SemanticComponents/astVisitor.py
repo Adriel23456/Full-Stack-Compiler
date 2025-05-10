@@ -44,6 +44,9 @@ class ASTVisitor:
             self.visit_loop_statement(node, parser)
         elif rule_name == "frameStatement":
             self.visit_frame_statement(node, parser)
+        elif rule_name == "expr" or rule_name.endswith("Expr"):
+            # Verificar expresiones directamente
+            self.type_checker.check_expression(node, parser)
         else:
             # Para otros tipos de nodos, visitar recursivamente los hijos
             for i in range(node.getChildCount()):

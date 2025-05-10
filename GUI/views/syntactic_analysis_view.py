@@ -209,22 +209,6 @@ class SyntacticAnalysisView(ViewBase):
                     if CompilerData.ast and CompilerData.symbol_table:
                         # Crear analizador semántico
                         semantic_analyzer = SemanticAnalyzer()
-
-                        #print('================================')
-                        #print('Compiler Data AST:')
-                        #print(CompilerData.get_ast_visualization())
-                        #print('================================')
-                        #print('Compiler Data Symbol Table:')
-                        #print(CompilerData.symbol_table)
-                        #print('================================')
-                        #print('Compiler Data Parser:')
-                        #print(CompilerData.parser)
-                        #print('================================')
-                        #print('Compiler Data Paths:')
-                        #print(CompilerData.parse_tree_path)
-                        #print(CompilerData.token_graph_path)
-                        #print(CompilerData.symbol_table_path)
-                        #print('================================')
                         
                         # Realizar análisis semántico (ya no pasamos el código fuente como primer parámetro)
                         success, errors, semantic_graph_path, enhanced_symbol_table_path = semantic_analyzer.analyze(source_code)

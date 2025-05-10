@@ -1,3 +1,5 @@
+from CompilerLogic.SemanticComponents.astUtil import get_node_column, get_node_line
+
 class TypeChecker:
     """
     Maneja la verificación de tipos para expresiones y declaraciones
@@ -11,7 +13,7 @@ class TypeChecker:
         """
         Determina el tipo de una expresión
         """
-        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_text, get_text
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_text, get_text, get_node_line, get_node_column
         
         rule_name = get_rule_name(node, parser)
         
@@ -26,12 +28,22 @@ class TypeChecker:
                 return "int"  # En VGraph, 'int' se usa para números (incluso decimales)
             elif text in ["true", "false"]:
                 return "bool"
+            elif text == "cos" or text == "sin":  # Funciones integradas
+                return "builtin_function"
             elif text[0].islower() and text.isalnum():  # Identificador
                 symbol = self.symbol_table.lookup(text)
                 if symbol:
                     # Marcar como usado (al leerlo en una expresión)
                     self.symbol_table.mark_used(text)
                     return symbol.get("type", "unknown")
+                
+                # Variable no encontrada, reportar error
+                self.error_reporter.report_error(
+                    get_node_line(node),
+                    get_node_column(node),
+                    f"Variable no declarada: {text}",
+                    len(text)
+                )
                 return "unknown"
             return "unknown"
         
@@ -42,21 +54,25 @@ class TypeChecker:
             return "bool"
         elif rule_name == "colorExpr":
             return "color"
-        
-        # Analizar tipos basados en el tipo de nodo
-        if rule_name == "numberExpr":
-            return "int"
-        elif rule_name == "boolConstExpr" or rule_name == "boolExpr":
-            return "bool"
-        elif rule_name == "colorExpr":
-            return "color"
         elif rule_name == "idExpr":
             var_name = get_text(node.getChild(0))
+            # Verificar si es una función integrada
+            if var_name == "cos" or var_name == "sin":
+                return "builtin_function"
+                
             symbol = self.symbol_table.lookup(var_name)
             if symbol:
                 # Marcar como usado
                 self.symbol_table.mark_used(var_name)
                 return symbol.get("type", "unknown")
+            
+            # Variable no encontrada, reportar error
+            self.error_reporter.report_error(
+                get_node_line(node.getChild(0)),
+                get_node_column(node.getChild(0)),
+                f"Variable no declarada: {var_name}",
+                len(var_name)
+            )
             return "unknown"
         elif rule_name in ["addSubExpr", "mulDivExpr", "parenExpr", "negExpr"]:
             # Operaciones aritméticas siempre retornan int
@@ -77,6 +93,10 @@ class TypeChecker:
             # Para llamadas a funciones, buscar en la tabla de símbolos
             func_node = node.getChild(0)  # Nodo functionCall
             func_name = get_text(func_node.getChild(0))  # Nombre de la función
+            # Verificar si es una función integrada
+            if func_name == "cos" or func_name == "sin":
+                return "int"  # Las funciones trigonométricas retornan int
+                
             # Marcar la función como usada
             self.symbol_table.mark_used(func_name)
             # En VGraph, asumimos que las funciones retornan int
@@ -216,6 +236,26 @@ class TypeChecker:
                 f"Se esperaba tipo {expected_type}, pero se encontró {actual_type}",
                 len(get_text(node))
             )
+        
+        # Revisar recursivamente todas las subexpresiones
+        for i in range(node.getChildCount()):
+            child = node.getChild(i)
+            if get_rule_name(child, parser) is not None:  # No es un nodo terminal
+                self.check_expression(child, parser)
+            elif child.getChildCount() == 0:  # Es un nodo terminal (posible ID)
+                text = child.getText()
+                if text[0].islower() and text.isalnum() and text not in ["cos", "sin"]:  # Identificador pero no función integrada
+                    symbol = self.symbol_table.lookup(text)
+                    if not symbol:
+                        self.error_reporter.report_error(
+                            get_node_line(child),
+                            get_node_column(child),
+                            f"Variable no declarada: {text}",
+                            len(text)
+                        )
+                    else:
+                        # Marcar como usado incluso si está en subexpresiones
+                        self.symbol_table.mark_used(text)
         
         return actual_type
     
