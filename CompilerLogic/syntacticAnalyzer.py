@@ -32,12 +32,6 @@ class SyntacticAnalyzer:
     def analyze(self, code_text):
         """
         Analyze the given code text using the ANTLR parser
-        
-        Args:
-            code_text: Source code to analyze
-            
-        Returns:
-            tuple: (success, errors, parse_tree_path, symbol_table_path)
         """
         # Reset state
         self.errors = []
@@ -61,215 +55,139 @@ class SyntacticAnalyzer:
             from VGraphParser import VGraphParser
             from VGraphListener import VGraphListener
             
-            # Create a proper symbol table collector
+            # Create a proper symbol table collector with renaming
             class SymbolTableCollector(VGraphListener):
                 def __init__(self):
-                    # Tabla de símbolos con clave compuesta: (nombre, scope) → info
                     self.symbol_table = {}
-                    # Pila de ámbitos; arrancamos en "global"
-                    self.scope_stack = ["global"]
+                    self.current_function = None
+                    self.parser = None
+                    self.variable_renames = {}  # Map original names to renamed names
+                    self.tree_renames = {}      # Map node IDs to rename information
 
-                def current_scope(self):
-                    return self.scope_stack[-1]
-
-                # ----- Scope management -----
-                def enterProgram(self, ctx):
-                    self.symbol_table.clear()
-                    self.scope_stack = ["global"]
+                def set_parser(self, parser):
+                    self.parser = parser
 
                 def enterFunctionDeclStatement(self, ctx):
                     fname = ctx.ID().getText()
                     line = ctx.ID().symbol.line
-                    # Usamos clave compuesta (fname, 'global')
-                    self.symbol_table[(fname, 'global')] = {
+                    
+                    # Add function to symbol table
+                    self.symbol_table[fname] = {
                         'type': 'function',
                         'scope': 'global',
                         'line': line,
                         'name': fname
                     }
-                    # entramos en el nuevo scope de la función
-                    self.scope_stack.append(fname)
-                    # parámetros quedan en el scope de la función
+                    
+                    # Set current function
+                    self.current_function = fname
+                    
+                    # IMPORTANTE: Inicializar el diccionario para esta función
+                    if fname not in self.variable_renames:
+                        self.variable_renames[fname] = {}
+                    
+                    # Process parameters with renaming
                     param_list = ctx.paramList()
                     if param_list:
                         for p in param_list.ID():
                             pname = p.getText()
                             pline = p.symbol.line
-                            # Usamos clave compuesta (pname, fname)
-                            self.symbol_table[(pname, fname)] = {
+                            
+                            # Apply renaming rule: param_name_function_name
+                            renamed_param = f"{pname}_{fname}"
+                            
+                            # Add to symbol table with renamed key
+                            self.symbol_table[renamed_param] = {
                                 'type': 'parameter',
                                 'scope': fname,
                                 'line': pline,
-                                'name': pname
+                                'name': pname,  # Original name
+                                'renamed_to': renamed_param
+                            }
+                            
+                            # Store rename mapping for tree traversal
+                            # IMPORTANTE: Guardar en el diccionario de la función, no como string
+                            self.variable_renames[fname][pname] = renamed_param
+                            
+                            # Store tree node renaming information
+                            self.tree_renames[id(p)] = {
+                                'original': pname,
+                                'renamed': renamed_param,
+                                'context': 'parameter'
                             }
 
                 def exitFunctionDeclStatement(self, ctx):
-                    # salimos del scope de la función
-                    self.scope_stack.pop()
+                    # Clear current function context
+                    self.current_function = None
+                    # Note: We keep the renames active for the entire analysis
 
-                def enterFrameStatement(self, ctx):
-                    # creamos un scope genérico "frame"
-                    self.scope_stack.append("frame")
-
-                def exitFrameStatement(self, ctx):
-                    self.scope_stack.pop()
-
-                # ----- Declaraciones y asignaciones -----
                 def enterDeclaration(self, ctx):
-                    # puede ser single ID o lista
                     vartype = ctx.typeDeclaration().vartype().getText()
-                    current_scope = self.current_scope()
                     
-                    # caso ID único
+                    # Process single ID declarations
                     if ctx.ID():
                         name = ctx.ID().getText()
                         line = ctx.ID().symbol.line
-                        # Usamos clave compuesta (name, current_scope)
-                        self.symbol_table[(name, current_scope)] = {
+                        scope = self.current_function or 'global'
+                        
+                        # Use original name as key for non-parameters
+                        key = name
+                        if vartype == 'parameter' and self.current_function:
+                            key = f"{name}_{self.current_function}"
+                        
+                        self.symbol_table[key] = {
                             'type': vartype,
-                            'scope': current_scope,
+                            'scope': scope,
                             'line': line,
                             'name': name
                         }
-                    # caso lista
+                    
+                    # Process ID lists
                     if ctx.idList():
                         for id_node in ctx.idList().ID():
                             name = id_node.getText()
                             line = id_node.symbol.line
-                            # Usamos clave compuesta (name, current_scope)
-                            self.symbol_table[(name, current_scope)] = {
+                            scope = self.current_function or 'global'
+                            
+                            # Use original name as key for non-parameters
+                            key = name
+                            if vartype == 'parameter' and self.current_function:
+                                key = f"{name}_{self.current_function}"
+                            
+                            self.symbol_table[key] = {
                                 'type': vartype,
-                                'scope': current_scope,
+                                'scope': scope,
                                 'line': line,
                                 'name': name
                             }
 
-                def enterAssignmentStatement(self, ctx):
-                    # el ID está dentro de assignmentExpression()
-                    assignCtx = ctx.assignmentExpression()
-                    name = assignCtx.ID().getText()
-                    current_scope = self.current_scope()
-                    
-                    # Buscar si la variable ya existe en algún scope accesible
-                    # Primero en el scope actual
-                    if (name, current_scope) in self.symbol_table:
-                        return  # Ya existe, no agregamos nada
-                    
-                    # Luego en scope de función si estamos en frame
-                    if current_scope == 'frame' and len(self.scope_stack) > 1:
-                        function_scope = self.scope_stack[-2]  # Scope de la función
-                        if (name, function_scope) in self.symbol_table:
-                            return  # Existe en el scope de la función
-                    
-                    # Finalmente en scope global
-                    if (name, 'global') in self.symbol_table:
-                        return  # Existe globalmente
-                    
-                    # Solo si no existe en ningún scope accesible, agregamos como unknown
-                    self.symbol_table[(name, current_scope)] = {
-                        'type': 'unknown',
-                        'scope': current_scope,
-                        'line': ctx.start.line,
-                        'name': name
-                    }
-
-                # Métodos vacíos del listener
-                def enterEveryRule(self, ctx): pass
-                def exitEveryRule(self, ctx): pass
-                def visitTerminal(self, node): pass
-                def visitErrorNode(self, node): pass
-
-                def get_flattened_symbol_table(self):
-                    """
-                    Convierte la tabla de símbolos de claves compuestas a claves simples
-                    manteniendo solo una entrada por variable
-                    """
-                    flattened = {}
-                    # Diccionario para rastrear variables por nombre
-                    seen_names = {}
-                    
-                    # Ordenar por scope para dar prioridad a declaraciones globales
-                    scopes_priority = {'global': 0, 'function': 1, 'frame': 2}
-                    
-                    sorted_entries = sorted(self.symbol_table.items(), 
-                                        key=lambda x: (scopes_priority.get(x[1].get('scope', 'global'), 3), x[0]))
-                    
-                    for (name, scope), info in sorted_entries:
-                        if name not in seen_names:
-                            # Primera vez que vemos este nombre
-                            flattened[name] = info
-                            seen_names[name] = scope
-                        else:
-                            # Ya hemos visto este nombre
-                            existing_scope = seen_names[name]
-                            existing_type = flattened[name].get('type', 'unknown')
-                            
-                            # Si ya tenemos el tipo y el nuevo es 'unknown', no lo sobrescribimos
-                            if existing_type != 'unknown' and info.get('type') == 'unknown':
-                                continue
-                            
-                            # Si el nuevo es una función o parámetro, lo agregamos con un nombre único
-                            if info.get('type') in ['function', 'parameter']:
-                                unique_key = f"{name}_{scope}"
-                                flattened[unique_key] = info
-                            # Si el existente es 'unknown' y el nuevo tiene tipo, lo reemplazamos
-                            elif existing_type == 'unknown' and info.get('type') != 'unknown':
-                                flattened[name] = info
-                                seen_names[name] = scope
-                    
-                    return flattened
+                def get_symbol_table(self):
+                    """Get the symbol table with proper naming"""
+                    return self.symbol_table
                 
-                def clean_unknown_variables(self):
-                    """
-                    Elimina variables marcadas como 'unknown' que en realidad están declaradas
-                    en un scope accesible
-                    """
-                    to_remove = []
+                def get_rename_map(self):
+                    """Get the variable rename mapping with correct format"""
+                    # Asegurarse de que el formato sea correcto
+                    result = {}
                     
-                    for (name, scope), info in self.symbol_table.items():
-                        if info.get('type') == 'unknown':
-                            # Verificar si existe en un scope accesible con tipo conocido
-                            # Primero verificar en global
-                            if (name, 'global') in self.symbol_table:
-                                global_info = self.symbol_table[(name, 'global')]
-                                if global_info.get('type') != 'unknown':
-                                    to_remove.append((name, scope))
-                                    continue
-                            
-                            # Si estamos en frame, verificar en la función
-                            if scope == 'frame':
-                                # Buscar en todas las funciones
-                                for func_scope in [s for s in self.scope_stack if s not in ['global', 'frame']]:
-                                    if (name, func_scope) in self.symbol_table:
-                                        func_info = self.symbol_table[(name, func_scope)]
-                                        if func_info.get('type') != 'unknown':
-                                            to_remove.append((name, scope))
-                                            break
+                    # self.variable_renames ya debería tener el formato correcto desde enterFunctionDeclStatement
+                    for func_name, renames in self.variable_renames.items():
+                        if isinstance(renames, dict):
+                            result[func_name] = renames.copy()
+                        else:
+                            # Si por alguna razón está mal formateado, intentar corregirlo
+                            print(f"=== WARNING: Incorrect format for {func_name}: {renames} ===")
                     
-                    # Remover las variables unknown duplicadas
-                    for key in to_remove:
-                        del self.symbol_table[key]
+                    return result
+                
+                def get_tree_renames(self):
+                    """Get the tree node rename information"""
+                    return self.tree_renames
 
-                def get_symbol_table_list(self):
-                    """
-                    Retorna la tabla de símbolos como una lista de entradas
-                    """
-                    symbol_list = []
-                    
-                    for (name, scope), info in self.symbol_table.items():
-                        symbol_list.append({
-                            'name': name,
-                            'type': info.get('type', 'unknown'),
-                            'scope': scope,
-                            'line': info.get('line', 0)
-                        })
-                    
-                    return symbol_list
-            
             # Create input stream 
             input_stream = InputStream(code_text)
             
-            # Create error listener to capture syntax errors
+            # Create error listener
             error_listener = SyntaxErrorListener()
             
             # Create lexer
@@ -287,46 +205,51 @@ class SyntacticAnalyzer:
             
             # Parse the input
             try:
-                parse_tree = parser.program()  # Start rule
+                parse_tree = parser.program()
                 
                 # Check for syntax errors
                 if error_listener.errors:
                     self.errors = error_listener.errors
                     return False, self.errors, None, None
                 
-                # Generate parse tree visualization
-                self._visualize_parse_tree(parse_tree, parser)
-                
-                # Extract symbol table
+                # Extract symbol table with renaming
                 symbol_collector = SymbolTableCollector()
+                symbol_collector.set_parser(parser)
                 walker = ParseTreeWalker()
                 walker.walk(symbol_collector, parse_tree)
 
-                # Limpiar variables unknown que están declaradas en otros scopes
-                symbol_collector.clean_unknown_variables()
-
-                # Obtener la tabla de símbolos aplanada para compatibilidad
-                self.symbol_table = symbol_collector.get_flattened_symbol_table()
-
-                # Para debugging, también podemos guardar la versión con claves compuestas
-                symbol_collector.flattened_symbol_table = self.symbol_table
-
+                # Get the symbol table and renaming maps
+                self.symbol_table = symbol_collector.get_symbol_table()
+                self.variable_renames = symbol_collector.get_rename_map()
+                self.tree_renames = symbol_collector.get_tree_renames()
+                
+                # Generate parse tree visualization with renaming
+                self._visualize_parse_tree(parse_tree, parser)
+                
                 # Generate symbol table visualization
                 self._visualize_symbol_table()
 
-                # Guardar la versión sin renombramiento para el análisis semántico
+                print(f"=== DEBUG SyntacticAnalyzer: Before saving to CompilerData ===")
+                print(f"symbol_table type: {type(self.symbol_table)}")
+                print(f"symbol_table content: {self.symbol_table}")
+
+                # Verificar que la tabla sea un diccionario
+                if not isinstance(self.symbol_table, dict):
+                    print(f"=== ERROR: symbol_table is not a dict! Converting... ===")
+                
+                
+
+                # Store in CompilerData with renaming information
                 CompilerData.symbol_table = self.symbol_table
                 CompilerData.parse_tree_path = self.parse_tree_path
                 CompilerData.symbol_table_path = self.symbol_table_path
                 CompilerData.parser = parser
                 CompilerData.ast = parse_tree
-
-                # Para verificar que funciona correctamente, puedes agregar esto después de generar ambas tablas:
-                print("\n=== DEBUG: Comparison of tables ===")
-                print("Table with renaming (for visualization):")
-                for name, info in self.symbol_table.items():
-                    print(f"  {name}: {info}")
                 
+                # Store renaming information in CompilerData
+                CompilerData.variable_renames = self.variable_renames
+                CompilerData.tree_renames = self.tree_renames
+
                 return True, [], self.parse_tree_path, self.symbol_table_path
                 
             except Exception as e:
@@ -335,8 +258,6 @@ class SyntacticAnalyzer:
                 traceback.print_exc()
                 self.errors = error_listener.errors
                 if not self.errors:
-                    # If no specific errors were captured by the listener,
-                    # add a generic one
                     self.errors.append({
                         'message': f"Syntax error: {str(e)}",
                         'line': 1,
@@ -358,6 +279,90 @@ class SyntacticAnalyzer:
             })
             CompilerData.syntactic_errors = self.errors
             return False, self.errors, None, None
+
+    def _visualize_parse_tree(self, parse_tree, parser):
+        """
+        Create a visualization of the parse tree using pydot with parameter renaming
+        """
+        try:
+            # Configure the graph with more spacing
+            graph = pydot.Dot(
+                graph_type='graph', 
+                rankdir='TB',
+                ranksep='1.2',
+                nodesep='1.0',
+                ratio='expand',
+                splines='polyline'
+            )
+            
+            # Set default styling
+            graph.set_graph_defaults(fontname='Arial')
+            graph.set_node_defaults(fontname='Arial', fontsize='12')
+            graph.set_edge_defaults(fontname='Arial', fontsize='10')
+            
+            # Add nodes and edges for the parse tree with renaming
+            self._build_parse_tree_graph(graph, parse_tree, parser, None, 0)
+            
+            # Save the graph
+            graph.write_png(self.parse_tree_path)
+            
+        except Exception as e:
+            print(f"Error visualizing parse tree: {e}")
+            self._create_error_image(f"Error visualizing parse tree: {e}", self.parse_tree_path)
+
+    def _build_parse_tree_graph(self, graph, tree, parser, parent_node, node_id):
+        """
+        Recursively build the parse tree graph with parameter renaming applied
+        """
+        # Create node label
+        if tree.getChildCount() == 0:
+            # Terminal node (token)
+            label = tree.getText()
+            if label:
+                # Check if this node has a renaming mapping
+                node_id_ref = id(tree)
+                if hasattr(self, 'tree_renames') and node_id_ref in self.tree_renames:
+                    rename_info = self.tree_renames[node_id_ref]
+                    if rename_info['context'] == 'parameter':
+                        # This is a renamed parameter
+                        label = rename_info['renamed']
+                
+                # Escape special characters for the label
+                label = label.replace('"', '\\"').replace('\\', '\\\\')
+                node_label = f'"{label}"'
+            else:
+                node_label = "ε"  # Epsilon for empty text
+            
+            # Create the node with lighter color for terminals, 
+            # different color for renamed parameters
+            fill_color = "lightblue"
+            if hasattr(self, 'tree_renames') and id(tree) in self.tree_renames:
+                if self.tree_renames[id(tree)]['context'] == 'parameter':
+                    fill_color = "lightcoral"  # Different color for renamed parameters
+            
+            node = pydot.Node(str(node_id), label=node_label, shape="box", 
+                            style="filled", fillcolor=fill_color)
+        else:
+            # Non-terminal node (rule)
+            rule_name = parser.ruleNames[tree.getRuleIndex()]
+            node = pydot.Node(str(node_id), label=rule_name, shape="ellipse",
+                            style="filled", fillcolor="lightgreen")
+        
+        # Add the node to the graph
+        graph.add_node(node)
+        
+        # Connect with parent if there is one
+        if parent_node is not None:
+            edge = pydot.Edge(str(parent_node), str(node_id))
+            graph.add_edge(edge)
+        
+        # Recursively process child nodes
+        next_id = node_id + 1
+        for i in range(tree.getChildCount()):
+            child = tree.getChild(i)
+            next_id = self._build_parse_tree_graph(graph, child, parser, node_id, next_id)
+        
+        return next_id
     
     def _ensure_parser_generated(self):
         """
@@ -413,146 +418,66 @@ class SyntacticAnalyzer:
                 os.chdir(current_dir)
             return False
     
-    def _visualize_parse_tree(self, parse_tree, parser):
-        """
-        Create a visualization of the parse tree using pydot
-        
-        Args:
-            parse_tree: ANTLR parse tree
-            parser: ANTLR parser
-        """
-        try:
-            # Modificar la configuración del grafo para agregar más espacio
-            graph = pydot.Dot(
-                graph_type='graph', 
-                rankdir='TB',      # Top to Bottom layout
-                ranksep='1.2',     # Aumentar espacio vertical entre rangos (niveles)
-                nodesep='1.0',     # Aumentar espacio horizontal entre nodos
-                ratio='expand',  # Ajustar ratio para mejor uso del espacio
-                splines='polyline'  # Segmentos de línea conectados
-            )
-            
-            # Configuración adicional para mejorar la legibilidad
-            graph.set_graph_defaults(fontname='Arial')
-            graph.set_node_defaults(fontname='Arial', fontsize='12')
-            graph.set_edge_defaults(fontname='Arial', fontsize='10')
-            
-            # Add nodes and edges for the parse tree
-            self._build_parse_tree_graph(graph, parse_tree, parser, None, 0)
-            
-            # Save the graph
-            graph.write_png(self.parse_tree_path)
-            
-        except Exception as e:
-            print(f"Error visualizing parse tree: {e}")
-            # Create a simple error image if visualization fails
-            self._create_error_image(f"Error visualizing parse tree: {e}", self.parse_tree_path)
-    
-    def _build_parse_tree_graph(self, graph, tree, parser, parent_node, node_id):
-        """
-        Recursively build the parse tree graph
-        
-        Args:
-            graph: pydot graph
-            tree: ANTLR parse tree node
-            parser: ANTLR parser
-            parent_node: Parent node ID
-            node_id: Current node ID
-            
-        Returns:
-            int: Next available node ID
-        """
-        # Create node label
-        if tree.getChildCount() == 0:
-            # Terminal node (token)
-            label = tree.getText()
-            if label:
-                # Escape special characters for the label
-                label = label.replace('"', '\\"').replace('\\', '\\\\')
-                node_label = f'"{label}"'
-            else:
-                node_label = "ε"  # Epsilon for empty text
-            
-            # Create the node with lighter color for terminals
-            node = pydot.Node(str(node_id), label=node_label, shape="box", 
-                             style="filled", fillcolor="lightblue")
-        else:
-            # Non-terminal node (rule)
-            rule_name = parser.ruleNames[tree.getRuleIndex()]
-            node = pydot.Node(str(node_id), label=rule_name, shape="ellipse",
-                             style="filled", fillcolor="lightgreen")
-        
-        # Add the node to the graph
-        graph.add_node(node)
-        
-        # Connect with parent if there is one
-        if parent_node is not None:
-            edge = pydot.Edge(str(parent_node), str(node_id))
-            graph.add_edge(edge)
-        
-        # Recursively process child nodes
-        next_id = node_id + 1
-        for i in range(tree.getChildCount()):
-            child = tree.getChild(i)
-            next_id = self._build_parse_tree_graph(graph, child, parser, node_id, next_id)
-        
-        return next_id
-    
     def _visualize_symbol_table(self):
         """
-        Create a visualization of the symbol table using pydot with an HTML table label.
+        Create a visualization of the symbol table using the simplified renaming
         """
         try:
             graph = pydot.Dot(graph_type='digraph', rankdir='TB')
 
-            # Nodo título
+            # Title node
             title_node = pydot.Node(
                 "title",
-                label="Symbol Table",
+                label="Symbol Table (with parameter renaming)",
                 shape="plaintext",
                 fontsize="18",
                 fontcolor="blue"
             )
             graph.add_node(title_node)
 
-            # Construimos el label HTML de la tabla
+            # Build HTML table
             html_parts = [
                 '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
                 '<TR>'
-                '<TD BGCOLOR="#d0e0ff"><B>ID</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Renamed ID</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Original Name</B></TD>'
                 '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
                 '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
                 '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
                 '</TR>'
             ]
 
-            # Ordenar por scope y luego por nombre para mejor visualización
+            # Sort by scope and then by name
             sorted_symbols = sorted(self.symbol_table.items(), 
                                 key=lambda x: (x[1].get('scope', 'global'), x[0]))
 
-            # Una fila por cada símbolo
+            # One row per symbol
             for symbol, info in sorted_symbols:
-                # Extraer el nombre real del símbolo (puede incluir sufijo _in_scope)
-                name = info.get('name', symbol)
-                sym = name.replace("<", "&lt;").replace(">", "&gt;")
+                # Get the original name and renamed name
+                original_name = info.get('name', symbol)
+                renamed_name = symbol
+                
+                # Escape special characters
+                orig = original_name.replace("<", "&lt;").replace(">", "&gt;")
+                renamed = renamed_name.replace("<", "&lt;").replace(">", "&gt;")
                 typ = info.get('type', 'unknown').replace("<", "&lt;").replace(">", "&gt;")
                 scp = info.get('scope', 'global').replace("<", "&lt;").replace(">", "&gt;")
                 line = info.get('line', 0)
 
                 html_parts.append(
                     f'<TR>'
-                    f'<TD>{sym}</TD>'
+                    f'<TD>{renamed}</TD>'
+                    f'<TD>{orig}</TD>'
                     f'<TD>{typ}</TD>'
                     f'<TD>{scp}</TD>'
                     f'<TD>{line}</TD>'
                     f'</TR>'
                 )
 
-            # Cerramos la tabla y el label HTML
             html_parts.append('</TABLE>>')
             table_label = "".join(html_parts)
 
-            # Creamos el nodo con HTML-like label
+            # Create table node
             table_node = pydot.Node(
                 "symbol_table",
                 label=table_label,
@@ -560,17 +485,16 @@ class SyntacticAnalyzer:
             )
             graph.add_node(table_node)
 
-            # Conectamos título y tabla (invisible)
+            # Connect title and table
             graph.add_edge(pydot.Edge("title", "symbol_table", style="invis"))
 
-            # Guardamos
+            # Save
             graph.write_png(self.symbol_table_path)
 
         except Exception as e:
             print(f"Error visualizing symbol table: {e}")
             import traceback
             traceback.print_exc()
-            # En caso de fallo, mostramos un mensaje de error
             self._create_error_image(f"Error visualizing symbol table: {e}", self.symbol_table_path)
     
     def _create_error_image(self, error_message, output_path):

@@ -111,6 +111,10 @@ class CompilerData:
     # Datos del análisis semántico
     semantic_errors = []
     enhanced_symbol_table = {}  # Tabla de símbolos con información de tipos
+
+    # Datos de renombramiento
+    variable_renames = {}  # Mapeo de nombres originales a renombrados
+    tree_renames = {}      # Información de renombramiento para nodos del árbol
     
     @staticmethod
     def reset_lexical():
@@ -128,6 +132,9 @@ class CompilerData:
         CompilerData.syntactic_errors = []
         CompilerData.parse_tree_path = None
         CompilerData.symbol_table_path = None
+        # Reset renaming data
+        CompilerData.variable_renames = {}
+        CompilerData.tree_renames = {}
     
     @staticmethod
     def reset_semantic():

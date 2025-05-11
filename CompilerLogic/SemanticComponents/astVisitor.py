@@ -1,4 +1,7 @@
 # CompilerLogic/SemanticComponents/astVisitor.py
+from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_text
+
+
 class ASTVisitor:
     """
     Visitador para recorrer el AST y realizar análisis semántico
@@ -30,7 +33,13 @@ class ASTVisitor:
             self.visit_assignment_statement(node, parser)
         elif rule_name == "functionDeclStatement":
             self.visit_function_declaration(node, parser)
+        # SOLO llamar check_function_call para nodos válidos
+        elif rule_name == "functionCall":
+            # Verificar que el nodo tenga hijos antes de procesarlo
+            if node.getChildCount() >= 3:  # ID LPAREN RPAREN mínimo
+                self.type_checker.check_function_call(node, parser)
         elif rule_name == "functionCallStatement":
+            # Este ya se maneja en visit_function_call_statement
             self.visit_function_call_statement(node, parser)
         elif rule_name == "returnStatement":
             self.scope_checker.check_return_statement(node, parser)
@@ -91,12 +100,12 @@ class ASTVisitor:
         
         # Verificar si es una asignación de expresión o booleana
         if assignment_expr.getChildCount() >= 3:  # ID ASSIGN expr o ID ASSIGN boolExpr
-            # Obtener el tipo del lado derecho
-            right_side = assignment_expr.getChild(2)
-            right_rule = get_rule_name(right_side, parser)
-            
-            # Procesar según el tipo de asignación
+            # Procesar la asignación
             self.type_checker.check_assignment(assignment_expr, parser)
+            
+            # También visitar la expresión para verificar subexpresiones
+            right_side = assignment_expr.getChild(2)
+            self.visit(right_side, parser)
     
     def visit_function_declaration(self, node, parser):
         """
@@ -107,6 +116,8 @@ class ASTVisitor:
         # functionDeclStatement: FUNCTION ID LPAREN paramList? RPAREN block
         func_name = get_text(node.getChild(1))
         
+        print(f"=== DEBUG: Entering function '{func_name}' ===")
+        
         # Verificar la declaración de la función
         self.scope_checker.check_function_declaration(node, parser)
         
@@ -114,21 +125,18 @@ class ASTVisitor:
         self.symbol_table.enter_scope(func_name)
         self.scope_checker.enter_function(func_name)
         
-        # Si hay parámetros, agregarlos al ámbito de la función
+        # Si hay parámetros, agregarlos al ámbito de la función con renombramiento
         if node.getChildCount() > 5:  # FUNCTION ID LPAREN paramList RPAREN block
             param_list = node.getChild(3)
             
             # Recorrer parámetros
             for i in range(0, param_list.getChildCount(), 2):  # Saltar comas
                 param_name = get_text(param_list.getChild(i))
+                print(f"=== DEBUG: Processing parameter '{param_name}' ===")
                 
-                # Agregar a la tabla de símbolos
-                self.symbol_table.insert(param_name, {
-                    "type": "parameter",  # Tipo genérico para parámetros
-                    "line": param_list.getChild(i).symbol.line,
-                    "initialized": True,  # Los parámetros se consideran inicializados
-                    "used": False
-                })
+                # IMPORTANTE: No agregar el parámetro aquí, ya está en la tabla inicial
+                # pero sí asegurarse de que se marque como inicializado
+                self.symbol_table.mark_initialized(param_name)
         
         # Visitar el bloque de la función
         block = node.getChild(node.getChildCount() - 1)
@@ -137,26 +145,31 @@ class ASTVisitor:
         # Salir del ámbito de la función
         self.symbol_table.exit_scope()
         self.scope_checker.exit_function()
+        
+        print(f"=== DEBUG: Exiting function '{func_name}' ===")
     
     def visit_function_call_statement(self, node, parser):
         """
         Visita un nodo de llamada a función
         """
+        print(f"=== DEBUG ASTVisitor: visit_function_call_statement called ===")
+        print(f"=== DEBUG: Node children count: {node.getChildCount()} ===")
+        
         # functionCallStatement: ID LPAREN argumentList? RPAREN SEMICOLON
-        func_call = node.getChild(0)  # ID
-        func_name = func_call.getText()
-        
-        # Verificar la llamada a la función
-        self.type_checker.check_function_call(node, parser)
-        
-        # Visitar los argumentos si existen
-        if node.getChildCount() > 3:  # ID LPAREN argumentList RPAREN SEMICOLON
-            arg_list = node.getChild(2)
+        if node.getChildCount() >= 4:  # Debe tener al menos ID, LPAREN, RPAREN, SEMICOLON
+            # El nodo completo de la llamada es desde ID hasta RPAREN
+            # Crear un nodo artificial que solo contenga la llamada
+            print(f"=== DEBUG: Calling type_checker.check_function_call with full node ===")
+            self.type_checker.check_function_call(node, parser)
             
-            # Visitar cada argumento
-            for i in range(0, arg_list.getChildCount(), 2):  # Saltar comas
-                arg = arg_list.getChild(i)
-                self.visit(arg, parser)
+            # También verificar los argumentos recursivamente
+            if node.getChildCount() > 4:  # ID LPAREN argumentList RPAREN SEMICOLON
+                arg_list = node.getChild(2)
+                if get_rule_name(arg_list, parser) == "argumentList":
+                    # Visitar cada argumento
+                    for i in range(0, arg_list.getChildCount(), 2):  # Saltar comas
+                        arg = arg_list.getChild(i)
+                        self.visit(arg, parser)
     
     def visit_if_statement(self, node, parser):
         """
@@ -184,26 +197,52 @@ class ASTVisitor:
         """
         Visita un nodo loop
         """
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_text
+        
         # loopStatement: LOOP LPAREN assignmentExpression SEMICOLON boolExpr SEMICOLON assignmentExpression RPAREN block
         
-        # Verificar la condición
+        # PRIMERO: Procesar la inicialización y asegurarnos de que se marca como inicializada
+        init = node.getChild(2)
+        if get_rule_name(init, parser) == "assignmentExpression":
+            # Obtener el nombre de la variable
+            var_name = get_text(init.getChild(0))
+            
+            # Procesar la asignación
+            self.type_checker.check_assignment(init, parser)
+            
+            # CRÍTICO: Asegurarnos de que se marca como inicializada INMEDIATAMENTE
+            # Esto debe hacerse después de check_assignment pero antes de visitar la condición
+            var_info = self.symbol_table.lookup(var_name)
+            if var_info:
+                current_scope = var_info.get('current_scope', self.symbol_table.current_scope_name())
+                self.symbol_table.mark_initialized(var_name, current_scope=current_scope)
+                print(f"=== DEBUG: Marked {var_name} as initialized in loop init ===")
+            
+            # También visitar la expresión de inicialización para cualquier subexpresión
+            expr = init.getChild(2)
+            self.visit(expr, parser)
+        
+        # SEGUNDO: Verificar la condición (ahora que la variable está inicializada)
+        condition = node.getChild(4)
+        
+        # Primero, verificar con type_checker
+        print(f"=== DEBUG: About to check loop condition ===")
         self.type_checker.check_loop_statement(node, parser)
         
-        # Visitar la inicialización
-        init = node.getChild(2)
-        self.visit(init, parser)
-        
-        # Visitar la condición
-        condition = node.getChild(4)
+        # Luego visitar la condición
         self.visit(condition, parser)
         
-        # Visitar la actualización
-        update = node.getChild(6)
-        self.visit(update, parser)
-        
-        # Visitar el bloque
+        # TERCERO: Visitar el bloque del loop
         block = node.getChild(8)
         self.visit(block, parser)
+        
+        # CUARTO: Visitar la actualización (increment/decrement)
+        update = node.getChild(6)
+        if get_rule_name(update, parser) == "assignmentExpression":
+            self.type_checker.check_assignment(update, parser)
+            # Visitar cualquier expresión en la actualización
+            update_expr = update.getChild(2)
+            self.visit(update_expr, parser)
     
     def visit_frame_statement(self, node, parser):
         """

@@ -38,18 +38,19 @@ class SemanticAnalyzer:
     def analyze(self, source_code=None):
         """
         Analyze the AST from syntactic analysis semantically
-        
-        Args:
-            source_code: Source code text (for error reporting only)
-            
-        Returns:
-            tuple: (success, errors, semantic_graph_path, enhanced_symbol_table_path)
         """
+        print("=== DEBUG: Starting semantic analysis ===")
+        
         # Reset estado semántico
         CompilerData.reset_semantic()
         
         try:
-            # Verificar que existan el AST y la tabla de símbolos del análisis sintáctico
+            # Verificar que existan el AST y la tabla de símbolos
+            print(f"=== DEBUG: Checking CompilerData ===")
+            print(f"CompilerData.ast type: {type(CompilerData.ast)}")
+            print(f"CompilerData.symbol_table type: {type(CompilerData.symbol_table)}")
+            print(f"CompilerData.symbol_table value: {CompilerData.symbol_table}")
+            
             if not CompilerData.ast or not CompilerData.symbol_table:
                 error = {
                     'message': "No hay árbol de parseo o tabla de símbolos disponible. Ejecute primero el análisis sintáctico.",
@@ -60,45 +61,86 @@ class SemanticAnalyzer:
                 CompilerData.semantic_errors = [error]
                 return False, [error], None, None
             
-            # DEBUGGING: Verificar que recibimos las líneas correctas
-            print("\n=== DEBUG: Symbol table at start of semantic analysis ===")
-            for name, info in CompilerData.symbol_table.items():
-                print(f"{name}: line={info.get('line', 'MISSING')}, type={info.get('type')}, scope={info.get('scope')}")
-            print("=== END DEBUG ===\n")
-            
+            print(f"=== DEBUG: Creating SymbolTable ===")
             # Crear los componentes del análisis semántico
-            symbol_table = SymbolTable(CompilerData.symbol_table)
+            try:
+                symbol_table = SymbolTable(CompilerData.symbol_table)
+                print("=== DEBUG: SymbolTable created successfully ===")
+            except Exception as e:
+                print(f"=== DEBUG: Error creating SymbolTable: {e} ===")
+                import traceback
+                traceback.print_exc()
+                raise
+            
+            # Cargar información de renombramiento desde CompilerData
+            print(f"=== DEBUG: Loading rename information ===")
+            print(f"CompilerData.variable_renames type: {type(getattr(CompilerData, 'variable_renames', None))}")
+            print(f"CompilerData.variable_renames value: {getattr(CompilerData, 'variable_renames', 'NOT SET')}")
+            
+            if hasattr(CompilerData, 'variable_renames'):
+                symbol_table.variable_renames = CompilerData.variable_renames.copy()
+                print(f"=== DEBUG: Applied renames: {symbol_table.variable_renames} ===")
+                
+            # Construir el mapa inverso para búsquedas
+            symbol_table.inverse_renames = {}
+            for scope, renames in symbol_table.variable_renames.items():
+                print(f"=== DEBUG: Processing scope '{scope}' with renames: {renames} ===")
+                for original, renamed in renames.items():
+                    symbol_table.inverse_renames[renamed] = original
+            
+            print(f"=== DEBUG: Inverse renames: {symbol_table.inverse_renames} ===")
+            
+            # Continuar con el análisis normal...
+            print(f"=== DEBUG: Creating error reporter ===")
             error_reporter = ErrorReporter()
+            
+            print(f"=== DEBUG: Creating type checker ===")
             type_checker = TypeChecker(symbol_table, error_reporter)
+            
+            print(f"=== DEBUG: Creating scope checker ===")
             scope_checker = ScopeChecker(symbol_table, error_reporter)
+            
+            print(f"=== DEBUG: Creating visitor ===")
             visitor = ASTVisitor(symbol_table, type_checker, scope_checker, error_reporter)
             
+            print(f"=== DEBUG: Starting AST visit ===")
             # Analizar el AST
             visitor.visit(CompilerData.ast, CompilerData.parser)
+            
+            print(f"=== DEBUG: AST visit completed ===")
             
             # Verificar si hay errores (no advertencias)
             has_errors = error_reporter.has_errors()
             all_errors = error_reporter.get_errors()
             
+            print(f"=== DEBUG: Errors: {has_errors}, All errors: {len(all_errors)} ===")
+            
             # Separar errores de advertencias
             errors = [e for e in all_errors if not e.get('is_warning', False)]
             warnings = [e for e in all_errors if e.get('is_warning', False)]
             
-            # Imprimir advertencias en consola
+            # Imprimir TODOS los errores y advertencias para debugging
+            print(f"=== DEBUG SemanticAnalyzer: Total errors: {len(errors)} ===")
+            for error in errors:
+                print(f"ERROR - Línea {error['line']}: {error['message']}")
+            
+            print(f"=== DEBUG SemanticAnalyzer: Total warnings: {len(warnings)} ===")
             for warning in warnings:
                 print(f"ADVERTENCIA - Línea {warning['line']}: {warning['message']}")
             
             # Actualizar errores en CompilerData (solo errores, no advertencias)
             CompilerData.semantic_errors = errors
             
+            print(f"=== DEBUG: Generating visualizations ===")
             # Generar visualizaciones
             self._generate_semantic_graph(symbol_table)
-            self._generate_enhanced_symbol_table(symbol_table, all_errors)  # Incluir advertencias en la visualización
+            self._generate_enhanced_symbol_table(symbol_table, all_errors)
             
             # Guardar rutas en CompilerData
             CompilerData.semantic_graph_path = self.semantic_graph_path
             CompilerData.enhanced_symbol_table_path = self.enhanced_symbol_table_path
             
+            print(f"=== DEBUG: Semantic analysis completed ===")
             # Solo fallar si hay errores reales, no advertencias
             if has_errors:
                 return False, errors, self.semantic_graph_path, self.enhanced_symbol_table_path

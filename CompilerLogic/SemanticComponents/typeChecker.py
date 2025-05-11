@@ -11,13 +11,12 @@ class TypeChecker:
     
     def get_type(self, node, parser):
         """
-        Determina el tipo de una expresión
+        Determina el tipo de una expresión considerando el renombramiento
         """
         from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_node_text, get_text, get_node_line, get_node_column
         
         rule_name = get_rule_name(node, parser)
         
-        # DEBUG: Agregar print para depurar
         if not rule_name:  # Terminal node
             text = node.getText()
             
@@ -25,7 +24,7 @@ class TypeChecker:
             if text in ["true", "false"]:
                 return "bool"
             
-            # Verificar constantes de color
+            # Verificar constantes de color ANTES de verificar identificadores
             if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
                 return "color"
             
@@ -37,23 +36,24 @@ class TypeChecker:
             if text == "cos" or text == "sin":
                 return "builtin_function"
             
-            # Verificar identificadores
+            # Verificar identificadores (considerando renombramiento)
             if text[0].islower() and text.isalnum():
-                # Buscar en el ámbito actual primero
-                symbol = self.symbol_table.lookup(text, current_scope_only=True)
-                if not symbol:
-                    # Si no se encuentra en el ámbito actual, buscar en todos los ámbitos
-                    symbol = self.symbol_table.lookup(text)
+                # Buscar usando lookup que maneja renombramiento automáticamente
+                symbol = self.symbol_table.lookup(text)
                 
                 if symbol:
-                    # Marcar como usado en el ámbito correcto
-                    self.symbol_table.mark_used(text, current_scope=symbol.get('current_scope', self.symbol_table.current_scope_name()))
+                    # Marcar como usado (también considera renombramiento)
+                    self.symbol_table.mark_used(text)
                     return symbol.get("type", "unknown")
                 
                 # Variable no encontrada, reportar error
+                # Usar la posición correcta del nodo terminal
+                line = node.symbol.line if hasattr(node, 'symbol') else get_node_line(node)
+                column = node.symbol.column if hasattr(node, 'symbol') else get_node_column(node)
+                
                 self.error_reporter.report_error(
-                    get_node_line(node),
-                    get_node_column(node),
+                    line,
+                    column,
                     f"Variable no declarada: {text}",
                     len(text)
                 )
@@ -145,6 +145,11 @@ class TypeChecker:
         
         actual_type = self.get_type(node, parser)
         rule_name = get_rule_name(node, parser)
+
+        # AÑADIR ESTE CASO para functionCall dentro de expresiones
+        if rule_name == "functionCall":
+            print(f"=== DEBUG: Found functionCall in expression ===")
+            self.check_function_call(node, parser)
         
         # Verificaciones específicas según el tipo de expresión
         if rule_name in ["addSubExpr", "mulDivExpr", "modExpr"]:
@@ -275,17 +280,43 @@ class TypeChecker:
                 self.check_expression(child, parser)
             elif child.getChildCount() == 0:  # Es un nodo terminal (posible ID)
                 text = child.getText()
-                if text[0].islower() and text.isalnum() and text not in ["cos", "sin", "true", "false"]:  # Identificador pero no función integrada ni constante booleana
+                
+                # AÑADIR: Ignorar constantes de color
+                if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+                    continue  # No verificar constantes de color
+                
+                # AÑADIR: Ignorar funciones integradas y constantes booleanas
+                if text in ["cos", "sin", "true", "false"]:
+                    continue  # No verificar como variables
+                
+                if text[0].islower() and text.isalnum():  # Identificador
                     symbol = self.symbol_table.lookup(text)
                     if not symbol:
+                        # Usar posición del token específico
+                        line = child.symbol.line if hasattr(child, 'symbol') else get_node_line(child)
+                        column = child.symbol.column if hasattr(child, 'symbol') else get_node_column(child)
+                        
                         self.error_reporter.report_error(
-                            get_node_line(child),
-                            get_node_column(child),
+                            line,
+                            column,
                             f"Variable no declarada: {text}",
                             len(text)
                         )
                     else:
-                        # Marcar como usado incluso si está en subexpresiones
+                        # Verificar si está inicializada
+                        if not symbol.get('initialized', False) and symbol.get('type') not in ['function', 'parameter']:
+                            # Usar posición del token específico
+                            line = child.symbol.line if hasattr(child, 'symbol') else get_node_line(child)
+                            column = child.symbol.column if hasattr(child, 'symbol') else get_node_column(child)
+                            
+                            self.error_reporter.report_error(
+                                line,
+                                column,
+                                f"Variable '{text}' utilizada sin inicializar",
+                                len(text)
+                            )
+                        
+                        # Marcar como usado
                         self.symbol_table.mark_used(text)
         
         return actual_type
@@ -310,9 +341,13 @@ class TypeChecker:
             var_info = self.symbol_table.lookup(var_name)
         
         if not var_info:
+            # Usar posición del ID específico
+            line = id_node.symbol.line if hasattr(id_node, 'symbol') else get_node_line(id_node)
+            column = id_node.symbol.column if hasattr(id_node, 'symbol') else get_node_column(id_node)
+            
             self.error_reporter.report_error(
-                get_node_line(id_node),
-                get_node_column(id_node),
+                line,
+                column,
                 f"Variable no declarada: {var_name}",
                 len(var_name)
             )
@@ -326,13 +361,14 @@ class TypeChecker:
         # Caso especial para asignaciones de color
         expr_text = expr_node.getText()
         if var_type == "color" and expr_text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+            # IMPORTANTE: Marcar como inicializada inmediatamente
             self.symbol_table.mark_initialized(var_name, current_scope=var_info.get('current_scope', self.symbol_table.current_scope_name()))
             return  # Es una asignación válida de color
         
         # Verificación normal de tipo
         expr_type = self.check_expression(expr_node, parser)
         
-        # Marcar como inicializada en el ámbito correcto
+        # IMPORTANTE: Marcar como inicializada en el ámbito correcto
         self.symbol_table.mark_initialized(var_name, current_scope=var_info.get('current_scope', self.symbol_table.current_scope_name()))
         
         # Verificar compatibilidad de tipos
@@ -392,9 +428,13 @@ class TypeChecker:
                 var_info = self.symbol_table.lookup(color_text)
                 
                 if not var_info:
+                    # CORRECCIÓN: Usar posición del token específico
+                    line = color_arg.symbol.line if hasattr(color_arg, 'symbol') else get_node_line(color_arg)
+                    column = color_arg.symbol.column if hasattr(color_arg, 'symbol') else get_node_column(color_arg)
+                    
                     self.error_reporter.report_error(
-                        get_node_line(color_arg),
-                        get_node_column(color_arg),
+                        line,
+                        column,
                         f"Variable no declarada: {color_text}",
                         len(color_text)
                     )
@@ -403,10 +443,27 @@ class TypeChecker:
                 var_type = var_info.get("type", "unknown")
                 self.symbol_table.mark_used(color_text)
                 
-                if var_type != "color" and var_type != "unknown":
+                # Verificar si está inicializada
+                if not var_info.get('initialized', False):
+                    # CORRECCIÓN: Usar posición del token específico
+                    line = color_arg.symbol.line if hasattr(color_arg, 'symbol') else get_node_line(color_arg)
+                    column = color_arg.symbol.column if hasattr(color_arg, 'symbol') else get_node_column(color_arg)
+                    
                     self.error_reporter.report_error(
-                        get_node_line(color_arg),
-                        get_node_column(color_arg),
+                        line,
+                        column,
+                        f"Variable '{color_text}' utilizada sin inicializar",
+                        len(color_text)
+                    )
+                
+                if var_type != "color" and var_type != "unknown":
+                    # CORRECCIÓN: Usar posición del token específico
+                    line = color_arg.symbol.line if hasattr(color_arg, 'symbol') else get_node_line(color_arg)
+                    column = color_arg.symbol.column if hasattr(color_arg, 'symbol') else get_node_column(color_arg)
+                    
+                    self.error_reporter.report_error(
+                        line,
+                        column,
                         f"La función setcolor requiere un argumento de tipo color, pero {color_text} es de tipo {var_type}",
                         len(color_text)
                     )
@@ -428,9 +485,38 @@ class TypeChecker:
         """
         from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text, get_rule_name
         
-        # functionCall: ID LPAREN argumentList? RPAREN
-        func_name = get_text(node.getChild(0))
+        print(f"=== DEBUG TypeChecker: check_function_call called ===")
+        print(f"Node children: {node.getChildCount()}")
+        
+        # Verificar si es un nodo de functionCall o functionCallStatement
+        rule_name = get_rule_name(node, parser)
+        print(f"=== DEBUG: Node rule name: {rule_name} ===")
+        
+        func_name = ""
+        arg_list_index = -1
+        
+        if rule_name == "functionCall":
+            # functionCall: ID LPAREN argumentList? RPAREN
+            if node.getChildCount() >= 1:
+                func_name = get_text(node.getChild(0))
+                arg_list_index = 2 if node.getChildCount() > 3 else -1
+        elif rule_name == "functionCallStatement":
+            # functionCallStatement: ID LPAREN argumentList? RPAREN SEMICOLON
+            if node.getChildCount() >= 1:
+                func_name = get_text(node.getChild(0))
+                arg_list_index = 2 if node.getChildCount() > 4 else -1
+        else:
+            print(f"=== DEBUG: Unknown node type for function call: {rule_name} ===")
+            return
+        
+        print(f"=== DEBUG: Function name: {func_name} ===")
+        
+        if not func_name:
+            print(f"=== DEBUG: Empty function name, skipping ===")
+            return
+        
         func_info = self.symbol_table.lookup(func_name)
+        print(f"=== DEBUG: Function info: {func_info} ===")
         
         if not func_info:
             self.error_reporter.report_error(
@@ -454,24 +540,40 @@ class TypeChecker:
             )
             return
         
-        # Verificar el número de argumentos (si tenemos la información)
-        if func_name in self.symbol_table.functions:
-            expected_params = self.symbol_table.functions[func_name]["params"]
-            
-            # Contar argumentos
-            arg_count = 0
-            if node.getChildCount() > 3:  # ID LPAREN argumentList RPAREN
-                arg_list = node.getChild(2)
+        # Contar argumentos proporcionados
+        arg_count = 0
+        if arg_list_index >= 0 and arg_list_index < node.getChildCount():
+            arg_list = node.getChild(arg_list_index)
+            print(f"=== DEBUG: Argument list rule: {get_rule_name(arg_list, parser)} ===")
+            if get_rule_name(arg_list, parser) == "argumentList":
                 # argumentList: expr (COMMA expr)*
-                arg_count = (arg_list.getChildCount() + 1) // 2  # +1 por el primer expr, //2 porque cada expr adicional viene con una coma
-            
-            if len(expected_params) != arg_count:
-                self.error_reporter.report_error(
-                    get_node_line(node),
-                    get_node_column(node),
-                    f"La función {func_name} espera {len(expected_params)} argumentos, pero se proporcionaron {arg_count}",
-                    len(func_name) + 2  # +2 por los paréntesis
-                )
+                arg_count = (arg_list.getChildCount() + 1) // 2
+                print(f"=== DEBUG: Argument count calculated: {arg_count} ===")
+        
+        print(f"=== DEBUG: Final argument count: {arg_count} ===")
+        
+        # Obtener número de parámetros esperados
+        expected_params = 0
+        print(f"=== DEBUG: Checking in symbol_table.functions: {self.symbol_table.functions} ===")
+        
+        if func_name in self.symbol_table.functions:
+            expected_params = len(self.symbol_table.functions[func_name]["params"])
+            print(f"=== DEBUG: Expected params found: {expected_params} ===")
+        else:
+            print(f"=== DEBUG: Function {func_name} not found in functions table ===")
+            # Podría ser una función pero sin información de parámetros, continuar
+        
+        # Comparar número de argumentos con parámetros esperados
+        print(f"=== DEBUG: Comparing {expected_params} expected vs {arg_count} provided ===")
+        
+        if expected_params != arg_count:
+            print(f"=== DEBUG: Error detected - reporting it ===")
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                f"La función '{func_name}' espera {expected_params} argumentos, pero se proporcionaron {arg_count}",
+                len(get_text(node))
+            )
     
     def check_if_statement(self, node, parser):
         """

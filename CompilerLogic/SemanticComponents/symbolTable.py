@@ -1,6 +1,6 @@
 class SymbolTable:
     """
-    Gestiona la tabla de símbolos con soporte para ámbitos
+    Gestiona la tabla de símbolos con soporte para ámbitos y renombramiento
     """
     def __init__(self, initial_table=None):
         """
@@ -13,71 +13,64 @@ class SymbolTable:
         # Información de inicialización y uso de símbolos
         self.symbol_info = {}
         
+        # Mapa de renombramientos para variables de funciones
+        self.variable_renames = {}
+        self.inverse_renames = {}  # Para mapear de renombrado a original
+        
         # Inicialización desde una tabla existente si se proporciona
         if initial_table:
             self._initialize_from_table(initial_table)
     
     def _initialize_from_table(self, initial_table):
         """
-        Inicializa la tabla de símbolos a partir de una tabla existente del análisis sintáctico
+        Inicializa la tabla de símbolos con soporte para renombramientos
         """
-        # Guardar la tabla original para referencia y evitar duplicados
+        print(f"=== DEBUG SymbolTable: _initialize_from_table called ===")
+        
+        # Guardar la tabla original
         self.initial_symbols = initial_table.copy()
         
-        # Primero, identificar todos los parámetros
-        parameter_names_by_scope = {}
+        # Construir mapas de renombramiento
         for name, info in initial_table.items():
             if info.get('type') == 'parameter':
-                scope_name = info.get('scope', 'global')
-                if scope_name not in parameter_names_by_scope:
-                    parameter_names_by_scope[scope_name] = set()
-                parameter_names_by_scope[scope_name].add(name)
+                original_name = info.get('name', name)
+                if name != original_name:  # Es un parámetro renombrado
+                    scope_name = info.get('scope', 'global')
+                    if scope_name not in self.variable_renames:
+                        self.variable_renames[scope_name] = {}
+                    self.variable_renames[scope_name][original_name] = name
+                    self.inverse_renames[name] = original_name
         
-        # Inicializar información de símbolos con ámbitos correctos
+        # Continuar con la inicialización normal
         for name, info in initial_table.items():
             scope_name = info.get('scope', 'global')
             symbol_type = info.get('type', 'unknown')
-            
-            # SKIP si es una variable global que ya existe como parámetro
-            if scope_name == 'global' and symbol_type != 'function':
-                # Verificar si este nombre ya existe como parámetro en alguna función
-                is_parameter_elsewhere = False
-                for func_scope, params in parameter_names_by_scope.items():
-                    if func_scope != 'global' and name in params:
-                        # Verificar que sea la misma línea (es duplicado)
-                        if info.get('line') == initial_table.get(name, {}).get('line'):
-                            is_parameter_elsewhere = True
-                            break
-                
-                if is_parameter_elsewhere:
-                    print(f"DEBUG: Skipping duplicate global variable '{name}' - already exists as parameter")
-                    continue
-            
-            # Obtener la línea, asegurándose de que existe
             line = info.get('line', 1)
             
-            # Decidir si es una inicialización o uso
+            # Determinar si es una inicialización
             is_initialized = info.get('type') in ['function', 'parameter']
             
-            # Crear una clave única para cada símbolo en su ámbito
-            scope_key = f"{scope_name}_{name}" if scope_name != 'global' else name
-            
+            # Crear información del símbolo
             symbol_info = {
                 'type': symbol_type,
                 'line': line,
                 'initialized': is_initialized,
                 'used': False,
-                'scope': scope_name
+                'scope': scope_name,
+                'original_name': info.get('name', name)
             }
             
-            # Guardar información del símbolo con su clave única
-            self.symbol_info[scope_key] = symbol_info
-            
-            # También mantener una copia sin ámbito para compatibilidad
+            # Guardar información del símbolo
             if scope_name == 'global':
                 self.symbol_info[name] = symbol_info
+            else:
+                # Para símbolos en ámbitos de función
+                scope_key = f"{scope_name}_{name}"
+                self.symbol_info[scope_key] = symbol_info
+                # También mantener una referencia simple para búsquedas
+                self.symbol_info[name] = symbol_info
             
-            # Si es una función, registrarla en la tabla de funciones
+            # Si es una función, registrarla
             if info.get('type') == 'function':
                 self.functions[name] = {
                     'params': [],
@@ -89,8 +82,9 @@ class SymbolTable:
                 for param_name, param_info in initial_table.items():
                     if param_info.get('scope') == name and param_info.get('type') == 'parameter':
                         self.functions[name]['params'].append({
-                            'name': param_name,
-                            'type': 'int'  # Asumimos int por defecto
+                            'name': param_info.get('name', param_name),
+                            'renamed': param_name if param_name != param_info.get('name', param_name) else None,
+                            'type': 'int'
                         })
     
     def enter_scope(self, scope_name):
@@ -122,18 +116,15 @@ class SymbolTable:
         # Crear una copia completa de la información del símbolo
         full_symbol_info = symbol_info.copy()
         
-        # IMPORTANTE: Si el símbolo ya existe en la tabla inicial del análisis sintáctico,
-        # usar su línea original para preservar la información correcta
+        # Si el símbolo ya existe en la tabla inicial, usar su línea original
         if hasattr(self, 'initial_symbols') and name in self.initial_symbols:
             initial_info = self.initial_symbols[name]
-            # Conservar la línea del análisis sintáctico
             if 'line' in initial_info:
                 full_symbol_info['line'] = initial_info['line']
-            # También conservar el scope del análisis sintáctico
             if 'scope' in initial_info:
                 full_symbol_info['scope'] = initial_info['scope']
         
-        # Si no tenemos una línea definida, usar 1 como fallback en lugar de 0
+        # Si no tenemos una línea definida, usar 1 como fallback
         if 'line' not in full_symbol_info or full_symbol_info['line'] == 0:
             full_symbol_info['line'] = 1
         
@@ -155,12 +146,32 @@ class SymbolTable:
     
     def lookup(self, name, current_scope_only=False):
         """
-        Busca un símbolo en todos los ámbitos, del más interno al más externo.
-        Si current_scope_only es True, solo busca en el ámbito actual.
+        Busca un símbolo considerando el renombramiento automático en funciones
         """
-        # Primero buscar en los ámbitos creados durante el análisis semántico
+        current_scope = self.current_scope_name()
+        
+        # Si estamos en una función y el nombre podría ser un parámetro renombrado
+        if current_scope != 'global' and current_scope in self.variable_renames:
+            if name in self.variable_renames[current_scope]:
+                # El nombre tiene un renombramiento, usamos la versión renombrada
+                renamed_name = self.variable_renames[current_scope][name]
+                # Buscar el símbolo renombrado
+                result = self._lookup_symbol(renamed_name, current_scope_only)
+                if result:
+                    # Agregar información de renombramiento al resultado
+                    result['original_name'] = name
+                    result['renamed_from'] = renamed_name
+                    return result
+        
+        # Búsqueda normal
+        return self._lookup_symbol(name, current_scope_only)
+    
+    def _lookup_symbol(self, name, current_scope_only=False):
+        """
+        Búsqueda interna de símbolos (sin renombramiento)
+        """
+        # Buscar en los ámbitos creados durante el análisis semántico
         if current_scope_only:
-            # Buscar solo en el ámbito actual
             if name in self.scopes[-1]["symbols"]:
                 return self.scopes[-1]["symbols"][name]
             return None
@@ -169,18 +180,16 @@ class SymbolTable:
         for scope in reversed(self.scopes):
             if name in scope["symbols"]:
                 result = scope["symbols"][name].copy()
-                result["current_scope"] = scope["name"]  # Agregar información del ámbito
+                result["current_scope"] = scope["name"]
                 return result
         
-        # Si no se encuentra en los ámbitos actuales, buscar en la información inicial
+        # Si no se encuentra, buscar en la información inicial
         if hasattr(self, 'initial_symbols') and name in self.initial_symbols:
             info = self.initial_symbols[name]
-            # Determinar si la variable es accesible desde el ámbito actual
             initial_scope = info.get('scope', 'global')
             current_scope = self.current_scope_name()
             
-            # Si estamos en una función y la variable es de ámbito global, es accesible
-            # Si estamos en el mismo ámbito que la variable, es accesible
+            # Determinar si la variable es accesible
             if (initial_scope == 'global' or 
                 initial_scope == current_scope or
                 current_scope == 'global'):
@@ -189,7 +198,8 @@ class SymbolTable:
                     'line': info.get('line', 0),
                     'initialized': self.symbol_info.get(name, {}).get('initialized', False),
                     'used': self.symbol_info.get(name, {}).get('used', False),
-                    'current_scope': initial_scope
+                    'current_scope': initial_scope,
+                    'original_name': info.get('name', name)
                 }
                 return result
         
@@ -197,66 +207,115 @@ class SymbolTable:
     
     def is_declared_in_current_scope(self, name):
         """
-        Verifica si un símbolo ya está declarado en el ámbito actual,
-        sin incluir símbolos de la tabla inicial
+        Verifica si un símbolo ya está declarado en el ámbito actual
         """
         return name in self.scopes[-1]["symbols"]
     
     def is_function_declared(self, name):
         """
-        Verifica si una función ya está declarada en la tabla actual
-        (sin considerar la tabla inicial)
+        Verifica si una función ya está declarada
         """
-        # Solo verificar en los ámbitos actuales, no en la tabla inicial
         for scope in self.scopes:
             if name in scope["symbols"] and scope["symbols"][name].get("type") == "function":
                 return True
         return False
     
-    def mark_initialized(self, name):
+    def mark_initialized(self, name, current_scope=None):
         """
-        Marca un símbolo como inicializado en el ámbito correcto
+        Marca un símbolo como inicializado considerando el renombramiento
         """
-        # Buscar el símbolo en todos los ámbitos, del más interno al más externo
+        if current_scope is None:
+            current_scope = self.current_scope_name()
+        
+        # Si estamos en una función y el nombre podría ser un parámetro
+        if current_scope != 'global' and current_scope in self.variable_renames:
+            if name in self.variable_renames[current_scope]:
+                # Marcar la versión renombrada como inicializada
+                renamed_name = self.variable_renames[current_scope][name]
+                return self._mark_symbol_initialized(renamed_name, current_scope)
+        
+        # Marcar el símbolo normal
+        return self._mark_symbol_initialized(name, current_scope)
+    
+    def _mark_symbol_initialized(self, name, current_scope):
+        """
+        Marca un símbolo específico como inicializado (sin renombramiento)
+        """
+        # Buscar en el ámbito especificado primero
+        if current_scope != "global":
+            for scope in reversed(self.scopes):
+                if scope["name"] == current_scope and name in scope["symbols"]:
+                    scope["symbols"][name]["initialized"] = True
+                    scope_key = f"{current_scope}_{name}"
+                    if scope_key in self.symbol_info:
+                        self.symbol_info[scope_key]["initialized"] = True
+                    return True
+        
+        # Si no se encuentra en el ámbito especificado, buscar en todos los ámbitos
         for scope in reversed(self.scopes):
             if name in scope["symbols"]:
                 scope["symbols"][name]["initialized"] = True
-                # Actualizar la información global del símbolo
-                scope_key = f"{scope['name']}_{name}"
-                if scope_key not in self.symbol_info:
-                    scope_key = name  # Fallback para ámbito global
+                if scope["name"] == "global":
+                    scope_key = name
+                else:
+                    scope_key = f"{scope['name']}_{name}"
                 if scope_key in self.symbol_info:
                     self.symbol_info[scope_key]["initialized"] = True
                 return True
         
-        # Si no está en los ámbitos actuales pero está en la información global
-        if name in self.symbol_info:
-            self.symbol_info[name]["initialized"] = True
-            return True
-            
         return False
     
-    def mark_used(self, name):
+    def mark_used(self, name, current_scope=None):
         """
-        Marca un símbolo como usado en el ámbito correcto
+        Marca un símbolo como usado considerando el renombramiento
         """
-        # Buscar el símbolo en todos los ámbitos, del más interno al más externo
+        if current_scope is None:
+            current_scope = self.current_scope_name()
+        
+        print(f"=== DEBUG: mark_used called with name='{name}', current_scope='{current_scope}' ===")
+        
+        # Si estamos en una función y el nombre podría ser un parámetro
+        if current_scope != 'global' and current_scope in self.variable_renames:
+            if name in self.variable_renames[current_scope]:
+                # Marcar la versión renombrada como usada
+                renamed_name = self.variable_renames[current_scope][name]
+                print(f"=== DEBUG: Using renamed version '{renamed_name}' ===")
+                return self._mark_symbol_used(renamed_name, current_scope)
+        
+        print(f"=== DEBUG: Using original name '{name}' ===")
+        # Marcar el símbolo normal
+        return self._mark_symbol_used(name, current_scope)
+    
+    def _mark_symbol_used(self, name, current_scope):
+        """
+        Marca un símbolo específico como usado (sin renombramiento)
+        """
+        print(f"=== DEBUG: _mark_symbol_used called with name='{name}', current_scope='{current_scope}' ===")
+        
+        # Buscar en los ámbitos actuales
         for scope in reversed(self.scopes):
             if name in scope["symbols"]:
                 scope["symbols"][name]["used"] = True
-                # Actualizar la información global del símbolo
-                scope_key = f"{scope['name']}_{name}"
-                if scope_key not in self.symbol_info:
-                    scope_key = name  # Fallback para ámbito global
+                print(f"=== DEBUG: Marked '{name}' as used in scope '{scope['name']}' ===")
+                
+                # Actualizar información global
+                if scope["name"] == "global":
+                    scope_key = name
+                else:
+                    scope_key = name  # No agregar prefijo para mantener compatibilidad
+                
                 if scope_key in self.symbol_info:
                     self.symbol_info[scope_key]["used"] = True
+                    print(f"=== DEBUG: Updated symbol_info for '{scope_key}' ===")
                 return True
         
-        # Si no está en los ámbitos actuales pero está en la información global
+        # Si no se encuentra en ámbitos actuales, buscar en información global
         if name in self.symbol_info:
             self.symbol_info[name]["used"] = True
+            print(f"=== DEBUG: Marked '{name}' as used in symbol_info ===")
             return True
-            
+        
+        print(f"=== DEBUG: Symbol '{name}' not found in any scope ===")
         return False
     
     def get_unused_symbols(self):
@@ -269,16 +328,27 @@ class SymbolTable:
         for key, info in self.symbol_info.items():
             if not info.get("used", False):
                 # Determinar el nombre real del símbolo
-                if '_' in key and key.count('_') == 1:
-                    scope_name, name = key.rsplit('_', 1)
-                else:
-                    scope_name = 'global'
-                    name = key
+                original_name = info.get('original_name', key)
+                scope_name = info.get('scope', 'global')
                 
-                # Solo agregar si es un símbolo global o si no hay duplicado global
-                if scope_name == 'global' or name not in self.symbol_info:
+                # Si es un parámetro renombrado, usar el nombre original en el reporte
+                if info.get('type') == 'parameter':
+                    # Buscar en inverse_renames si existe la versión renombrada
+                    if key in self.inverse_renames:
+                        original_name = self.inverse_renames[key]
+                
+                # Solo agregar si no hay duplicado
+                add_to_unused = True
+                for existing in unused:
+                    if (existing['name'] == original_name and 
+                        existing['scope'] == scope_name and 
+                        existing['line'] == info.get('line', 0)):
+                        add_to_unused = False
+                        break
+                
+                if add_to_unused:
                     unused.append({
-                        "name": name,
+                        "name": original_name,  # Usar nombre original, no renombrado
                         "type": info.get("type", "unknown"),
                         "scope": scope_name,
                         "line": info.get("line", 0)
@@ -373,7 +443,6 @@ class SymbolTable:
                         }
         
         # POST-PROCESAMIENTO: Eliminar duplicados dando prioridad a los parámetros
-        # Buscar variables globales que tienen el mismo nombre y línea que parámetros
         if 'global' in result:
             global_symbols = result['global'].copy()
             for global_name, global_info in global_symbols.items():
@@ -386,7 +455,6 @@ class SymbolTable:
                                     param_info.get('type') == 'parameter' and
                                     param_info.get('line') == global_info.get('line')):
                                     # Es un duplicado - remover el global
-                                    print(f"DEBUG: Removing duplicate global variable '{global_name}' in favor of parameter")
                                     del result['global'][global_name]
                                     break
                             else:
@@ -394,65 +462,3 @@ class SymbolTable:
                             break
         
         return result
-    
-    def mark_initialized(self, name, current_scope=None):
-        """
-        Marca un símbolo como inicializado en el ámbito especificado
-        """
-        if current_scope is None:
-            current_scope = self.current_scope_name()
-        
-        # Buscar en el ámbito especificado primero
-        if current_scope != "global":
-            for scope in reversed(self.scopes):
-                if scope["name"] == current_scope and name in scope["symbols"]:
-                    scope["symbols"][name]["initialized"] = True
-                    scope_key = f"{current_scope}_{name}"
-                    if scope_key in self.symbol_info:
-                        self.symbol_info[scope_key]["initialized"] = True
-                    return True
-        
-        # Si no se encuentra en el ámbito especificado, buscar en todos los ámbitos
-        for scope in reversed(self.scopes):
-            if name in scope["symbols"]:
-                scope["symbols"][name]["initialized"] = True
-                if scope["name"] == "global":
-                    scope_key = name
-                else:
-                    scope_key = f"{scope['name']}_{name}"
-                if scope_key in self.symbol_info:
-                    self.symbol_info[scope_key]["initialized"] = True
-                return True
-        
-        return False
-
-    def mark_used(self, name, current_scope=None):
-        """
-        Marca un símbolo como usado en el ámbito especificado
-        """
-        if current_scope is None:
-            current_scope = self.current_scope_name()
-        
-        # Buscar en el ámbito especificado primero
-        if current_scope != "global":
-            for scope in reversed(self.scopes):
-                if scope["name"] == current_scope and name in scope["symbols"]:
-                    scope["symbols"][name]["used"] = True
-                    scope_key = f"{current_scope}_{name}"
-                    if scope_key in self.symbol_info:
-                        self.symbol_info[scope_key]["used"] = True
-                    return True
-        
-        # Si no se encuentra en el ámbito especificado, buscar en todos los ámbitos
-        for scope in reversed(self.scopes):
-            if name in scope["symbols"]:
-                scope["symbols"][name]["used"] = True
-                if scope["name"] == "global":
-                    scope_key = name
-                else:
-                    scope_key = f"{scope['name']}_{name}"
-                if scope_key in self.symbol_info:
-                    self.symbol_info[scope_key]["used"] = True
-                return True
-        
-        return False

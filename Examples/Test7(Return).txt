@@ -3,7 +3,7 @@
 (bool) esPositivo;
 (color) colorFigura;
 
-function calcularArea(base, altura) {
+function calcularArea(base, altura, extra) {
     resultado = base * altura;
     return resultado;
 }
@@ -11,7 +11,7 @@ function calcularArea(base, altura) {
 frame {
     base = 10;
     altura = 5;
-    resultado = calcularArea(base, altura);
+    resultado = calcularArea(base, altura, 0);
     
     if (resultado > 0) {
         esPositivo = true;

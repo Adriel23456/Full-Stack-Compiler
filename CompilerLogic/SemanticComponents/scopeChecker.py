@@ -28,6 +28,17 @@ class ScopeChecker:
         """
         from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text, get_rule_name
         
+        # PRIMERO: Verificar si estamos dentro de un frame
+        current_scope = self.symbol_table.current_scope_name()
+        if current_scope == "frame":
+            self.error_reporter.report_error(
+                get_node_line(node),
+                get_node_column(node),
+                "Error: NO SE PUEDEN DECLARAR VARIABLES DENTRO DE FRAME",
+                len(get_text(node))
+            )
+            return  # No continuar con el análisis si es dentro de frame
+        
         # declaration: typeDeclaration ID (ASSIGN expr)? SEMICOLON | typeDeclaration idList SEMICOLON
         type_node = node.getChild(0)
         var_type = type_node.getChild(1).getText()
@@ -35,7 +46,7 @@ class ScopeChecker:
         # Caso 1: declaración con ID único
         if get_rule_name(node.getChild(1), parser) is None:  # Es un token terminal (ID)
             var_name = get_text(node.getChild(1))
-            line = get_node_line(node.getChild(1))  # Obtener línea del nodo actual
+            line = get_node_line(node.getChild(1))
             
             # Verificar si ya existe en el ámbito actual
             if self.symbol_table.is_declared_in_current_scope(var_name):
@@ -54,7 +65,7 @@ class ScopeChecker:
             # Agregar a la tabla de símbolos preservando la línea
             self.symbol_table.insert(var_name, {
                 "type": var_type,
-                "line": line,  # Usar la línea del nodo actual
+                "line": line,
                 "initialized": False,
                 "used": False
             })
@@ -90,10 +101,10 @@ class ScopeChecker:
                 if not self._check_identifier_rules(var_name, id_list.getChild(i)):
                     continue
                 
-                # Agregar a la tabla de símbolos - IMPORTANTE: incluir la línea
+                # Agregar a la tabla de símbolos
                 self.symbol_table.insert(var_name, {
                     "type": var_type,
-                    "line": line,  # PRESERVAR la línea
+                    "line": line,
                     "initialized": False,
                     "used": False,
                     "scope": self.symbol_table.current_scope_name()
