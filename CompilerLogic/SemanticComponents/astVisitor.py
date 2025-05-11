@@ -18,6 +18,10 @@ class ASTVisitor:
         """
         from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_text
         
+        # Establecer la línea actual en la tabla de símbolos
+        if hasattr(node, 'start') and node.start:
+            self.symbol_table.set_current_line(node.start.line)
+        
         # Si es nodo terminal, no hay nada que analizar
         if node.getChildCount() == 0:
             return
@@ -93,17 +97,17 @@ class ASTVisitor:
         """
         Visita un nodo de asignación
         """
-        from CompilerLogic.SemanticComponents.astUtil import get_rule_name
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name, get_text
         
         # assignmentStatement: assignmentExpression SEMICOLON
         assignment_expr = node.getChild(0)
         
-        # Verificar si es una asignación de expresión o booleana
-        if assignment_expr.getChildCount() >= 3:  # ID ASSIGN expr o ID ASSIGN boolExpr
-            # Procesar la asignación
+        # Verificar la asignación
+        if assignment_expr.getChildCount() >= 3:  # ID ASSIGN expr
+            # Primero verificar la asignación completa
             self.type_checker.check_assignment(assignment_expr, parser)
             
-            # También visitar la expresión para verificar subexpresiones
+            # Luego visitar la expresión del lado derecho
             right_side = assignment_expr.getChild(2)
             self.visit(right_side, parser)
     

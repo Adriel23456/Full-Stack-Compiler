@@ -144,6 +144,7 @@ class SymbolTable:
         if scope_name == 'global':
             self.symbol_info[name] = full_symbol_info
     
+    # En SymbolTable, asegúrate de que lookup NO cree variables nuevas
     def lookup(self, name, current_scope_only=False):
         """
         Busca un símbolo considerando el renombramiento automático en funciones
@@ -163,9 +164,9 @@ class SymbolTable:
                     result['renamed_from'] = renamed_name
                     return result
         
-        # Búsqueda normal
+        # Búsqueda normal - NO crear nuevos símbolos
         return self._lookup_symbol(name, current_scope_only)
-    
+
     def _lookup_symbol(self, name, current_scope_only=False):
         """
         Búsqueda interna de símbolos (sin renombramiento)
@@ -184,26 +185,49 @@ class SymbolTable:
                 return result
         
         # Si no se encuentra, buscar en la información inicial
-        if hasattr(self, 'initial_symbols') and name in self.initial_symbols:
-            info = self.initial_symbols[name]
-            initial_scope = info.get('scope', 'global')
-            current_scope = self.current_scope_name()
+        if hasattr(self, 'initial_symbols'):
+            # IMPORTANTE: Las variables declaradas DESPUÉS del punto actual no deberían ser visibles
+            # Necesitamos verificar el orden de declaración basándonos en la línea
+            current_line = self._get_current_line()  # Implementar este método si no existe
             
-            # Determinar si la variable es accesible
-            if (initial_scope == 'global' or 
-                initial_scope == current_scope or
-                current_scope == 'global'):
-                result = {
-                    'type': info.get('type', 'unknown'),
-                    'line': info.get('line', 0),
-                    'initialized': self.symbol_info.get(name, {}).get('initialized', False),
-                    'used': self.symbol_info.get(name, {}).get('used', False),
-                    'current_scope': initial_scope,
-                    'original_name': info.get('name', name)
-                }
-                return result
+            if name in self.initial_symbols:
+                info = self.initial_symbols[name]
+                symbol_line = info.get('line', 0)
+                
+                # Si la variable está declarada después del punto actual, no debe ser visible
+                if current_line > 0 and symbol_line > current_line:
+                    return None
+                
+                initial_scope = info.get('scope', 'global')
+                current_scope = self.current_scope_name()
+                
+                # Determinar si la variable es accesible
+                if (initial_scope == 'global' or 
+                    initial_scope == current_scope or
+                    current_scope == 'global'):
+                    result = {
+                        'type': info.get('type', 'unknown'),
+                        'line': symbol_line,
+                        'initialized': self.symbol_info.get(name, {}).get('initialized', False),
+                        'used': self.symbol_info.get(name, {}).get('used', False),
+                        'current_scope': initial_scope,
+                        'original_name': info.get('name', name)
+                    }
+                    return result
         
         return None
+    
+    def set_current_line(self, line):
+        """
+        Establece la línea actual del análisis
+        """
+        self.current_analysis_line = line
+
+    def _get_current_line(self):
+        """
+        Obtiene la línea actual del análisis
+        """
+        return getattr(self, 'current_analysis_line', 0)
     
     def is_declared_in_current_scope(self, name):
         """

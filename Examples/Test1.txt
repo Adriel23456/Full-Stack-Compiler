@@ -1,6 +1,6 @@
 # Definir variables para la espiral
-(int) x, y, t;
 (color) c;
+(int) x, y, t;
 
 frame {
     loop (t = 0; t < 360; t = t + 5) {

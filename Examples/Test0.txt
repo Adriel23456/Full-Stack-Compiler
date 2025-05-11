@@ -1,3 +1,9 @@
-#Example of a comment
+#Example of a multiple semantic errors
 (int) x, y1;
+(bool) a1, b1, c1;
+(color) c;
+a1 = true;
+b1 = true;
+c1 = false;
+c = rojo;
 x = 5 + (2/2) * 3;

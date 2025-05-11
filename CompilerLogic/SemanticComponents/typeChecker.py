@@ -351,6 +351,7 @@ class TypeChecker:
                 f"Variable no declarada: {var_name}",
                 len(var_name)
             )
+            # IMPORTANTE: NO continuar con el análisis si la variable no está declarada
             return
         
         # Marcar como usada en el ámbito correcto
