@@ -1,12 +1,12 @@
 {
     "theme": "dark",
-    "font_size_small": 12,
-    "font_size_medium": 18,
-    "font_size_large": 22,
+    "font_size_small": 10,
+    "font_size_medium": 12,
+    "font_size_large": 15,
     "button_radius": 5,
     "text_padding": 10,
     "toolbar_height": 55,
     "status_bar_height": 50,
-    "window_size": "medium",
-    "font_size_option": "medium"
+    "window_size": "small",
+    "font_size_option": "small"
 }

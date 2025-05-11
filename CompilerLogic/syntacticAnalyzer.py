@@ -64,7 +64,7 @@ class SyntacticAnalyzer:
             # Create a proper symbol table collector
             class SymbolTableCollector(VGraphListener):
                 def __init__(self):
-                    # Tabla de símbolos global: nombre → info
+                    # Tabla de símbolos con clave compuesta: (nombre, scope) → info
                     self.symbol_table = {}
                     # Pila de ámbitos; arrancamos en "global"
                     self.scope_stack = ["global"]
@@ -79,11 +79,13 @@ class SyntacticAnalyzer:
 
                 def enterFunctionDeclStatement(self, ctx):
                     fname = ctx.ID().getText()
-                    # registramos la función en el scope "global"
-                    self.symbol_table[fname] = {
+                    line = ctx.ID().symbol.line
+                    # Usamos clave compuesta (fname, 'global')
+                    self.symbol_table[(fname, 'global')] = {
                         'type': 'function',
                         'scope': 'global',
-                        'line': ctx.start.line
+                        'line': line,
+                        'name': fname
                     }
                     # entramos en el nuevo scope de la función
                     self.scope_stack.append(fname)
@@ -92,10 +94,13 @@ class SyntacticAnalyzer:
                     if param_list:
                         for p in param_list.ID():
                             pname = p.getText()
-                            self.symbol_table[pname] = {
+                            pline = p.symbol.line
+                            # Usamos clave compuesta (pname, fname)
+                            self.symbol_table[(pname, fname)] = {
                                 'type': 'parameter',
                                 'scope': fname,
-                                'line': p.symbol.line
+                                'line': pline,
+                                'name': pname
                             }
 
                 def exitFunctionDeclStatement(self, ctx):
@@ -104,7 +109,6 @@ class SyntacticAnalyzer:
 
                 def enterFrameStatement(self, ctx):
                     # creamos un scope genérico "frame"
-                    # si quieres distinguir varios frames, podrías usar ctx.start.line
                     self.scope_stack.append("frame")
 
                 def exitFrameStatement(self, ctx):
@@ -114,34 +118,60 @@ class SyntacticAnalyzer:
                 def enterDeclaration(self, ctx):
                     # puede ser single ID o lista
                     vartype = ctx.typeDeclaration().vartype().getText()
+                    current_scope = self.current_scope()
+                    
                     # caso ID único
                     if ctx.ID():
                         name = ctx.ID().getText()
-                        self.symbol_table[name] = {
+                        line = ctx.ID().symbol.line
+                        # Usamos clave compuesta (name, current_scope)
+                        self.symbol_table[(name, current_scope)] = {
                             'type': vartype,
-                            'scope': self.current_scope(),
-                            'line': ctx.start.line
+                            'scope': current_scope,
+                            'line': line,
+                            'name': name
                         }
                     # caso lista
                     if ctx.idList():
                         for id_node in ctx.idList().ID():
                             name = id_node.getText()
-                            self.symbol_table[name] = {
+                            line = id_node.symbol.line
+                            # Usamos clave compuesta (name, current_scope)
+                            self.symbol_table[(name, current_scope)] = {
                                 'type': vartype,
-                                'scope': self.current_scope(),
-                                'line': id_node.symbol.line
+                                'scope': current_scope,
+                                'line': line,
+                                'name': name
                             }
 
                 def enterAssignmentStatement(self, ctx):
                     # el ID está dentro de assignmentExpression()
                     assignCtx = ctx.assignmentExpression()
                     name = assignCtx.ID().getText()
-                    if name not in self.symbol_table:
-                        self.symbol_table[name] = {
-                            'type': 'unknown',
-                            'scope': self.current_scope(),
-                            'line': ctx.start.line
-                        }
+                    current_scope = self.current_scope()
+                    
+                    # Buscar si la variable ya existe en algún scope accesible
+                    # Primero en el scope actual
+                    if (name, current_scope) in self.symbol_table:
+                        return  # Ya existe, no agregamos nada
+                    
+                    # Luego en scope de función si estamos en frame
+                    if current_scope == 'frame' and len(self.scope_stack) > 1:
+                        function_scope = self.scope_stack[-2]  # Scope de la función
+                        if (name, function_scope) in self.symbol_table:
+                            return  # Existe en el scope de la función
+                    
+                    # Finalmente en scope global
+                    if (name, 'global') in self.symbol_table:
+                        return  # Existe globalmente
+                    
+                    # Solo si no existe en ningún scope accesible, agregamos como unknown
+                    self.symbol_table[(name, current_scope)] = {
+                        'type': 'unknown',
+                        'scope': current_scope,
+                        'line': ctx.start.line,
+                        'name': name
+                    }
 
                 # Métodos vacíos del listener
                 def enterEveryRule(self, ctx): pass
@@ -149,6 +179,92 @@ class SyntacticAnalyzer:
                 def visitTerminal(self, node): pass
                 def visitErrorNode(self, node): pass
 
+                def get_flattened_symbol_table(self):
+                    """
+                    Convierte la tabla de símbolos de claves compuestas a claves simples
+                    manteniendo solo una entrada por variable
+                    """
+                    flattened = {}
+                    # Diccionario para rastrear variables por nombre
+                    seen_names = {}
+                    
+                    # Ordenar por scope para dar prioridad a declaraciones globales
+                    scopes_priority = {'global': 0, 'function': 1, 'frame': 2}
+                    
+                    sorted_entries = sorted(self.symbol_table.items(), 
+                                        key=lambda x: (scopes_priority.get(x[1].get('scope', 'global'), 3), x[0]))
+                    
+                    for (name, scope), info in sorted_entries:
+                        if name not in seen_names:
+                            # Primera vez que vemos este nombre
+                            flattened[name] = info
+                            seen_names[name] = scope
+                        else:
+                            # Ya hemos visto este nombre
+                            existing_scope = seen_names[name]
+                            existing_type = flattened[name].get('type', 'unknown')
+                            
+                            # Si ya tenemos el tipo y el nuevo es 'unknown', no lo sobrescribimos
+                            if existing_type != 'unknown' and info.get('type') == 'unknown':
+                                continue
+                            
+                            # Si el nuevo es una función o parámetro, lo agregamos con un nombre único
+                            if info.get('type') in ['function', 'parameter']:
+                                unique_key = f"{name}_{scope}"
+                                flattened[unique_key] = info
+                            # Si el existente es 'unknown' y el nuevo tiene tipo, lo reemplazamos
+                            elif existing_type == 'unknown' and info.get('type') != 'unknown':
+                                flattened[name] = info
+                                seen_names[name] = scope
+                    
+                    return flattened
+                
+                def clean_unknown_variables(self):
+                    """
+                    Elimina variables marcadas como 'unknown' que en realidad están declaradas
+                    en un scope accesible
+                    """
+                    to_remove = []
+                    
+                    for (name, scope), info in self.symbol_table.items():
+                        if info.get('type') == 'unknown':
+                            # Verificar si existe en un scope accesible con tipo conocido
+                            # Primero verificar en global
+                            if (name, 'global') in self.symbol_table:
+                                global_info = self.symbol_table[(name, 'global')]
+                                if global_info.get('type') != 'unknown':
+                                    to_remove.append((name, scope))
+                                    continue
+                            
+                            # Si estamos en frame, verificar en la función
+                            if scope == 'frame':
+                                # Buscar en todas las funciones
+                                for func_scope in [s for s in self.scope_stack if s not in ['global', 'frame']]:
+                                    if (name, func_scope) in self.symbol_table:
+                                        func_info = self.symbol_table[(name, func_scope)]
+                                        if func_info.get('type') != 'unknown':
+                                            to_remove.append((name, scope))
+                                            break
+                    
+                    # Remover las variables unknown duplicadas
+                    for key in to_remove:
+                        del self.symbol_table[key]
+
+                def get_symbol_table_list(self):
+                    """
+                    Retorna la tabla de símbolos como una lista de entradas
+                    """
+                    symbol_list = []
+                    
+                    for (name, scope), info in self.symbol_table.items():
+                        symbol_list.append({
+                            'name': name,
+                            'type': info.get('type', 'unknown'),
+                            'scope': scope,
+                            'line': info.get('line', 0)
+                        })
+                    
+                    return symbol_list
             
             # Create input stream 
             input_stream = InputStream(code_text)
@@ -185,16 +301,31 @@ class SyntacticAnalyzer:
                 symbol_collector = SymbolTableCollector()
                 walker = ParseTreeWalker()
                 walker.walk(symbol_collector, parse_tree)
-                self.symbol_table = symbol_collector.symbol_table
-                
+
+                # Limpiar variables unknown que están declaradas en otros scopes
+                symbol_collector.clean_unknown_variables()
+
+                # Obtener la tabla de símbolos aplanada para compatibilidad
+                self.symbol_table = symbol_collector.get_flattened_symbol_table()
+
+                # Para debugging, también podemos guardar la versión con claves compuestas
+                symbol_collector.flattened_symbol_table = self.symbol_table
+
                 # Generate symbol table visualization
                 self._visualize_symbol_table()
 
+                # Guardar la versión sin renombramiento para el análisis semántico
                 CompilerData.symbol_table = self.symbol_table
                 CompilerData.parse_tree_path = self.parse_tree_path
                 CompilerData.symbol_table_path = self.symbol_table_path
                 CompilerData.parser = parser
                 CompilerData.ast = parse_tree
+
+                # Para verificar que funciona correctamente, puedes agregar esto después de generar ambas tablas:
+                print("\n=== DEBUG: Comparison of tables ===")
+                print("Table with renaming (for visualization):")
+                for name, info in self.symbol_table.items():
+                    print(f"  {name}: {info}")
                 
                 return True, [], self.parse_tree_path, self.symbol_table_path
                 
@@ -388,26 +519,32 @@ class SyntacticAnalyzer:
             html_parts = [
                 '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
                 '<TR>'
-                  '<TD BGCOLOR="#d0e0ff"><B>ID</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
-                  '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>ID</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Type</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Scope</B></TD>'
+                '<TD BGCOLOR="#d0e0ff"><B>Line</B></TD>'
                 '</TR>'
             ]
 
+            # Ordenar por scope y luego por nombre para mejor visualización
+            sorted_symbols = sorted(self.symbol_table.items(), 
+                                key=lambda x: (x[1].get('scope', 'global'), x[0]))
+
             # Una fila por cada símbolo
-            for symbol, info in self.symbol_table.items():
-                sym = symbol.replace("<", "&lt;").replace(">", "&gt;")
+            for symbol, info in sorted_symbols:
+                # Extraer el nombre real del símbolo (puede incluir sufijo _in_scope)
+                name = info.get('name', symbol)
+                sym = name.replace("<", "&lt;").replace(">", "&gt;")
                 typ = info.get('type', 'unknown').replace("<", "&lt;").replace(">", "&gt;")
                 scp = info.get('scope', 'global').replace("<", "&lt;").replace(">", "&gt;")
                 line = info.get('line', 0)
 
                 html_parts.append(
                     f'<TR>'
-                      f'<TD>{sym}</TD>'
-                      f'<TD>{typ}</TD>'
-                      f'<TD>{scp}</TD>'
-                      f'<TD>{line}</TD>'
+                    f'<TD>{sym}</TD>'
+                    f'<TD>{typ}</TD>'
+                    f'<TD>{scp}</TD>'
+                    f'<TD>{line}</TD>'
                     f'</TR>'
                 )
 

@@ -17,24 +17,37 @@ class TypeChecker:
         
         rule_name = get_rule_name(node, parser)
         
-        # Primero, manejar constantes de color explícitamente
-        text = node.getText()
-        if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
-            return "color"
-        
+        # DEBUG: Agregar print para depurar
         if not rule_name:  # Terminal node
-            # Otros casos de nodos terminales
-            if text.isdigit() or (text.replace('.', '', 1).isdigit() and text.count('.') <= 1):
-                return "int"  # En VGraph, 'int' se usa para números (incluso decimales)
-            elif text in ["true", "false"]:
+            text = node.getText()
+            
+            # Verificar constantes booleanas PRIMERO
+            if text in ["true", "false"]:
                 return "bool"
-            elif text == "cos" or text == "sin":  # Funciones integradas
+            
+            # Verificar constantes de color
+            if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+                return "color"
+            
+            # Verificar números
+            if text.isdigit() or (text.replace('.', '', 1).isdigit() and text.count('.') <= 1):
+                return "int"
+            
+            # Verificar funciones integradas
+            if text == "cos" or text == "sin":
                 return "builtin_function"
-            elif text[0].islower() and text.isalnum():  # Identificador
-                symbol = self.symbol_table.lookup(text)
+            
+            # Verificar identificadores
+            if text[0].islower() and text.isalnum():
+                # Buscar en el ámbito actual primero
+                symbol = self.symbol_table.lookup(text, current_scope_only=True)
+                if not symbol:
+                    # Si no se encuentra en el ámbito actual, buscar en todos los ámbitos
+                    symbol = self.symbol_table.lookup(text)
+                
                 if symbol:
-                    # Marcar como usado (al leerlo en una expresión)
-                    self.symbol_table.mark_used(text)
+                    # Marcar como usado en el ámbito correcto
+                    self.symbol_table.mark_used(text, current_scope=symbol.get('current_scope', self.symbol_table.current_scope_name()))
                     return symbol.get("type", "unknown")
                 
                 # Variable no encontrada, reportar error
@@ -45,12 +58,22 @@ class TypeChecker:
                     len(text)
                 )
                 return "unknown"
+            
             return "unknown"
+        
+        # Para nodos no terminales
+        text = node.getText()
+        if text in ["true", "false"]:
+            return "bool"
+        if text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
+            return "color"
         
         # Analizar tipos basados en el tipo de nodo
         if rule_name == "numberExpr":
             return "int"
-        elif rule_name == "boolConstExpr" or rule_name == "boolExpr":
+        elif rule_name == "boolConstExpr":
+            return "bool"
+        elif rule_name == "boolExpr":
             return "bool"
         elif rule_name == "colorExpr":
             return "color"
@@ -102,8 +125,14 @@ class TypeChecker:
             # En VGraph, asumimos que las funciones retornan int
             return "int"
         elif rule_name == "expr":
-            # Para expresiones genéricas, asumimos int
-            return "int"
+            # Para expresiones genéricas, necesitamos determinar mejor el tipo
+            # Verificar si todos los hijos son literales booleanos
+            if node.getChildCount() == 1:
+                child = node.getChild(0)
+                child_type = self.get_type(child, parser)
+                if child_type == "bool":
+                    return "bool"
+            return "int"  # Fallback a int
         
         # Si no se pudo determinar el tipo, retornar int por defecto para evitar errores innecesarios
         return "int"
@@ -240,11 +269,13 @@ class TypeChecker:
         # Revisar recursivamente todas las subexpresiones
         for i in range(node.getChildCount()):
             child = node.getChild(i)
-            if get_rule_name(child, parser) is not None:  # No es un nodo terminal
+            child_rule = get_rule_name(child, parser)
+            
+            if child_rule is not None:  # No es un nodo terminal
                 self.check_expression(child, parser)
             elif child.getChildCount() == 0:  # Es un nodo terminal (posible ID)
                 text = child.getText()
-                if text[0].islower() and text.isalnum() and text not in ["cos", "sin"]:  # Identificador pero no función integrada
+                if text[0].islower() and text.isalnum() and text not in ["cos", "sin", "true", "false"]:  # Identificador pero no función integrada ni constante booleana
                     symbol = self.symbol_table.lookup(text)
                     if not symbol:
                         self.error_reporter.report_error(
@@ -270,7 +301,13 @@ class TypeChecker:
         expr_node = node.getChild(2)
         
         var_name = get_text(id_node)
-        var_info = self.symbol_table.lookup(var_name)
+        
+        # Buscar la variable en el ámbito actual primero
+        var_info = self.symbol_table.lookup(var_name, current_scope_only=True)
+        
+        # Si no se encuentra en el ámbito actual, buscar en todos los ámbitos
+        if not var_info:
+            var_info = self.symbol_table.lookup(var_name)
         
         if not var_info:
             self.error_reporter.report_error(
@@ -281,22 +318,22 @@ class TypeChecker:
             )
             return
         
-        # Marcar la variable como usada
-        self.symbol_table.mark_used(var_name)
+        # Marcar como usada en el ámbito correcto
+        self.symbol_table.mark_used(var_name, current_scope=var_info.get('current_scope', self.symbol_table.current_scope_name()))
         
         var_type = var_info.get("type", "unknown")
         
         # Caso especial para asignaciones de color
         expr_text = expr_node.getText()
         if var_type == "color" and expr_text in ["rojo", "azul", "verde", "amarillo", "cyan", "magenta", "blanco", "negro", "marrón"]:
-            self.symbol_table.mark_initialized(var_name)
+            self.symbol_table.mark_initialized(var_name, current_scope=var_info.get('current_scope', self.symbol_table.current_scope_name()))
             return  # Es una asignación válida de color
         
         # Verificación normal de tipo
         expr_type = self.check_expression(expr_node, parser)
         
-        # Marcar la variable como inicializada
-        self.symbol_table.mark_initialized(var_name)
+        # Marcar como inicializada en el ámbito correcto
+        self.symbol_table.mark_initialized(var_name, current_scope=var_info.get('current_scope', self.symbol_table.current_scope_name()))
         
         # Verificar compatibilidad de tipos
         if var_type != expr_type and var_type != "unknown" and expr_type != "unknown":

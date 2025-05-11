@@ -12,7 +12,7 @@ else:
 def serializedATN():
     with StringIO() as buf:
         buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\62")
-        buf.write("\u0138\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
+        buf.write("\u013c\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
         buf.write("\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16")
         buf.write("\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22\4\23\t\23")
         buf.write("\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27\4\30\t\30\4\31")
@@ -21,132 +21,134 @@ def serializedATN():
         buf.write("I\n\3\3\4\3\4\3\4\3\4\3\5\3\5\3\6\3\6\3\6\7\6T\n\6\f\6")
         buf.write("\16\6W\13\6\3\7\3\7\3\7\3\7\3\7\3\7\3\7\3\7\3\7\3\7\3")
         buf.write("\7\3\7\5\7e\n\7\3\b\3\b\7\bi\n\b\f\b\16\bl\13\b\3\b\3")
-        buf.write("\b\3\t\3\t\3\t\3\t\3\n\3\n\3\n\3\13\3\13\3\13\3\13\3\f")
+        buf.write("\b\3\t\3\t\3\t\3\t\3\t\3\t\5\tv\n\t\3\n\3\n\3\n\3\13\3")
+        buf.write("\13\3\13\3\13\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f")
         buf.write("\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3")
         buf.write("\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f")
-        buf.write("\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\5\f\u00a1\n\f")
-        buf.write("\3\r\3\r\3\r\3\r\3\r\3\r\3\16\3\16\3\16\3\17\3\17\3\17")
-        buf.write("\3\17\3\17\3\17\3\17\3\17\3\17\3\17\3\20\3\20\3\20\3\20")
-        buf.write("\3\20\3\20\3\20\3\20\5\20\u00be\n\20\5\20\u00c0\n\20\3")
-        buf.write("\21\3\21\3\21\3\21\3\21\3\21\3\22\3\22\3\22\3\22\5\22")
-        buf.write("\u00cc\n\22\3\22\3\22\3\22\3\23\3\23\3\23\7\23\u00d4\n")
-        buf.write("\23\f\23\16\23\u00d7\13\23\3\24\3\24\3\24\5\24\u00dc\n")
-        buf.write("\24\3\24\3\24\3\24\3\25\3\25\3\25\7\25\u00e4\n\25\f\25")
-        buf.write("\16\25\u00e7\13\25\3\26\3\26\5\26\u00eb\n\26\3\26\3\26")
-        buf.write("\3\27\3\27\3\27\3\27\3\27\3\30\3\30\3\30\3\30\3\30\3\30")
-        buf.write("\3\30\3\30\3\30\3\30\3\30\3\30\3\30\5\30\u0101\n\30\3")
-        buf.write("\30\3\30\3\30\3\30\3\30\3\30\7\30\u0109\n\30\f\30\16\30")
-        buf.write("\u010c\13\30\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3")
+        buf.write("\3\f\5\f\u00a5\n\f\3\r\3\r\3\r\3\r\3\r\3\r\3\16\3\16\3")
+        buf.write("\16\3\17\3\17\3\17\3\17\3\17\3\17\3\17\3\17\3\17\3\17")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\5\20\u00c2\n")
+        buf.write("\20\5\20\u00c4\n\20\3\21\3\21\3\21\3\21\3\21\3\21\3\22")
+        buf.write("\3\22\3\22\3\22\5\22\u00d0\n\22\3\22\3\22\3\22\3\23\3")
+        buf.write("\23\3\23\7\23\u00d8\n\23\f\23\16\23\u00db\13\23\3\24\3")
+        buf.write("\24\3\24\5\24\u00e0\n\24\3\24\3\24\3\24\3\25\3\25\3\25")
+        buf.write("\7\25\u00e8\n\25\f\25\16\25\u00eb\13\25\3\26\3\26\5\26")
+        buf.write("\u00ef\n\26\3\26\3\26\3\27\3\27\3\27\3\27\3\27\3\30\3")
+        buf.write("\30\3\30\3\30\3\30\3\30\3\30\3\30\3\30\3\30\3\30\3\30")
+        buf.write("\3\30\5\30\u0105\n\30\3\30\3\30\3\30\3\30\3\30\3\30\7")
+        buf.write("\30\u010d\n\30\f\30\16\30\u0110\13\30\3\31\3\31\3\31\3")
         buf.write("\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31")
-        buf.write("\3\31\3\31\3\31\5\31\u0124\n\31\3\31\3\31\3\31\3\31\3")
-        buf.write("\31\3\31\7\31\u012c\n\31\f\31\16\31\u012f\13\31\3\32\3")
-        buf.write("\32\3\32\5\32\u0134\n\32\3\32\3\32\3\32\2\4.\60\33\2\4")
-        buf.write("\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&(*,.\60\62\2\7")
-        buf.write("\3\2\23\25\4\2..\60\60\3\2\"\'\3\2\36 \3\2\34\35\2\u0149")
-        buf.write("\2\67\3\2\2\2\4H\3\2\2\2\6J\3\2\2\2\bN\3\2\2\2\nP\3\2")
-        buf.write("\2\2\fd\3\2\2\2\16f\3\2\2\2\20o\3\2\2\2\22s\3\2\2\2\24")
-        buf.write("v\3\2\2\2\26\u00a0\3\2\2\2\30\u00a2\3\2\2\2\32\u00a8\3")
-        buf.write("\2\2\2\34\u00ab\3\2\2\2\36\u00b5\3\2\2\2 \u00c1\3\2\2")
-        buf.write("\2\"\u00c7\3\2\2\2$\u00d0\3\2\2\2&\u00d8\3\2\2\2(\u00e0")
-        buf.write("\3\2\2\2*\u00e8\3\2\2\2,\u00ee\3\2\2\2.\u0100\3\2\2\2")
-        buf.write("\60\u0123\3\2\2\2\62\u0130\3\2\2\2\64\66\5\f\7\2\65\64")
-        buf.write("\3\2\2\2\669\3\2\2\2\67\65\3\2\2\2\678\3\2\2\28:\3\2\2")
-        buf.write("\29\67\3\2\2\2:;\7\2\2\3;\3\3\2\2\2<=\5\6\4\2=@\7.\2\2")
-        buf.write(">?\7!\2\2?A\5\60\31\2@>\3\2\2\2@A\3\2\2\2AB\3\2\2\2BC")
-        buf.write("\7+\2\2CI\3\2\2\2DE\5\6\4\2EF\5\n\6\2FG\7+\2\2GI\3\2\2")
-        buf.write("\2H<\3\2\2\2HD\3\2\2\2I\5\3\2\2\2JK\7\26\2\2KL\5\b\5\2")
-        buf.write("LM\7\27\2\2M\7\3\2\2\2NO\t\2\2\2O\t\3\2\2\2PU\7.\2\2Q")
-        buf.write("R\7,\2\2RT\7.\2\2SQ\3\2\2\2TW\3\2\2\2US\3\2\2\2UV\3\2")
-        buf.write("\2\2V\13\3\2\2\2WU\3\2\2\2Xe\5\4\3\2Ye\5\24\13\2Ze\5\30")
-        buf.write("\r\2[e\5\32\16\2\\e\5\34\17\2]e\5\36\20\2^e\5 \21\2_e")
-        buf.write("\5\"\22\2`e\5&\24\2ae\5\22\n\2be\5*\26\2ce\5,\27\2dX\3")
-        buf.write("\2\2\2dY\3\2\2\2dZ\3\2\2\2d[\3\2\2\2d\\\3\2\2\2d]\3\2")
-        buf.write("\2\2d^\3\2\2\2d_\3\2\2\2d`\3\2\2\2da\3\2\2\2db\3\2\2\2")
-        buf.write("dc\3\2\2\2e\r\3\2\2\2fj\7\30\2\2gi\5\f\7\2hg\3\2\2\2i")
-        buf.write("l\3\2\2\2jh\3\2\2\2jk\3\2\2\2km\3\2\2\2lj\3\2\2\2mn\7")
-        buf.write("\31\2\2n\17\3\2\2\2op\7.\2\2pq\7!\2\2qr\5\60\31\2r\21")
-        buf.write("\3\2\2\2st\5\20\t\2tu\7+\2\2u\23\3\2\2\2vw\7\3\2\2wx\5")
-        buf.write("\26\f\2xy\7+\2\2y\25\3\2\2\2z{\7\n\2\2{|\7\26\2\2|}\5")
-        buf.write("\60\31\2}~\7,\2\2~\177\5\60\31\2\177\u0080\7,\2\2\u0080")
-        buf.write("\u0081\5\60\31\2\u0081\u0082\7,\2\2\u0082\u0083\5\60\31")
-        buf.write("\2\u0083\u0084\7\27\2\2\u0084\u00a1\3\2\2\2\u0085\u0086")
-        buf.write("\7\13\2\2\u0086\u0087\7\26\2\2\u0087\u0088\5\60\31\2\u0088")
-        buf.write("\u0089\7,\2\2\u0089\u008a\5\60\31\2\u008a\u008b\7,\2\2")
-        buf.write("\u008b\u008c\5\60\31\2\u008c\u008d\7\27\2\2\u008d\u00a1")
-        buf.write("\3\2\2\2\u008e\u008f\7\f\2\2\u008f\u0090\7\26\2\2\u0090")
-        buf.write("\u0091\5\60\31\2\u0091\u0092\7,\2\2\u0092\u0093\5\60\31")
-        buf.write("\2\u0093\u0094\7,\2\2\u0094\u0095\5\60\31\2\u0095\u0096")
-        buf.write("\7,\2\2\u0096\u0097\5\60\31\2\u0097\u0098\7\27\2\2\u0098")
-        buf.write("\u00a1\3\2\2\2\u0099\u009a\7\17\2\2\u009a\u009b\7\26\2")
-        buf.write("\2\u009b\u009c\5\60\31\2\u009c\u009d\7,\2\2\u009d\u009e")
-        buf.write("\5\60\31\2\u009e\u009f\7\27\2\2\u009f\u00a1\3\2\2\2\u00a0")
-        buf.write("z\3\2\2\2\u00a0\u0085\3\2\2\2\u00a0\u008e\3\2\2\2\u00a0")
-        buf.write("\u0099\3\2\2\2\u00a1\27\3\2\2\2\u00a2\u00a3\7\4\2\2\u00a3")
-        buf.write("\u00a4\7\26\2\2\u00a4\u00a5\t\3\2\2\u00a5\u00a6\7\27\2")
-        buf.write("\2\u00a6\u00a7\7+\2\2\u00a7\31\3\2\2\2\u00a8\u00a9\7\5")
-        buf.write("\2\2\u00a9\u00aa\5\16\b\2\u00aa\33\3\2\2\2\u00ab\u00ac")
-        buf.write("\7\6\2\2\u00ac\u00ad\7\26\2\2\u00ad\u00ae\5\20\t\2\u00ae")
-        buf.write("\u00af\7+\2\2\u00af\u00b0\5.\30\2\u00b0\u00b1\7+\2\2\u00b1")
-        buf.write("\u00b2\5\20\t\2\u00b2\u00b3\7\27\2\2\u00b3\u00b4\5\16")
-        buf.write("\b\2\u00b4\35\3\2\2\2\u00b5\u00b6\7\7\2\2\u00b6\u00b7")
-        buf.write("\7\26\2\2\u00b7\u00b8\5.\30\2\u00b8\u00b9\7\27\2\2\u00b9")
-        buf.write("\u00bf\5\16\b\2\u00ba\u00bd\7\b\2\2\u00bb\u00be\5\36\20")
-        buf.write("\2\u00bc\u00be\5\16\b\2\u00bd\u00bb\3\2\2\2\u00bd\u00bc")
-        buf.write("\3\2\2\2\u00be\u00c0\3\2\2\2\u00bf\u00ba\3\2\2\2\u00bf")
-        buf.write("\u00c0\3\2\2\2\u00c0\37\3\2\2\2\u00c1\u00c2\7\t\2\2\u00c2")
-        buf.write("\u00c3\7\26\2\2\u00c3\u00c4\5\60\31\2\u00c4\u00c5\7\27")
-        buf.write("\2\2\u00c5\u00c6\7+\2\2\u00c6!\3\2\2\2\u00c7\u00c8\7\20")
-        buf.write("\2\2\u00c8\u00c9\7.\2\2\u00c9\u00cb\7\26\2\2\u00ca\u00cc")
-        buf.write("\5$\23\2\u00cb\u00ca\3\2\2\2\u00cb\u00cc\3\2\2\2\u00cc")
-        buf.write("\u00cd\3\2\2\2\u00cd\u00ce\7\27\2\2\u00ce\u00cf\5\16\b")
-        buf.write("\2\u00cf#\3\2\2\2\u00d0\u00d5\7.\2\2\u00d1\u00d2\7,\2")
-        buf.write("\2\u00d2\u00d4\7.\2\2\u00d3\u00d1\3\2\2\2\u00d4\u00d7")
-        buf.write("\3\2\2\2\u00d5\u00d3\3\2\2\2\u00d5\u00d6\3\2\2\2\u00d6")
-        buf.write("%\3\2\2\2\u00d7\u00d5\3\2\2\2\u00d8\u00d9\7.\2\2\u00d9")
-        buf.write("\u00db\7\26\2\2\u00da\u00dc\5(\25\2\u00db\u00da\3\2\2")
-        buf.write("\2\u00db\u00dc\3\2\2\2\u00dc\u00dd\3\2\2\2\u00dd\u00de")
-        buf.write("\7\27\2\2\u00de\u00df\7+\2\2\u00df\'\3\2\2\2\u00e0\u00e5")
-        buf.write("\5\60\31\2\u00e1\u00e2\7,\2\2\u00e2\u00e4\5\60\31\2\u00e3")
-        buf.write("\u00e1\3\2\2\2\u00e4\u00e7\3\2\2\2\u00e5\u00e3\3\2\2\2")
-        buf.write("\u00e5\u00e6\3\2\2\2\u00e6)\3\2\2\2\u00e7\u00e5\3\2\2")
-        buf.write("\2\u00e8\u00ea\7\21\2\2\u00e9\u00eb\5\60\31\2\u00ea\u00e9")
-        buf.write("\3\2\2\2\u00ea\u00eb\3\2\2\2\u00eb\u00ec\3\2\2\2\u00ec")
-        buf.write("\u00ed\7+\2\2\u00ed+\3\2\2\2\u00ee\u00ef\7\22\2\2\u00ef")
-        buf.write("\u00f0\7\26\2\2\u00f0\u00f1\7\27\2\2\u00f1\u00f2\7+\2")
-        buf.write("\2\u00f2-\3\2\2\2\u00f3\u00f4\b\30\1\2\u00f4\u00f5\5\60")
-        buf.write("\31\2\u00f5\u00f6\t\4\2\2\u00f6\u00f7\5\60\31\2\u00f7")
-        buf.write("\u0101\3\2\2\2\u00f8\u00f9\7*\2\2\u00f9\u0101\5.\30\6")
-        buf.write("\u00fa\u00fb\7\26\2\2\u00fb\u00fc\5.\30\2\u00fc\u00fd")
-        buf.write("\7\27\2\2\u00fd\u0101\3\2\2\2\u00fe\u0101\7-\2\2\u00ff")
-        buf.write("\u0101\7.\2\2\u0100\u00f3\3\2\2\2\u0100\u00f8\3\2\2\2")
-        buf.write("\u0100\u00fa\3\2\2\2\u0100\u00fe\3\2\2\2\u0100\u00ff\3")
-        buf.write("\2\2\2\u0101\u010a\3\2\2\2\u0102\u0103\f\b\2\2\u0103\u0104")
-        buf.write("\7(\2\2\u0104\u0109\5.\30\t\u0105\u0106\f\7\2\2\u0106")
-        buf.write("\u0107\7)\2\2\u0107\u0109\5.\30\b\u0108\u0102\3\2\2\2")
-        buf.write("\u0108\u0105\3\2\2\2\u0109\u010c\3\2\2\2\u010a\u0108\3")
-        buf.write("\2\2\2\u010a\u010b\3\2\2\2\u010b/\3\2\2\2\u010c\u010a")
-        buf.write("\3\2\2\2\u010d\u010e\b\31\1\2\u010e\u010f\7\26\2\2\u010f")
-        buf.write("\u0110\5\60\31\2\u0110\u0111\7\27\2\2\u0111\u0124\3\2")
-        buf.write("\2\2\u0112\u0113\7\r\2\2\u0113\u0114\7\26\2\2\u0114\u0115")
-        buf.write("\5\60\31\2\u0115\u0116\7\27\2\2\u0116\u0124\3\2\2\2\u0117")
-        buf.write("\u0118\7\16\2\2\u0118\u0119\7\26\2\2\u0119\u011a\5\60")
-        buf.write("\31\2\u011a\u011b\7\27\2\2\u011b\u0124\3\2\2\2\u011c\u011d")
-        buf.write("\7\35\2\2\u011d\u0124\5\60\31\b\u011e\u0124\7/\2\2\u011f")
-        buf.write("\u0124\7.\2\2\u0120\u0124\7\60\2\2\u0121\u0124\7-\2\2")
-        buf.write("\u0122\u0124\5\62\32\2\u0123\u010d\3\2\2\2\u0123\u0112")
-        buf.write("\3\2\2\2\u0123\u0117\3\2\2\2\u0123\u011c\3\2\2\2\u0123")
-        buf.write("\u011e\3\2\2\2\u0123\u011f\3\2\2\2\u0123\u0120\3\2\2\2")
-        buf.write("\u0123\u0121\3\2\2\2\u0123\u0122\3\2\2\2\u0124\u012d\3")
-        buf.write("\2\2\2\u0125\u0126\f\n\2\2\u0126\u0127\t\5\2\2\u0127\u012c")
-        buf.write("\5\60\31\13\u0128\u0129\f\t\2\2\u0129\u012a\t\6\2\2\u012a")
-        buf.write("\u012c\5\60\31\n\u012b\u0125\3\2\2\2\u012b\u0128\3\2\2")
-        buf.write("\2\u012c\u012f\3\2\2\2\u012d\u012b\3\2\2\2\u012d\u012e")
-        buf.write("\3\2\2\2\u012e\61\3\2\2\2\u012f\u012d\3\2\2\2\u0130\u0131")
-        buf.write("\7.\2\2\u0131\u0133\7\26\2\2\u0132\u0134\5(\25\2\u0133")
-        buf.write("\u0132\3\2\2\2\u0133\u0134\3\2\2\2\u0134\u0135\3\2\2\2")
-        buf.write("\u0135\u0136\7\27\2\2\u0136\63\3\2\2\2\27\67@HUdj\u00a0")
-        buf.write("\u00bd\u00bf\u00cb\u00d5\u00db\u00e5\u00ea\u0100\u0108")
-        buf.write("\u010a\u0123\u012b\u012d\u0133")
+        buf.write("\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\5\31\u0128\n")
+        buf.write("\31\3\31\3\31\3\31\3\31\3\31\3\31\7\31\u0130\n\31\f\31")
+        buf.write("\16\31\u0133\13\31\3\32\3\32\3\32\5\32\u0138\n\32\3\32")
+        buf.write("\3\32\3\32\2\4.\60\33\2\4\6\b\n\f\16\20\22\24\26\30\32")
+        buf.write("\34\36 \"$&(*,.\60\62\2\7\3\2\23\25\4\2..\60\60\3\2\"")
+        buf.write("\'\3\2\36 \3\2\34\35\2\u014e\2\67\3\2\2\2\4H\3\2\2\2\6")
+        buf.write("J\3\2\2\2\bN\3\2\2\2\nP\3\2\2\2\fd\3\2\2\2\16f\3\2\2\2")
+        buf.write("\20u\3\2\2\2\22w\3\2\2\2\24z\3\2\2\2\26\u00a4\3\2\2\2")
+        buf.write("\30\u00a6\3\2\2\2\32\u00ac\3\2\2\2\34\u00af\3\2\2\2\36")
+        buf.write("\u00b9\3\2\2\2 \u00c5\3\2\2\2\"\u00cb\3\2\2\2$\u00d4\3")
+        buf.write("\2\2\2&\u00dc\3\2\2\2(\u00e4\3\2\2\2*\u00ec\3\2\2\2,\u00f2")
+        buf.write("\3\2\2\2.\u0104\3\2\2\2\60\u0127\3\2\2\2\62\u0134\3\2")
+        buf.write("\2\2\64\66\5\f\7\2\65\64\3\2\2\2\669\3\2\2\2\67\65\3\2")
+        buf.write("\2\2\678\3\2\2\28:\3\2\2\29\67\3\2\2\2:;\7\2\2\3;\3\3")
+        buf.write("\2\2\2<=\5\6\4\2=@\7.\2\2>?\7!\2\2?A\5\60\31\2@>\3\2\2")
+        buf.write("\2@A\3\2\2\2AB\3\2\2\2BC\7+\2\2CI\3\2\2\2DE\5\6\4\2EF")
+        buf.write("\5\n\6\2FG\7+\2\2GI\3\2\2\2H<\3\2\2\2HD\3\2\2\2I\5\3\2")
+        buf.write("\2\2JK\7\26\2\2KL\5\b\5\2LM\7\27\2\2M\7\3\2\2\2NO\t\2")
+        buf.write("\2\2O\t\3\2\2\2PU\7.\2\2QR\7,\2\2RT\7.\2\2SQ\3\2\2\2T")
+        buf.write("W\3\2\2\2US\3\2\2\2UV\3\2\2\2V\13\3\2\2\2WU\3\2\2\2Xe")
+        buf.write("\5\4\3\2Ye\5\24\13\2Ze\5\30\r\2[e\5\32\16\2\\e\5\34\17")
+        buf.write("\2]e\5\36\20\2^e\5 \21\2_e\5\"\22\2`e\5&\24\2ae\5\22\n")
+        buf.write("\2be\5*\26\2ce\5,\27\2dX\3\2\2\2dY\3\2\2\2dZ\3\2\2\2d")
+        buf.write("[\3\2\2\2d\\\3\2\2\2d]\3\2\2\2d^\3\2\2\2d_\3\2\2\2d`\3")
+        buf.write("\2\2\2da\3\2\2\2db\3\2\2\2dc\3\2\2\2e\r\3\2\2\2fj\7\30")
+        buf.write("\2\2gi\5\f\7\2hg\3\2\2\2il\3\2\2\2jh\3\2\2\2jk\3\2\2\2")
+        buf.write("km\3\2\2\2lj\3\2\2\2mn\7\31\2\2n\17\3\2\2\2op\7.\2\2p")
+        buf.write("q\7!\2\2qv\5\60\31\2rs\7.\2\2st\7!\2\2tv\5.\30\2uo\3\2")
+        buf.write("\2\2ur\3\2\2\2v\21\3\2\2\2wx\5\20\t\2xy\7+\2\2y\23\3\2")
+        buf.write("\2\2z{\7\3\2\2{|\5\26\f\2|}\7+\2\2}\25\3\2\2\2~\177\7")
+        buf.write("\n\2\2\177\u0080\7\26\2\2\u0080\u0081\5\60\31\2\u0081")
+        buf.write("\u0082\7,\2\2\u0082\u0083\5\60\31\2\u0083\u0084\7,\2\2")
+        buf.write("\u0084\u0085\5\60\31\2\u0085\u0086\7,\2\2\u0086\u0087")
+        buf.write("\5\60\31\2\u0087\u0088\7\27\2\2\u0088\u00a5\3\2\2\2\u0089")
+        buf.write("\u008a\7\13\2\2\u008a\u008b\7\26\2\2\u008b\u008c\5\60")
+        buf.write("\31\2\u008c\u008d\7,\2\2\u008d\u008e\5\60\31\2\u008e\u008f")
+        buf.write("\7,\2\2\u008f\u0090\5\60\31\2\u0090\u0091\7\27\2\2\u0091")
+        buf.write("\u00a5\3\2\2\2\u0092\u0093\7\f\2\2\u0093\u0094\7\26\2")
+        buf.write("\2\u0094\u0095\5\60\31\2\u0095\u0096\7,\2\2\u0096\u0097")
+        buf.write("\5\60\31\2\u0097\u0098\7,\2\2\u0098\u0099\5\60\31\2\u0099")
+        buf.write("\u009a\7,\2\2\u009a\u009b\5\60\31\2\u009b\u009c\7\27\2")
+        buf.write("\2\u009c\u00a5\3\2\2\2\u009d\u009e\7\17\2\2\u009e\u009f")
+        buf.write("\7\26\2\2\u009f\u00a0\5\60\31\2\u00a0\u00a1\7,\2\2\u00a1")
+        buf.write("\u00a2\5\60\31\2\u00a2\u00a3\7\27\2\2\u00a3\u00a5\3\2")
+        buf.write("\2\2\u00a4~\3\2\2\2\u00a4\u0089\3\2\2\2\u00a4\u0092\3")
+        buf.write("\2\2\2\u00a4\u009d\3\2\2\2\u00a5\27\3\2\2\2\u00a6\u00a7")
+        buf.write("\7\4\2\2\u00a7\u00a8\7\26\2\2\u00a8\u00a9\t\3\2\2\u00a9")
+        buf.write("\u00aa\7\27\2\2\u00aa\u00ab\7+\2\2\u00ab\31\3\2\2\2\u00ac")
+        buf.write("\u00ad\7\5\2\2\u00ad\u00ae\5\16\b\2\u00ae\33\3\2\2\2\u00af")
+        buf.write("\u00b0\7\6\2\2\u00b0\u00b1\7\26\2\2\u00b1\u00b2\5\20\t")
+        buf.write("\2\u00b2\u00b3\7+\2\2\u00b3\u00b4\5.\30\2\u00b4\u00b5")
+        buf.write("\7+\2\2\u00b5\u00b6\5\20\t\2\u00b6\u00b7\7\27\2\2\u00b7")
+        buf.write("\u00b8\5\16\b\2\u00b8\35\3\2\2\2\u00b9\u00ba\7\7\2\2\u00ba")
+        buf.write("\u00bb\7\26\2\2\u00bb\u00bc\5.\30\2\u00bc\u00bd\7\27\2")
+        buf.write("\2\u00bd\u00c3\5\16\b\2\u00be\u00c1\7\b\2\2\u00bf\u00c2")
+        buf.write("\5\36\20\2\u00c0\u00c2\5\16\b\2\u00c1\u00bf\3\2\2\2\u00c1")
+        buf.write("\u00c0\3\2\2\2\u00c2\u00c4\3\2\2\2\u00c3\u00be\3\2\2\2")
+        buf.write("\u00c3\u00c4\3\2\2\2\u00c4\37\3\2\2\2\u00c5\u00c6\7\t")
+        buf.write("\2\2\u00c6\u00c7\7\26\2\2\u00c7\u00c8\5\60\31\2\u00c8")
+        buf.write("\u00c9\7\27\2\2\u00c9\u00ca\7+\2\2\u00ca!\3\2\2\2\u00cb")
+        buf.write("\u00cc\7\20\2\2\u00cc\u00cd\7.\2\2\u00cd\u00cf\7\26\2")
+        buf.write("\2\u00ce\u00d0\5$\23\2\u00cf\u00ce\3\2\2\2\u00cf\u00d0")
+        buf.write("\3\2\2\2\u00d0\u00d1\3\2\2\2\u00d1\u00d2\7\27\2\2\u00d2")
+        buf.write("\u00d3\5\16\b\2\u00d3#\3\2\2\2\u00d4\u00d9\7.\2\2\u00d5")
+        buf.write("\u00d6\7,\2\2\u00d6\u00d8\7.\2\2\u00d7\u00d5\3\2\2\2\u00d8")
+        buf.write("\u00db\3\2\2\2\u00d9\u00d7\3\2\2\2\u00d9\u00da\3\2\2\2")
+        buf.write("\u00da%\3\2\2\2\u00db\u00d9\3\2\2\2\u00dc\u00dd\7.\2\2")
+        buf.write("\u00dd\u00df\7\26\2\2\u00de\u00e0\5(\25\2\u00df\u00de")
+        buf.write("\3\2\2\2\u00df\u00e0\3\2\2\2\u00e0\u00e1\3\2\2\2\u00e1")
+        buf.write("\u00e2\7\27\2\2\u00e2\u00e3\7+\2\2\u00e3\'\3\2\2\2\u00e4")
+        buf.write("\u00e9\5\60\31\2\u00e5\u00e6\7,\2\2\u00e6\u00e8\5\60\31")
+        buf.write("\2\u00e7\u00e5\3\2\2\2\u00e8\u00eb\3\2\2\2\u00e9\u00e7")
+        buf.write("\3\2\2\2\u00e9\u00ea\3\2\2\2\u00ea)\3\2\2\2\u00eb\u00e9")
+        buf.write("\3\2\2\2\u00ec\u00ee\7\21\2\2\u00ed\u00ef\5\60\31\2\u00ee")
+        buf.write("\u00ed\3\2\2\2\u00ee\u00ef\3\2\2\2\u00ef\u00f0\3\2\2\2")
+        buf.write("\u00f0\u00f1\7+\2\2\u00f1+\3\2\2\2\u00f2\u00f3\7\22\2")
+        buf.write("\2\u00f3\u00f4\7\26\2\2\u00f4\u00f5\7\27\2\2\u00f5\u00f6")
+        buf.write("\7+\2\2\u00f6-\3\2\2\2\u00f7\u00f8\b\30\1\2\u00f8\u00f9")
+        buf.write("\5\60\31\2\u00f9\u00fa\t\4\2\2\u00fa\u00fb\5\60\31\2\u00fb")
+        buf.write("\u0105\3\2\2\2\u00fc\u00fd\7*\2\2\u00fd\u0105\5.\30\6")
+        buf.write("\u00fe\u00ff\7\26\2\2\u00ff\u0100\5.\30\2\u0100\u0101")
+        buf.write("\7\27\2\2\u0101\u0105\3\2\2\2\u0102\u0105\7-\2\2\u0103")
+        buf.write("\u0105\7.\2\2\u0104\u00f7\3\2\2\2\u0104\u00fc\3\2\2\2")
+        buf.write("\u0104\u00fe\3\2\2\2\u0104\u0102\3\2\2\2\u0104\u0103\3")
+        buf.write("\2\2\2\u0105\u010e\3\2\2\2\u0106\u0107\f\b\2\2\u0107\u0108")
+        buf.write("\7(\2\2\u0108\u010d\5.\30\t\u0109\u010a\f\7\2\2\u010a")
+        buf.write("\u010b\7)\2\2\u010b\u010d\5.\30\b\u010c\u0106\3\2\2\2")
+        buf.write("\u010c\u0109\3\2\2\2\u010d\u0110\3\2\2\2\u010e\u010c\3")
+        buf.write("\2\2\2\u010e\u010f\3\2\2\2\u010f/\3\2\2\2\u0110\u010e")
+        buf.write("\3\2\2\2\u0111\u0112\b\31\1\2\u0112\u0113\7\26\2\2\u0113")
+        buf.write("\u0114\5\60\31\2\u0114\u0115\7\27\2\2\u0115\u0128\3\2")
+        buf.write("\2\2\u0116\u0117\7\r\2\2\u0117\u0118\7\26\2\2\u0118\u0119")
+        buf.write("\5\60\31\2\u0119\u011a\7\27\2\2\u011a\u0128\3\2\2\2\u011b")
+        buf.write("\u011c\7\16\2\2\u011c\u011d\7\26\2\2\u011d\u011e\5\60")
+        buf.write("\31\2\u011e\u011f\7\27\2\2\u011f\u0128\3\2\2\2\u0120\u0121")
+        buf.write("\7\35\2\2\u0121\u0128\5\60\31\b\u0122\u0128\7/\2\2\u0123")
+        buf.write("\u0128\7.\2\2\u0124\u0128\7\60\2\2\u0125\u0128\7-\2\2")
+        buf.write("\u0126\u0128\5\62\32\2\u0127\u0111\3\2\2\2\u0127\u0116")
+        buf.write("\3\2\2\2\u0127\u011b\3\2\2\2\u0127\u0120\3\2\2\2\u0127")
+        buf.write("\u0122\3\2\2\2\u0127\u0123\3\2\2\2\u0127\u0124\3\2\2\2")
+        buf.write("\u0127\u0125\3\2\2\2\u0127\u0126\3\2\2\2\u0128\u0131\3")
+        buf.write("\2\2\2\u0129\u012a\f\n\2\2\u012a\u012b\t\5\2\2\u012b\u0130")
+        buf.write("\5\60\31\13\u012c\u012d\f\t\2\2\u012d\u012e\t\6\2\2\u012e")
+        buf.write("\u0130\5\60\31\n\u012f\u0129\3\2\2\2\u012f\u012c\3\2\2")
+        buf.write("\2\u0130\u0133\3\2\2\2\u0131\u012f\3\2\2\2\u0131\u0132")
+        buf.write("\3\2\2\2\u0132\61\3\2\2\2\u0133\u0131\3\2\2\2\u0134\u0135")
+        buf.write("\7.\2\2\u0135\u0137\7\26\2\2\u0136\u0138\5(\25\2\u0137")
+        buf.write("\u0136\3\2\2\2\u0137\u0138\3\2\2\2\u0138\u0139\3\2\2\2")
+        buf.write("\u0139\u013a\7\27\2\2\u013a\63\3\2\2\2\30\67@HUdju\u00a4")
+        buf.write("\u00c1\u00c3\u00cf\u00d9\u00df\u00e9\u00ee\u0104\u010c")
+        buf.write("\u010e\u0127\u012f\u0131\u0137")
         return buf.getvalue()
 
 
@@ -871,6 +873,10 @@ class VGraphParser ( Parser ):
             return self.getTypedRuleContext(VGraphParser.ExprContext,0)
 
 
+        def boolExpr(self):
+            return self.getTypedRuleContext(VGraphParser.BoolExprContext,0)
+
+
         def getRuleIndex(self):
             return VGraphParser.RULE_assignmentExpression
 
@@ -896,13 +902,30 @@ class VGraphParser ( Parser ):
         localctx = VGraphParser.AssignmentExpressionContext(self, self._ctx, self.state)
         self.enterRule(localctx, 14, self.RULE_assignmentExpression)
         try:
-            self.enterOuterAlt(localctx, 1)
-            self.state = 109
-            self.match(VGraphParser.ID)
-            self.state = 110
-            self.match(VGraphParser.ASSIGN)
-            self.state = 111
-            self.expr(0)
+            self.state = 115
+            self._errHandler.sync(self)
+            la_ = self._interp.adaptivePredict(self._input,6,self._ctx)
+            if la_ == 1:
+                self.enterOuterAlt(localctx, 1)
+                self.state = 109
+                self.match(VGraphParser.ID)
+                self.state = 110
+                self.match(VGraphParser.ASSIGN)
+                self.state = 111
+                self.expr(0)
+                pass
+
+            elif la_ == 2:
+                self.enterOuterAlt(localctx, 2)
+                self.state = 112
+                self.match(VGraphParser.ID)
+                self.state = 113
+                self.match(VGraphParser.ASSIGN)
+                self.state = 114
+                self.boolExpr(0)
+                pass
+
+
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)
@@ -952,9 +975,9 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 16, self.RULE_assignmentStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 113
+            self.state = 117
             self.assignmentExpression()
-            self.state = 114
+            self.state = 118
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1008,11 +1031,11 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 18, self.RULE_drawStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 116
+            self.state = 120
             self.match(VGraphParser.DRAW)
-            self.state = 117
+            self.state = 121
             self.drawObject()
-            self.state = 118
+            self.state = 122
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1086,23 +1109,15 @@ class VGraphParser ( Parser ):
         localctx = VGraphParser.DrawObjectContext(self, self._ctx, self.state)
         self.enterRule(localctx, 20, self.RULE_drawObject)
         try:
-            self.state = 158
+            self.state = 162
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [VGraphParser.LINE]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 120
-                self.match(VGraphParser.LINE)
-                self.state = 121
-                self.match(VGraphParser.LPAREN)
-                self.state = 122
-                self.expr(0)
-                self.state = 123
-                self.match(VGraphParser.COMMA)
                 self.state = 124
-                self.expr(0)
+                self.match(VGraphParser.LINE)
                 self.state = 125
-                self.match(VGraphParser.COMMA)
+                self.match(VGraphParser.LPAREN)
                 self.state = 126
                 self.expr(0)
                 self.state = 127
@@ -1110,41 +1125,41 @@ class VGraphParser ( Parser ):
                 self.state = 128
                 self.expr(0)
                 self.state = 129
+                self.match(VGraphParser.COMMA)
+                self.state = 130
+                self.expr(0)
+                self.state = 131
+                self.match(VGraphParser.COMMA)
+                self.state = 132
+                self.expr(0)
+                self.state = 133
                 self.match(VGraphParser.RPAREN)
                 pass
             elif token in [VGraphParser.CIRCLE]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 131
-                self.match(VGraphParser.CIRCLE)
-                self.state = 132
-                self.match(VGraphParser.LPAREN)
-                self.state = 133
-                self.expr(0)
-                self.state = 134
-                self.match(VGraphParser.COMMA)
                 self.state = 135
-                self.expr(0)
+                self.match(VGraphParser.CIRCLE)
                 self.state = 136
-                self.match(VGraphParser.COMMA)
+                self.match(VGraphParser.LPAREN)
                 self.state = 137
                 self.expr(0)
                 self.state = 138
+                self.match(VGraphParser.COMMA)
+                self.state = 139
+                self.expr(0)
+                self.state = 140
+                self.match(VGraphParser.COMMA)
+                self.state = 141
+                self.expr(0)
+                self.state = 142
                 self.match(VGraphParser.RPAREN)
                 pass
             elif token in [VGraphParser.RECT]:
                 self.enterOuterAlt(localctx, 3)
-                self.state = 140
-                self.match(VGraphParser.RECT)
-                self.state = 141
-                self.match(VGraphParser.LPAREN)
-                self.state = 142
-                self.expr(0)
-                self.state = 143
-                self.match(VGraphParser.COMMA)
                 self.state = 144
-                self.expr(0)
+                self.match(VGraphParser.RECT)
                 self.state = 145
-                self.match(VGraphParser.COMMA)
+                self.match(VGraphParser.LPAREN)
                 self.state = 146
                 self.expr(0)
                 self.state = 147
@@ -1152,21 +1167,29 @@ class VGraphParser ( Parser ):
                 self.state = 148
                 self.expr(0)
                 self.state = 149
+                self.match(VGraphParser.COMMA)
+                self.state = 150
+                self.expr(0)
+                self.state = 151
+                self.match(VGraphParser.COMMA)
+                self.state = 152
+                self.expr(0)
+                self.state = 153
                 self.match(VGraphParser.RPAREN)
                 pass
             elif token in [VGraphParser.PIXEL]:
                 self.enterOuterAlt(localctx, 4)
-                self.state = 151
-                self.match(VGraphParser.PIXEL)
-                self.state = 152
-                self.match(VGraphParser.LPAREN)
-                self.state = 153
-                self.expr(0)
-                self.state = 154
-                self.match(VGraphParser.COMMA)
                 self.state = 155
-                self.expr(0)
+                self.match(VGraphParser.PIXEL)
                 self.state = 156
+                self.match(VGraphParser.LPAREN)
+                self.state = 157
+                self.expr(0)
+                self.state = 158
+                self.match(VGraphParser.COMMA)
+                self.state = 159
+                self.expr(0)
+                self.state = 160
                 self.match(VGraphParser.RPAREN)
                 pass
             else:
@@ -1233,20 +1256,20 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 160
+            self.state = 164
             self.match(VGraphParser.SETCOLOR)
-            self.state = 161
+            self.state = 165
             self.match(VGraphParser.LPAREN)
-            self.state = 162
+            self.state = 166
             _la = self._input.LA(1)
             if not(_la==VGraphParser.ID or _la==VGraphParser.COLOR_CONST):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 163
+            self.state = 167
             self.match(VGraphParser.RPAREN)
-            self.state = 164
+            self.state = 168
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1297,9 +1320,9 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 24, self.RULE_frameStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 166
+            self.state = 170
             self.match(VGraphParser.FRAME)
-            self.state = 167
+            self.state = 171
             self.block()
         except RecognitionException as re:
             localctx.exception = re
@@ -1373,23 +1396,23 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 26, self.RULE_loopStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 169
-            self.match(VGraphParser.LOOP)
-            self.state = 170
-            self.match(VGraphParser.LPAREN)
-            self.state = 171
-            self.assignmentExpression()
-            self.state = 172
-            self.match(VGraphParser.SEMICOLON)
             self.state = 173
-            self.boolExpr(0)
+            self.match(VGraphParser.LOOP)
             self.state = 174
-            self.match(VGraphParser.SEMICOLON)
+            self.match(VGraphParser.LPAREN)
             self.state = 175
             self.assignmentExpression()
             self.state = 176
-            self.match(VGraphParser.RPAREN)
+            self.match(VGraphParser.SEMICOLON)
             self.state = 177
+            self.boolExpr(0)
+            self.state = 178
+            self.match(VGraphParser.SEMICOLON)
+            self.state = 179
+            self.assignmentExpression()
+            self.state = 180
+            self.match(VGraphParser.RPAREN)
+            self.state = 181
             self.block()
         except RecognitionException as re:
             localctx.exception = re
@@ -1461,31 +1484,31 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 179
-            self.match(VGraphParser.IF)
-            self.state = 180
-            self.match(VGraphParser.LPAREN)
-            self.state = 181
-            self.boolExpr(0)
-            self.state = 182
-            self.match(VGraphParser.RPAREN)
             self.state = 183
+            self.match(VGraphParser.IF)
+            self.state = 184
+            self.match(VGraphParser.LPAREN)
+            self.state = 185
+            self.boolExpr(0)
+            self.state = 186
+            self.match(VGraphParser.RPAREN)
+            self.state = 187
             self.block()
-            self.state = 189
+            self.state = 193
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==VGraphParser.ELSE:
-                self.state = 184
+                self.state = 188
                 self.match(VGraphParser.ELSE)
-                self.state = 187
+                self.state = 191
                 self._errHandler.sync(self)
                 token = self._input.LA(1)
                 if token in [VGraphParser.IF]:
-                    self.state = 185
+                    self.state = 189
                     self.ifStatement()
                     pass
                 elif token in [VGraphParser.LBRACE]:
-                    self.state = 186
+                    self.state = 190
                     self.block()
                     pass
                 else:
@@ -1551,15 +1574,15 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 30, self.RULE_waitStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 191
-            self.match(VGraphParser.WAIT)
-            self.state = 192
-            self.match(VGraphParser.LPAREN)
-            self.state = 193
-            self.expr(0)
-            self.state = 194
-            self.match(VGraphParser.RPAREN)
             self.state = 195
+            self.match(VGraphParser.WAIT)
+            self.state = 196
+            self.match(VGraphParser.LPAREN)
+            self.state = 197
+            self.expr(0)
+            self.state = 198
+            self.match(VGraphParser.RPAREN)
+            self.state = 199
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1624,23 +1647,23 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 197
-            self.match(VGraphParser.FUNCTION)
-            self.state = 198
-            self.match(VGraphParser.ID)
-            self.state = 199
-            self.match(VGraphParser.LPAREN)
             self.state = 201
+            self.match(VGraphParser.FUNCTION)
+            self.state = 202
+            self.match(VGraphParser.ID)
+            self.state = 203
+            self.match(VGraphParser.LPAREN)
+            self.state = 205
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==VGraphParser.ID:
-                self.state = 200
+                self.state = 204
                 self.paramList()
 
 
-            self.state = 203
+            self.state = 207
             self.match(VGraphParser.RPAREN)
-            self.state = 204
+            self.state = 208
             self.block()
         except RecognitionException as re:
             localctx.exception = re
@@ -1697,17 +1720,17 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 206
+            self.state = 210
             self.match(VGraphParser.ID)
-            self.state = 211
+            self.state = 215
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==VGraphParser.COMMA:
-                self.state = 207
+                self.state = 211
                 self.match(VGraphParser.COMMA)
-                self.state = 208
+                self.state = 212
                 self.match(VGraphParser.ID)
-                self.state = 213
+                self.state = 217
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
@@ -1770,21 +1793,21 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 214
+            self.state = 218
             self.match(VGraphParser.ID)
-            self.state = 215
+            self.state = 219
             self.match(VGraphParser.LPAREN)
-            self.state = 217
+            self.state = 221
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << VGraphParser.COS) | (1 << VGraphParser.SIN) | (1 << VGraphParser.LPAREN) | (1 << VGraphParser.MINUS) | (1 << VGraphParser.BOOL_CONST) | (1 << VGraphParser.ID) | (1 << VGraphParser.NUMBER) | (1 << VGraphParser.COLOR_CONST))) != 0):
-                self.state = 216
+                self.state = 220
                 self.argumentList()
 
 
-            self.state = 219
+            self.state = 223
             self.match(VGraphParser.RPAREN)
-            self.state = 220
+            self.state = 224
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1842,17 +1865,17 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 222
+            self.state = 226
             self.expr(0)
-            self.state = 227
+            self.state = 231
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==VGraphParser.COMMA:
-                self.state = 223
+                self.state = 227
                 self.match(VGraphParser.COMMA)
-                self.state = 224
+                self.state = 228
                 self.expr(0)
-                self.state = 229
+                self.state = 233
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
@@ -1909,17 +1932,17 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 230
+            self.state = 234
             self.match(VGraphParser.RETURN)
-            self.state = 232
+            self.state = 236
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << VGraphParser.COS) | (1 << VGraphParser.SIN) | (1 << VGraphParser.LPAREN) | (1 << VGraphParser.MINUS) | (1 << VGraphParser.BOOL_CONST) | (1 << VGraphParser.ID) | (1 << VGraphParser.NUMBER) | (1 << VGraphParser.COLOR_CONST))) != 0):
-                self.state = 231
+                self.state = 235
                 self.expr(0)
 
 
-            self.state = 234
+            self.state = 238
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -1975,13 +1998,13 @@ class VGraphParser ( Parser ):
         self.enterRule(localctx, 42, self.RULE_clearStatement)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 236
+            self.state = 240
             self.match(VGraphParser.CLEAR)
-            self.state = 237
+            self.state = 241
             self.match(VGraphParser.LPAREN)
-            self.state = 238
+            self.state = 242
             self.match(VGraphParser.RPAREN)
-            self.state = 239
+            self.state = 243
             self.match(VGraphParser.SEMICOLON)
         except RecognitionException as re:
             localctx.exception = re
@@ -2224,17 +2247,17 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 254
+            self.state = 258
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,14,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,15,self._ctx)
             if la_ == 1:
                 localctx = VGraphParser.ComparisonExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 242
+                self.state = 246
                 self.expr(0)
-                self.state = 243
+                self.state = 247
                 localctx.op = self._input.LT(1)
                 _la = self._input.LA(1)
                 if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << VGraphParser.EQ) | (1 << VGraphParser.LT) | (1 << VGraphParser.GT) | (1 << VGraphParser.LE) | (1 << VGraphParser.GE) | (1 << VGraphParser.NE))) != 0)):
@@ -2242,7 +2265,7 @@ class VGraphParser ( Parser ):
                 else:
                     self._errHandler.reportMatch(self)
                     self.consume()
-                self.state = 244
+                self.state = 248
                 self.expr(0)
                 pass
 
@@ -2250,9 +2273,9 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.NotExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 246
+                self.state = 250
                 self.match(VGraphParser.NOT)
-                self.state = 247
+                self.state = 251
                 self.boolExpr(4)
                 pass
 
@@ -2260,11 +2283,11 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.ParenBoolExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 248
+                self.state = 252
                 self.match(VGraphParser.LPAREN)
-                self.state = 249
+                self.state = 253
                 self.boolExpr(0)
-                self.state = 250
+                self.state = 254
                 self.match(VGraphParser.RPAREN)
                 pass
 
@@ -2272,7 +2295,7 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.BoolConstExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 252
+                self.state = 256
                 self.match(VGraphParser.BOOL_CONST)
                 pass
 
@@ -2280,53 +2303,53 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.BoolIdExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 253
+                self.state = 257
                 self.match(VGraphParser.ID)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 264
+            self.state = 268
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,17,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 262
+                    self.state = 266
                     self._errHandler.sync(self)
-                    la_ = self._interp.adaptivePredict(self._input,15,self._ctx)
+                    la_ = self._interp.adaptivePredict(self._input,16,self._ctx)
                     if la_ == 1:
                         localctx = VGraphParser.AndExprContext(self, VGraphParser.BoolExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_boolExpr)
-                        self.state = 256
+                        self.state = 260
                         if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
-                        self.state = 257
+                        self.state = 261
                         self.match(VGraphParser.AND)
-                        self.state = 258
+                        self.state = 262
                         self.boolExpr(7)
                         pass
 
                     elif la_ == 2:
                         localctx = VGraphParser.OrExprContext(self, VGraphParser.BoolExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_boolExpr)
-                        self.state = 259
+                        self.state = 263
                         if not self.precpred(self._ctx, 5):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
-                        self.state = 260
+                        self.state = 264
                         self.match(VGraphParser.OR)
-                        self.state = 261
+                        self.state = 265
                         self.boolExpr(6)
                         pass
 
              
-                self.state = 266
+                self.state = 270
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,17,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -2671,19 +2694,19 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 289
+            self.state = 293
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,17,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,18,self._ctx)
             if la_ == 1:
                 localctx = VGraphParser.ParenExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 268
+                self.state = 272
                 self.match(VGraphParser.LPAREN)
-                self.state = 269
+                self.state = 273
                 self.expr(0)
-                self.state = 270
+                self.state = 274
                 self.match(VGraphParser.RPAREN)
                 pass
 
@@ -2691,13 +2714,13 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.CosExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 272
+                self.state = 276
                 self.match(VGraphParser.COS)
-                self.state = 273
+                self.state = 277
                 self.match(VGraphParser.LPAREN)
-                self.state = 274
+                self.state = 278
                 self.expr(0)
-                self.state = 275
+                self.state = 279
                 self.match(VGraphParser.RPAREN)
                 pass
 
@@ -2705,13 +2728,13 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.SinExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 277
+                self.state = 281
                 self.match(VGraphParser.SIN)
-                self.state = 278
+                self.state = 282
                 self.match(VGraphParser.LPAREN)
-                self.state = 279
+                self.state = 283
                 self.expr(0)
-                self.state = 280
+                self.state = 284
                 self.match(VGraphParser.RPAREN)
                 pass
 
@@ -2719,9 +2742,9 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.NegExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 282
+                self.state = 286
                 self.match(VGraphParser.MINUS)
-                self.state = 283
+                self.state = 287
                 self.expr(6)
                 pass
 
@@ -2729,7 +2752,7 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.NumberExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 284
+                self.state = 288
                 self.match(VGraphParser.NUMBER)
                 pass
 
@@ -2737,7 +2760,7 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.IdExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 285
+                self.state = 289
                 self.match(VGraphParser.ID)
                 pass
 
@@ -2745,7 +2768,7 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.ColorExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 286
+                self.state = 290
                 self.match(VGraphParser.COLOR_CONST)
                 pass
 
@@ -2753,7 +2776,7 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.BoolLiteralExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 287
+                self.state = 291
                 self.match(VGraphParser.BOOL_CONST)
                 pass
 
@@ -2761,31 +2784,31 @@ class VGraphParser ( Parser ):
                 localctx = VGraphParser.FunctionCallExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 288
+                self.state = 292
                 self.functionCall()
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 299
+            self.state = 303
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,19,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,20,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 297
+                    self.state = 301
                     self._errHandler.sync(self)
-                    la_ = self._interp.adaptivePredict(self._input,18,self._ctx)
+                    la_ = self._interp.adaptivePredict(self._input,19,self._ctx)
                     if la_ == 1:
                         localctx = VGraphParser.MulDivExprContext(self, VGraphParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 291
+                        self.state = 295
                         if not self.precpred(self._ctx, 8):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 8)")
-                        self.state = 292
+                        self.state = 296
                         localctx.op = self._input.LT(1)
                         _la = self._input.LA(1)
                         if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << VGraphParser.MULT) | (1 << VGraphParser.DIV) | (1 << VGraphParser.MOD))) != 0)):
@@ -2793,18 +2816,18 @@ class VGraphParser ( Parser ):
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 293
+                        self.state = 297
                         self.expr(9)
                         pass
 
                     elif la_ == 2:
                         localctx = VGraphParser.AddSubExprContext(self, VGraphParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 294
+                        self.state = 298
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
-                        self.state = 295
+                        self.state = 299
                         localctx.op = self._input.LT(1)
                         _la = self._input.LA(1)
                         if not(_la==VGraphParser.PLUS or _la==VGraphParser.MINUS):
@@ -2812,14 +2835,14 @@ class VGraphParser ( Parser ):
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 296
+                        self.state = 300
                         self.expr(8)
                         pass
 
              
-                self.state = 301
+                self.state = 305
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,19,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,20,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -2877,19 +2900,19 @@ class VGraphParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 302
+            self.state = 306
             self.match(VGraphParser.ID)
-            self.state = 303
+            self.state = 307
             self.match(VGraphParser.LPAREN)
-            self.state = 305
+            self.state = 309
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << VGraphParser.COS) | (1 << VGraphParser.SIN) | (1 << VGraphParser.LPAREN) | (1 << VGraphParser.MINUS) | (1 << VGraphParser.BOOL_CONST) | (1 << VGraphParser.ID) | (1 << VGraphParser.NUMBER) | (1 << VGraphParser.COLOR_CONST))) != 0):
-                self.state = 304
+                self.state = 308
                 self.argumentList()
 
 
-            self.state = 307
+            self.state = 311
             self.match(VGraphParser.RPAREN)
         except RecognitionException as re:
             localctx.exception = re

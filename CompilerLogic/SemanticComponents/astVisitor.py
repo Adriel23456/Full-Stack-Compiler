@@ -84,9 +84,19 @@ class ASTVisitor:
         """
         Visita un nodo de asignación
         """
+        from CompilerLogic.SemanticComponents.astUtil import get_rule_name
+        
         # assignmentStatement: assignmentExpression SEMICOLON
         assignment_expr = node.getChild(0)
-        self.type_checker.check_assignment(assignment_expr, parser)
+        
+        # Verificar si es una asignación de expresión o booleana
+        if assignment_expr.getChildCount() >= 3:  # ID ASSIGN expr o ID ASSIGN boolExpr
+            # Obtener el tipo del lado derecho
+            right_side = assignment_expr.getChild(2)
+            right_rule = get_rule_name(right_side, parser)
+            
+            # Procesar según el tipo de asignación
+            self.type_checker.check_assignment(assignment_expr, parser)
     
     def visit_function_declaration(self, node, parser):
         """

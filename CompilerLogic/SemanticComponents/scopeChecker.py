@@ -35,11 +35,12 @@ class ScopeChecker:
         # Caso 1: declaración con ID único
         if get_rule_name(node.getChild(1), parser) is None:  # Es un token terminal (ID)
             var_name = get_text(node.getChild(1))
+            line = get_node_line(node.getChild(1))  # Obtener línea del nodo actual
             
             # Verificar si ya existe en el ámbito actual
             if self.symbol_table.is_declared_in_current_scope(var_name):
                 self.error_reporter.report_error(
-                    get_node_line(node.getChild(1)),
+                    line,
                     get_node_column(node.getChild(1)),
                     f"Variable {var_name} ya declarada en este ámbito",
                     len(var_name)
@@ -50,10 +51,10 @@ class ScopeChecker:
             if not self._check_identifier_rules(var_name, node.getChild(1)):
                 return
             
-            # Agregar a la tabla de símbolos
+            # Agregar a la tabla de símbolos preservando la línea
             self.symbol_table.insert(var_name, {
                 "type": var_type,
-                "line": get_node_line(node.getChild(1)),
+                "line": line,  # Usar la línea del nodo actual
                 "initialized": False,
                 "used": False
             })
@@ -69,11 +70,16 @@ class ScopeChecker:
             # Procesar cada ID en la lista
             for i in range(0, id_list.getChildCount(), 2):  # Saltar comas
                 var_name = get_text(id_list.getChild(i))
+                line = get_node_line(id_list.getChild(i))
+                
+                # Si ya existe en symbol_table, usar esa línea en lugar de la actual
+                if hasattr(self.symbol_table, 'initial_symbols') and var_name in self.symbol_table.initial_symbols:
+                    line = self.symbol_table.initial_symbols[var_name].get('line', line)
                 
                 # Verificar si ya existe en el ámbito actual
                 if self.symbol_table.is_declared_in_current_scope(var_name):
                     self.error_reporter.report_error(
-                        get_node_line(id_list.getChild(i)),
+                        line,
                         get_node_column(id_list.getChild(i)),
                         f"Variable {var_name} ya declarada en este ámbito",
                         len(var_name)
@@ -84,12 +90,13 @@ class ScopeChecker:
                 if not self._check_identifier_rules(var_name, id_list.getChild(i)):
                     continue
                 
-                # Agregar a la tabla de símbolos
+                # Agregar a la tabla de símbolos - IMPORTANTE: incluir la línea
                 self.symbol_table.insert(var_name, {
                     "type": var_type,
-                    "line": get_node_line(id_list.getChild(i)),
+                    "line": line,  # PRESERVAR la línea
                     "initialized": False,
-                    "used": False
+                    "used": False,
+                    "scope": self.symbol_table.current_scope_name()
                 })
     
     def check_function_declaration(self, node, parser):
@@ -97,7 +104,7 @@ class ScopeChecker:
         Verifica que una declaración de función sea válida
         """
         from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
-        
+    
         # functionDeclStatement: FUNCTION ID LPAREN paramList? RPAREN block
         func_name = get_text(node.getChild(1))
         

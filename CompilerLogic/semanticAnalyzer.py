@@ -60,6 +60,12 @@ class SemanticAnalyzer:
                 CompilerData.semantic_errors = [error]
                 return False, [error], None, None
             
+            # DEBUGGING: Verificar que recibimos las líneas correctas
+            print("\n=== DEBUG: Symbol table at start of semantic analysis ===")
+            for name, info in CompilerData.symbol_table.items():
+                print(f"{name}: line={info.get('line', 'MISSING')}, type={info.get('type')}, scope={info.get('scope')}")
+            print("=== END DEBUG ===\n")
+            
             # Crear los componentes del análisis semántico
             symbol_table = SymbolTable(CompilerData.symbol_table)
             error_reporter = ErrorReporter()
@@ -70,24 +76,34 @@ class SemanticAnalyzer:
             # Analizar el AST
             visitor.visit(CompilerData.ast, CompilerData.parser)
             
-            # Verificar si hay errores
+            # Verificar si hay errores (no advertencias)
             has_errors = error_reporter.has_errors()
-            errors = error_reporter.get_errors()
+            all_errors = error_reporter.get_errors()
             
-            # Actualizar errores en CompilerData
+            # Separar errores de advertencias
+            errors = [e for e in all_errors if not e.get('is_warning', False)]
+            warnings = [e for e in all_errors if e.get('is_warning', False)]
+            
+            # Imprimir advertencias en consola
+            for warning in warnings:
+                print(f"ADVERTENCIA - Línea {warning['line']}: {warning['message']}")
+            
+            # Actualizar errores en CompilerData (solo errores, no advertencias)
             CompilerData.semantic_errors = errors
             
             # Generar visualizaciones
             self._generate_semantic_graph(symbol_table)
-            self._generate_enhanced_symbol_table(symbol_table, errors)
+            self._generate_enhanced_symbol_table(symbol_table, all_errors)  # Incluir advertencias en la visualización
             
             # Guardar rutas en CompilerData
             CompilerData.semantic_graph_path = self.semantic_graph_path
             CompilerData.enhanced_symbol_table_path = self.enhanced_symbol_table_path
             
+            # Solo fallar si hay errores reales, no advertencias
             if has_errors:
                 return False, errors, self.semantic_graph_path, self.enhanced_symbol_table_path
             else:
+                # Éxito - solo había advertencias o ningún problema
                 return True, [], self.semantic_graph_path, self.enhanced_symbol_table_path
             
         except Exception as e:
@@ -260,20 +276,19 @@ class SemanticAnalyzer:
                     used = "Yes" if info.get('used', False) else "No"
                     
                     # Determine status
-                    status = "Invalid"  # Por defecto, consideramos variables sin inicializar como inválidas
-                    status_color = "#FFCCCB"  # Light red
+                    status = "Valid"  # Por defecto, válido
+                    status_color = "#90EE90"  # Light green
                     
                     if var_type == "unknown":
                         status = "Undeclared"
                         status_color = "#FFCCCB"  # Light red
-                    elif info.get('initialized', False):
-                        if not info.get('used', False):
-                            status = "Unused"
-                            status_color = "#FFFFB1"  # Light yellow
-                        else:
-                            status = "Valid"
-                            status_color = "#90EE90"  # Light green
-                    elif info.get('used', False):
+                    elif not info.get('initialized', False):
+                        status = "Not Initialized"
+                        status_color = "#FFCCCB"  # Light red
+                    elif not info.get('used', False):
+                        status = "Unused"
+                        status_color = "#FFFFB1"  # Light yellow
+                    elif info.get('used', False) and not info.get('initialized', False):
                         if var_type not in ["function", "parameter"]:
                             status = "Used Before Init"
                             status_color = "#FFD580"  # Light orange
@@ -322,27 +337,29 @@ class SemanticAnalyzer:
             # Conectar nodos (invisible edge)
             graph.add_edge(pydot.Edge("title", "symbol_table", style="invis"))
             
-            # Si hay errores, agregarlos como nodo adicional
+            # Si hay errores o advertencias, agregarlos separadamente
             if errors:
-                error_html = [
-                    '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
-                    '<TR>'
-                    '<TD BGCOLOR="#FFB6C1"><B>Semantic Errors</B></TD>'
-                    '</TR>'
-                ]
+                actual_errors = [e for e in errors if not e.get('is_warning', False)]
+                warnings = [e for e in errors if e.get('is_warning', False)]
                 
-                for error in errors:
-                    if not error.get('is_warning', False):
+                if actual_errors:
+                    error_html = [
+                        '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
+                        '<TR>'
+                        '<TD BGCOLOR="#FFB6C1"><B>Semantic Errors</B></TD>'
+                        '</TR>'
+                    ]
+                    
+                    for error in actual_errors:
                         error_html.append(
                             f'<TR>'
                             f'<TD ALIGN="LEFT">Line {error["line"]}: {error["message"]}</TD>'
                             f'</TR>'
                         )
-                
-                error_html.append('</TABLE>>')
-                
-                if len(error_html) > 3:  # Si hay errores (más que solo encabezado y cierre)
+                    
+                    error_html.append('</TABLE>>')
                     error_label = "".join(error_html)
+                    
                     error_node = pydot.Node(
                         "errors",
                         label=error_label,
@@ -350,6 +367,36 @@ class SemanticAnalyzer:
                     )
                     graph.add_node(error_node)
                     graph.add_edge(pydot.Edge("symbol_table", "errors", style="invis"))
+                
+                if warnings:
+                    warning_html = [
+                        '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
+                        '<TR>'
+                        '<TD BGCOLOR="#FFE4B5"><B>Semantic Warnings</B></TD>'
+                        '</TR>'
+                    ]
+                    
+                    for warning in warnings:
+                        warning_html.append(
+                            f'<TR>'
+                            f'<TD ALIGN="LEFT">Line {warning["line"]}: {warning["message"]}</TD>'
+                            f'</TR>'
+                        )
+                    
+                    warning_html.append('</TABLE>>')
+                    warning_label = "".join(warning_html)
+                    
+                    warning_node = pydot.Node(
+                        "warnings",
+                        label=warning_label,
+                        shape="plaintext"
+                    )
+                    graph.add_node(warning_node)
+                    
+                    if actual_errors:
+                        graph.add_edge(pydot.Edge("errors", "warnings", style="invis"))
+                    else:
+                        graph.add_edge(pydot.Edge("symbol_table", "warnings", style="invis"))
             
             # Guardar el gráfico
             graph.write_png(self.enhanced_symbol_table_path)

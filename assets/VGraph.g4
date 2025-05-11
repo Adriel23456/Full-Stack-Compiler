@@ -46,6 +46,7 @@ block
 
 assignmentExpression
     : ID ASSIGN expr
+    | ID ASSIGN boolExpr
     ;
 
 assignmentStatement
