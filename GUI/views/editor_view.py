@@ -641,7 +641,6 @@ class EditorView(ViewBase):
                 # Write to file
                 with open(self.current_file_path, 'w', encoding='utf-8') as file:
                     file.write(text_content)
-                print(f"File saved: {self.current_file_path}")
                 self.set_file_status("saved")
                 return True
             except Exception as e:
@@ -663,7 +662,6 @@ class EditorView(ViewBase):
                     # Store the file path
                     self.current_file_path = file_path
                     self.set_file_status("saved")
-                    print(f"File saved: {file_path}")
                 except Exception as e:
                     print(f"Error saving file: {e}")
         
@@ -748,9 +746,6 @@ class EditorView(ViewBase):
                     # Actualizar la información del archivo
                     self.current_file_path = file_path
                     self.set_file_status("saved")
-                    
-                    # Registrar éxito
-                    print(f"File loaded: {file_path}")
                     
                 except Exception as e:
                     # Si algo falla, reiniciar a un estado conocido y seguro

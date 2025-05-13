@@ -78,13 +78,11 @@ class ViewController:
             
             # Special case for returning to EDITOR state - reuse existing instance
             if self.next_state == States.EDITOR and hasattr(self, 'editor_view_instance') and self.editor_view_instance:
-                print("Reusing existing editor instance")
                 self.current_view = self.editor_view_instance
                 
             # Special case for LEXICAL_ANALYSIS - pass editor reference
             elif self.next_state == States.LEXICAL_ANALYSIS:
                 # Pass editor view reference and token graph path to lexical analysis view
-                print("Creating lexical analysis view with editor reference")
                 self.current_view = self.states[self.next_state](
                     self, 
                     self.editor_view_instance, 
@@ -93,7 +91,6 @@ class ViewController:
             
             elif self.next_state == States.SYNTACTIC_ANALYSIS:
                 # Pass editor view reference and parse tree/symbol table paths
-                print("Creating syntactic analysis view with editor reference")
                 self.current_view = self.states[self.next_state](
                     self, 
                     self.editor_view_instance, 
@@ -103,7 +100,6 @@ class ViewController:
             
             elif self.next_state == States.SEMANTIC_ANALYSIS:
                 # Pass editor view reference and semantic analysis/enhanced symbol table paths
-                print("Creating semantic analysis view with editor reference")
                 self.current_view = self.states[self.next_state](
                     self, 
                     self.editor_view_instance, 
@@ -122,11 +118,8 @@ class ViewController:
                     
             # Set up the new view if it hasn't been set up before
             if not hasattr(self.current_view, '_setup_done'):
-                print(f"Setting up view for state: {self.next_state}")
                 self.current_view.setup()
                 self.current_view._setup_done = True
-            else:
-                print(f"Reusing existing view setup for state: {self.next_state}")
                 
             # Reset the next_state variable
             self.next_state = None

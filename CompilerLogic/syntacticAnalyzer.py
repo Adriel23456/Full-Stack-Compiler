@@ -174,9 +174,6 @@ class SyntacticAnalyzer:
                     for func_name, renames in self.variable_renames.items():
                         if isinstance(renames, dict):
                             result[func_name] = renames.copy()
-                        else:
-                            # Si por alguna razón está mal formateado, intentar corregirlo
-                            print(f"=== WARNING: Incorrect format for {func_name}: {renames} ===")
                     
                     return result
                 
@@ -228,16 +225,6 @@ class SyntacticAnalyzer:
                 
                 # Generate symbol table visualization
                 self._visualize_symbol_table()
-
-                print(f"=== DEBUG SyntacticAnalyzer: Before saving to CompilerData ===")
-                print(f"symbol_table type: {type(self.symbol_table)}")
-                print(f"symbol_table content: {self.symbol_table}")
-
-                # Verificar que la tabla sea un diccionario
-                if not isinstance(self.symbol_table, dict):
-                    print(f"=== ERROR: symbol_table is not a dict! Converting... ===")
-                
-                
 
                 # Store in CompilerData with renaming information
                 CompilerData.symbol_table = self.symbol_table
@@ -409,7 +396,6 @@ class SyntacticAnalyzer:
                 os.chdir(current_dir)
                 return False
                 
-            print("Parser generated successfully")
             os.chdir(current_dir)
             return True
         except Exception as e:

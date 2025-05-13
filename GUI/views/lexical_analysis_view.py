@@ -223,10 +223,6 @@ class LexicalAnalysisView(ViewBase):
                     # Ensure the editor instance is stored in the view controller
                     # This is critical to ensure we don't lose state
                     self.view_controller.editor_view_instance = self.editor_view
-                    
-                    # Print debug information
-                    print(f"Returning to editor with file: {self.editor_view.current_file_path}")
-                    print(f"Editor file status: {self.editor_view.file_status}")
                 else:
                     print("Warning: No editor view reference found!")
                 

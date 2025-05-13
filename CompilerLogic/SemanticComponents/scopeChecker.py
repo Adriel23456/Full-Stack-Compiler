@@ -1,225 +1,217 @@
+# ────────────────────────────────────────────────────────────────
+# File: CompilerLogic/SemanticComponents/scopeChecker.py
+# ────────────────────────────────────────────────────────────────
+from CompilerLogic.SemanticComponents.astUtil import (
+    get_node_line,
+    get_node_column,
+    get_text,
+    get_rule_name,
+)
+
+
 class ScopeChecker:
     """
-    Maneja la verificación de ámbitos para variables y funciones
+    Verifica reglas de ámbito; todas las posiciones enviadas al
+    ErrorReporter se obtienen con `_pos(node)` para precisión.
     """
+
+    # ------------------------------------------------------------------
     def __init__(self, symbol_table, error_reporter):
         self.symbol_table = symbol_table
         self.error_reporter = error_reporter
         self.in_function = False
         self.current_function = None
-    
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _pos(node):
+        if hasattr(node, "symbol") and node.symbol:
+            return node.symbol.line, node.symbol.column
+        return get_node_line(node), get_node_column(node)
+
+    # ------------------------------------------------------------------
     def enter_function(self, function_name):
-        """
-        Indica que se está entrando en una función
-        """
         self.in_function = True
         self.current_function = function_name
-    
+
     def exit_function(self):
-        """
-        Indica que se está saliendo de una función
-        """
         self.in_function = False
         self.current_function = None
-    
+
+    # ------------------------------------------------------------------
     def check_variable_declaration(self, node, parser):
-        """
-        Verifica que una declaración de variable sea válida
-        """
-        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text, get_rule_name
-        
-        # PRIMERO: Verificar si estamos dentro de un frame
         current_scope = self.symbol_table.current_scope_name()
         if current_scope == "frame":
+            line, col = self._pos(node)
             self.error_reporter.report_error(
-                get_node_line(node),
-                get_node_column(node),
+                line,
+                col,
                 "Error: NO SE PUEDEN DECLARAR VARIABLES DENTRO DE FRAME",
-                len(get_text(node))
+                len(get_text(node)),
             )
-            return  # No continuar con el análisis si es dentro de frame
-        
-        # declaration: typeDeclaration ID (ASSIGN expr)? SEMICOLON | typeDeclaration idList SEMICOLON
+            return
+
         type_node = node.getChild(0)
         var_type = type_node.getChild(1).getText()
-        
-        # Caso 1: declaración con ID único
-        if get_rule_name(node.getChild(1), parser) is None:  # Es un token terminal (ID)
-            var_name = get_text(node.getChild(1))
-            line = get_node_line(node.getChild(1))
-            
-            # Verificar si ya existe en el ámbito actual
+
+        # DECLARACIÓN SIMPLE -----------------------------------------
+        if get_rule_name(node.getChild(1), parser) is None:
+            tok = node.getChild(1)
+            line, col = self._pos(tok)
+            var_name = get_text(tok)
+
             if self.symbol_table.is_declared_in_current_scope(var_name):
                 self.error_reporter.report_error(
                     line,
-                    get_node_column(node.getChild(1)),
+                    col,
                     f"Variable {var_name} ya declarada en este ámbito",
-                    len(var_name)
+                    len(var_name),
                 )
                 return
-            
-            # Verificar que el identificador cumpla con las reglas
-            if not self._check_identifier_rules(var_name, node.getChild(1)):
+
+            if not self._check_identifier_rules(var_name, tok):
                 return
-            
-            # Agregar a la tabla de símbolos preservando la línea
-            self.symbol_table.insert(var_name, {
-                "type": var_type,
-                "line": line,
-                "initialized": False,
-                "used": False
-            })
-            
-            # Si hay una asignación en la declaración, marcar como inicializada
-            if node.getChildCount() > 3:  # typeDeclaration ID ASSIGN expr SEMICOLON
-                self.symbol_table.mark_initialized(var_name)
-        
-        # Caso 2: declaración con lista de IDs
-        elif get_rule_name(node.getChild(1), parser) == "idList":
-            id_list = node.getChild(1)
-            
-            # Procesar cada ID en la lista
-            for i in range(0, id_list.getChildCount(), 2):  # Saltar comas
-                var_name = get_text(id_list.getChild(i))
-                line = get_node_line(id_list.getChild(i))
-                
-                # Si ya existe en symbol_table, usar esa línea en lugar de la actual
-                if hasattr(self.symbol_table, 'initial_symbols') and var_name in self.symbol_table.initial_symbols:
-                    line = self.symbol_table.initial_symbols[var_name].get('line', line)
-                
-                # Verificar si ya existe en el ámbito actual
-                if self.symbol_table.is_declared_in_current_scope(var_name):
-                    self.error_reporter.report_error(
-                        line,
-                        get_node_column(id_list.getChild(i)),
-                        f"Variable {var_name} ya declarada en este ámbito",
-                        len(var_name)
-                    )
-                    continue
-                
-                # Verificar que el identificador cumpla con las reglas
-                if not self._check_identifier_rules(var_name, id_list.getChild(i)):
-                    continue
-                
-                # Agregar a la tabla de símbolos
-                self.symbol_table.insert(var_name, {
+
+            self.symbol_table.insert(
+                var_name,
+                {
                     "type": var_type,
                     "line": line,
                     "initialized": False,
                     "used": False,
-                    "scope": self.symbol_table.current_scope_name()
-                })
-    
+                },
+            )
+
+            if node.getChildCount() > 3:
+                self.symbol_table.mark_initialized(var_name)
+
+        # DECLARACIÓN CON idList -------------------------------------
+        elif get_rule_name(node.getChild(1), parser) == "idList":
+            id_list = node.getChild(1)
+            for i in range(0, id_list.getChildCount(), 2):
+                tok = id_list.getChild(i)
+                var_name = get_text(tok)
+                line_curr, col_curr = self._pos(tok)
+
+                if self.symbol_table.is_declared_in_current_scope(var_name):
+                    self.error_reporter.report_error(
+                        line_curr,
+                        col_curr,
+                        f"Variable {var_name} ya declarada en este ámbito",
+                        len(var_name),
+                    )
+                    continue
+
+                line_store = (
+                    self.symbol_table.initial_symbols[var_name]["line"]
+                    if hasattr(self.symbol_table, "initial_symbols")
+                    and var_name in self.symbol_table.initial_symbols
+                    else line_curr
+                )
+
+                if not self._check_identifier_rules(var_name, tok):
+                    continue
+
+                self.symbol_table.insert(
+                    var_name,
+                    {
+                        "type": var_type,
+                        "line": line_store,
+                        "initialized": False,
+                        "used": False,
+                        "scope": self.symbol_table.current_scope_name(),
+                    },
+                )
+
+    # ------------------------------------------------------------------
     def check_function_declaration(self, node, parser):
-        """
-        Verifica que una declaración de función sea válida
-        """
-        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column, get_text
-    
-        # functionDeclStatement: FUNCTION ID LPAREN paramList? RPAREN block
-        func_name = get_text(node.getChild(1))
-        
-        # Verificar si ya existe en el ámbito global SOLO en la tabla actual
+        tok = node.getChild(1)
+        func_name = get_text(tok)
+        line_tok, col_tok = self._pos(tok)
+
         if self.symbol_table.is_function_declared(func_name):
             self.error_reporter.report_error(
-                get_node_line(node.getChild(1)),
-                get_node_column(node.getChild(1)),
+                line_tok,
+                col_tok,
                 f"Función {func_name} ya declarada",
-                len(func_name)
+                len(func_name),
             )
             return
-        
-        # Verificar que el identificador cumpla con las reglas
-        if not self._check_identifier_rules(func_name, node.getChild(1)):
+
+        if not self._check_identifier_rules(func_name, tok):
             return
-        
-        # Verificar que la función se declare en el ámbito global
+
         if self.symbol_table.current_scope_name() != "global":
             self.error_reporter.report_error(
-                get_node_line(node.getChild(1)),
-                get_node_column(node.getChild(1)),
+                line_tok,
+                col_tok,
                 "Las funciones solo pueden declararse en el ámbito global",
-                len(func_name)
+                len(func_name),
             )
             return
-        
-        # Agregar a la tabla de símbolos
-        self.symbol_table.insert(func_name, {
-            "type": "function",
-            "line": get_node_line(node.getChild(1)),
-            "initialized": True,  # Las funciones se consideran inicializadas
-            "used": False
-        })
-        
-        # Registrar en la tabla de funciones
+
+        self.symbol_table.insert(
+            func_name,
+            {
+                "type": "function",
+                "line": line_tok,
+                "initialized": True,
+                "used": False,
+            },
+        )
+
         self.symbol_table.functions[func_name] = {
             "params": [],
-            "line": get_node_line(node.getChild(1)),
-            "return_type": "void"  # Por defecto, void
+            "line": line_tok,
+            "return_type": "void",
         }
-        
-        # Procesar parámetros si existen
-        if node.getChildCount() > 5:  # FUNCTION ID LPAREN paramList RPAREN block
+
+        if node.getChildCount() > 5:
             param_list = node.getChild(3)
-            
-            # Recorrer parámetros
-            for i in range(0, param_list.getChildCount(), 2):  # Saltar comas
+            for i in range(0, param_list.getChildCount(), 2):
                 param_name = get_text(param_list.getChild(i))
-                
-                # Agregar a la lista de parámetros de la función
                 self.symbol_table.add_function_param(func_name, param_name)
-    
+
+    # ------------------------------------------------------------------
     def check_return_statement(self, node, parser):
-        """
-        Verifica que una sentencia return sea válida
-        """
-        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column
-        
-        # returnStatement: RETURN expr? SEMICOLON
-        
-        # Verificar que estemos dentro de una función
         if not self.in_function:
+            line, col = self._pos(node)
             self.error_reporter.report_error(
-                get_node_line(node),
-                get_node_column(node),
+                line,
+                col,
                 "La sentencia return solo puede aparecer dentro de funciones",
-                6  # Longitud de "return"
+                6,
             )
-    
+
+    # ------------------------------------------------------------------
     def _check_identifier_rules(self, identifier, node):
-        """
-        Verifica que un identificador cumpla con las reglas de VGraph
-        """
-        from CompilerLogic.SemanticComponents.astUtil import get_node_line, get_node_column
-        
-        # Los identificadores deben empezar con minúscula
+        line, col = self._pos(node)
+
         if not identifier[0].islower():
             self.error_reporter.report_error(
-                get_node_line(node),
-                get_node_column(node),
+                line,
+                col,
                 "Los identificadores deben comenzar con minúscula",
-                len(identifier)
+                len(identifier),
             )
             return False
-        
-        # Los identificadores deben ser alfanuméricos
+
         if not identifier.isalnum():
             self.error_reporter.report_error(
-                get_node_line(node),
-                get_node_column(node),
+                line,
+                col,
                 "Los identificadores deben ser alfanuméricos",
-                len(identifier)
+                len(identifier),
             )
             return False
-        
-        # Los identificadores deben tener 15 caracteres o menos
+
         if len(identifier) > 15:
             self.error_reporter.report_error(
-                get_node_line(node),
-                get_node_column(node),
+                line,
+                col,
                 "Los identificadores deben tener 15 caracteres o menos",
-                len(identifier)
+                len(identifier),
             )
             return False
-        
+
         return True

@@ -11,3 +11,4 @@ from GUI.views.semantic_analysis_view import SemanticAnalysisView
 from GUI.views.symbol_table_view import SymbolTableView
 
 __all__ = ['EditorView', 'ConfigView', 'CreditsView', 'GrammarView', 'LexicalAnalysisView', 'SyntacticAnalysisView', 'SemanticAnalysisView', 'SymbolTableView']
+

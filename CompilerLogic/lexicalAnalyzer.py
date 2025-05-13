@@ -181,7 +181,6 @@ class LexicalAnalyzer:
                 os.chdir(current_dir)
                 return False
                 
-            print("Lexer generated successfully")
             os.chdir(current_dir)
             return True
         except Exception as e:
