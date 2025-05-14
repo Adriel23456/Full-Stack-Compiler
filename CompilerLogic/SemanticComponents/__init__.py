@@ -8,3 +8,4 @@ from CompilerLogic.SemanticComponents.symbolTable import SymbolTable
 from CompilerLogic.SemanticComponents.typeChecker import TypeChecker
 
 __all__ = ['ASTVisitor', 'ErrorReporter', 'ScopeChecker', 'SymbolTable', 'TypeChecker']
+

@@ -9,3 +9,4 @@ from CompilerLogic.optimizer import Optimizer
 from CompilerLogic.codeGenerator import CodeGenerator 
 
 __all__ = ['LexicalAnalyzer', 'SyntacticAnalyzer', 'SemanticAnalyzer', 'IntermediateCodeGenerator', 'Optimizer', 'CodeGenerator']
+
