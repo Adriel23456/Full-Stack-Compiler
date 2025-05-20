@@ -1,90 +1,98 @@
-/* runtime.c – runtime mínimo para VGraph
+/* runtime.c – VGraph stub runtime
  *
- *  framebuffer RGB 24-bit de 800×600:
- *     – Se mapea sobre ./out/image.bin (se crea/trunca si no existe).
- *     – vg_clear() pone el buffer en blanco (0xFFFFFF).
- *     – vg_set_color() guarda el color actual.
- *     – vg_draw_pixel() escribe con clipping.
- *
- *  draw_circle / draw_line / draw_rect quedan todavía como TODO.
+ *  • Framebuffer 800×600 RGB (24-bit) mapeado a out/image.bin
+ *  • Todas las funciones escriben sobre ese mapeo
  */
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-
-#include "runtime.h"
-#include <newlib/sys/types.h>
+#include <unistd.h>     /* write, usleep   */
+#include <fcntl.h>      /* open, O_* flags */
+#include <sys/mman.h>   /* mmap, munmap    */
+#include <sys/stat.h>   /* ftruncate       */
 
 #define W 800
 #define H 600
-#define IMG_SIZE (W * H * 3)
-#define IMG_PATH "out/image.bin"
+#define BYTES (W*H*3)
 
-static uint8_t  *img   = NULL;       /* framebuffer mapeado        */
-static uint32_t  CUR   = 0x00FFFFFF; /* color actual (RGB-888)      */
+static uint8_t *img   = NULL;   /* framebuffer                     */
+static int      fdimg = -1;     /* descriptor de out/image.bin     */
+static uint32_t CUR   = 0x00FFFFFF;
 
-/*──────────────────── helpers ────────────────────*/
-static void map_file(void)
+/* ───────── helpers ───────── */
+static void init_buf(void)
 {
-    if (img) return;                     /* ya asignado */
+    if (img) return;                        /* ya inicializado */
 
-    /* 1) asegurar directorio out/ */
-    (void)mkdir("out", 0755);
+    /* 1- abrir/crear archivo */
+    if (access("out", F_OK) != 0)           /* asegurar dir ./out */
+        mkdir("out", 0755);
+    fdimg = open("out/image.bin",
+                 O_RDWR | O_CREAT,
+                 0644);
+    if (fdimg < 0){ perror("open image.bin"); exit(1); }
 
-    /* 2) abrir/crear archivo de imagen */
-    int fd = open(IMG_PATH, O_RDWR | O_CREAT, 0644);
-    if (fd < 0) { perror("open image.bin"); exit(EXIT_FAILURE); }
-
-    /* 3) garantizar tamaño correcto */
-    if (ftruncate(fd, IMG_SIZE) != 0) {
-        perror("ftruncate image.bin");
-        exit(EXIT_FAILURE);
+    /* 2- reservar tamaño (si era nuevo) */
+    if (ftruncate(fdimg, BYTES) != 0){
+        perror("ftruncate"); exit(1);
     }
 
-    /* 4) mapear con escritura compartida (cambios → disco) */
-    img = mmap(NULL, IMG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (img == MAP_FAILED) { perror("mmap image.bin"); exit(EXIT_FAILURE); }
-
-    /* 5) cerrar fd (mapa sigue vivo) */
-    close(fd);
+    /* 3- mapear a memoria */
+    img = mmap(NULL, BYTES, PROT_READ | PROT_WRITE,
+               MAP_SHARED, fdimg, 0);
+    if (img == MAP_FAILED){
+        perror("mmap"); exit(1);
+    }
 }
 
-static void put_px(int x, int y, uint32_t rgb)
+static inline void put_px(int x,int y,uint32_t rgb)
 {
-    if (x < 0 || x >= W || y < 0 || y >= H) return;   /* clipping */
-    size_t idx = (size_t)(y * W + x) * 3;
-    img[idx + 0] = (rgb >> 16) & 0xFF;   /* R */
-    img[idx + 1] = (rgb >>  8) & 0xFF;   /* G */
-    img[idx + 2] =  rgb        & 0xFF;   /* B */
+    if (x<0||x>=W||y<0||y>=H) return;
+    int idx = (y*W + x)*3;
+    img[idx+0] = (rgb>>16)&0xFF;   /* R */
+    img[idx+1] = (rgb>>8 )&0xFF;   /* G */
+    img[idx+2] =  rgb      &0xFF;  /* B */
 }
 
-/*──────────────────── API ────────────────────────*/
+static void flush_buf(void)
+{
+    /* msync fuerza la escritura en disco */
+    msync(img, BYTES, MS_SYNC);
+}
+
+/* ───────── API que invoca el IR ───────── */
 void vg_clear(void)
 {
-    map_file();
-    memset(img, 0xFF, IMG_SIZE);         /* blanco */
+    init_buf();
+    memset(img, 0xFF, BYTES);      /* blanco */
+    flush_buf();
 }
 
 void vg_set_color(uint32_t rgb)
 {
-    map_file();
     CUR = rgb;
 }
 
-void vg_draw_pixel(int x, int y)
+void vg_draw_pixel(int x,int y)
 {
-    map_file();
-    put_px(x, y, CUR);
+    init_buf();
+    put_px(x,y,CUR);
+    flush_buf();
 }
 
-/*─── place-holders ───────────────────────────────*/
-void vg_draw_circle(int cx, int cy, int r)  { (void)cx;(void)cy;(void)r; }
-void vg_draw_line  (int x1,int y1,int x2,int y2){ (void)x1;(void)y1;(void)x2;(void)y2; }
-void vg_draw_rect  (int x1,int y1,int x2,int y2){ (void)x1;(void)y1;(void)x2;(void)y2; }
-void vg_wait(int ms){ usleep((useconds_t)ms * 1000); }
+/* stubs pendientes */
+void vg_draw_circle(int cx,int cy,int r){ /* TODO */ }
+void vg_draw_line  (int x1,int y1,int x2,int y2){ /* TODO */ }
+void vg_draw_rect  (int x1,int y1,int x2,int y2){ /* TODO */ }
+
+void vg_wait(int ms){ usleep(ms*1000); }
+
+/* ───────── limpieza al salir ───────── */
+__attribute__((destructor))
+static void close_buf(void)
+{
+    if (img  && img != MAP_FAILED) munmap(img, BYTES);
+    if (fdimg>=0) close(fdimg);
+}

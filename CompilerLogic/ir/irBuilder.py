@@ -1,14 +1,15 @@
 """
 AST ➜ LLVM IR generator using llvmlite
 
-UPDATE #8
-• Arregla ImportError de TerminalNodeImpl.
-• Se volvió a incluir el helper _binary() (faltaba ➜ AttributeError).
-• draw pixel/… ahora filtra nodos Expr/BoolExpr correctamente.
+UPDATE #9
+• Se implementa _visit_AssignmentExpressionContext → permite que la
+  parte “inicialización” e “incremento” de un for-loop almacenen el
+  valor en la variable.
+• Resto idéntico a Update #8.
 """
 
 from __future__ import annotations
-from antlr4.tree.Tree import TerminalNodeImpl          # ← FIX import
+from antlr4.tree.Tree import TerminalNodeImpl
 from llvmlite import ir, binding as llvm
 
 # ──────────────── host triple / datalayout ────────────────
@@ -232,14 +233,21 @@ class IRGenerator:
         return self.builder.load(self._get_ptr(ctx.getText()))
 
     # ────────────────── STATEMENTS ─────────────────────────────
-    # asignación
+    # asignación – statement (termina en ';')
     def _visit_AssignmentStatementContext(self, ctx):
-        assign = ctx.assignmentExpression()
-        name = assign.ID().getText()
+        self._gen_assign(ctx.assignmentExpression())
+
+    # asignación – expression (t = t+5 dentro del for)
+    def _visit_AssignmentExpressionContext(self, ctx):
+        return self._gen_assign(ctx)
+
+    # helper común
+    def _gen_assign(self, assign_ctx):
+        name = assign_ctx.ID().getText()
         dest_ptr = self._get_ptr(name)
         dest_ty = dest_ptr.type.pointee
 
-        rhs_node = assign.getChild(assign.getChildCount() - 1)
+        rhs_node = assign_ctx.getChild(assign_ctx.getChildCount() - 1)
         rhs_val = self._visit(rhs_node)
         if rhs_val is None:
             _dbg(f"⚠️ RHS of '{name}' is None – injecting zero")
@@ -247,6 +255,7 @@ class IRGenerator:
 
         rhs_val = self._coerce(rhs_val, dest_ty)
         self.builder.store(rhs_val, dest_ptr)
+        return rhs_val
 
     # setcolor
     def _visit_SetColorStatementContext(self, ctx):
@@ -280,11 +289,16 @@ class IRGenerator:
         args = [self._round_to_i32(self._visit(n)) for n in expr_nodes]
         self.builder.call(fn, args)
 
+    # if / else
     def _visit_IfStatementContext(self, ctx):
         cond = self._coerce(self._visit(ctx.boolExpr()), self.i1)
         then_bb = self.builder.function.append_basic_block("then")
         merge_bb = self.builder.function.append_basic_block("endif")
-        else_bb = self.builder.function.append_basic_block("else") if ctx.ELSE() else merge_bb
+        else_bb = (
+            self.builder.function.append_basic_block("else")
+            if ctx.ELSE()
+            else merge_bb
+        )
         self.builder.cbranch(cond, then_bb, else_bb)
 
         self.builder.position_at_start(then_bb)
@@ -298,25 +312,32 @@ class IRGenerator:
 
         self.builder.position_at_start(merge_bb)
 
+    # loop (for)
     def _visit_LoopStatementContext(self, ctx):
         self._visit(ctx.assignmentExpression(0))  # init
         f = self.builder.function
-        cond_bb, body_bb, incr_bb, end_bb = [f.append_basic_block(n)
-                                             for n in ("for.cond", "for.body", "for.incr", "for.end")]
+        cond_bb, body_bb, incr_bb, end_bb = [
+            f.append_basic_block(n)
+            for n in ("for.cond", "for.body", "for.incr", "for.end")
+        ]
         self.builder.branch(cond_bb)
 
+        # cond
         self.builder.position_at_start(cond_bb)
         cond_val = self._coerce(self._visit(ctx.boolExpr()), self.i1)
         self.builder.cbranch(cond_val, body_bb, end_bb)
 
+        # body
         self.builder.position_at_start(body_bb)
         self._visit(ctx.block())
         self.builder.branch(incr_bb)
 
+        # incr
         self.builder.position_at_start(incr_bb)
         self._visit(ctx.assignmentExpression(1))
         self.builder.branch(cond_bb)
 
+        # end
         self.builder.position_at_start(end_bb)
 
     # ╰──────────────────────────────────────────────────────────╯
