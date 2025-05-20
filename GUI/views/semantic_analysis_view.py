@@ -4,11 +4,13 @@ Displays the semantic analysis graph and enhanced symbol table
 """
 import pygame
 import os
+from GUI.components.pop_up_dialog import PopupDialog
 from GUI.view_base import ViewBase
 from GUI.components.button import Button
 from GUI.design_base import design
 from GUI.views.symbol_table_view import SymbolTableView
-from config import States
+from config import CompilerData, States
+from CompilerLogic.intermediateCodeGenerator import IntermediateCodeGenerator
 
 class SemanticAnalysisView(ViewBase):
     """
@@ -193,32 +195,40 @@ class SemanticAnalysisView(ViewBase):
                 self.show_symbol_table_view()
                 return True
             
-            # Handle next button - Simulate semantic error
+            # Handle next button – genera LLVM IR
             if self.next_button.handle_event(event):
-                # Simulate a semantic error
-                error = {
-                    'message': "Example of a failure!",
-                    'line': 5,
-                    'column': 1,
-                    'length': 10
-                }
-                
-                # If we have an editor view reference, highlight the error and create popup
-                if hasattr(self, 'editor_view') and self.editor_view:
-                    # Clear any existing highlights first
-                    if hasattr(self.editor_view.text_editor, 'clear_error_highlights'):
+
+                # 1) Ejecutar generador de IR
+                ir_text = IntermediateCodeGenerator.emit_ir()
+
+                # 2) Hubo errores semánticos  → destacar en el editor
+                if ir_text is None:
+                    if self.editor_view and hasattr(self.editor_view, 'text_editor'):
                         self.editor_view.text_editor.clear_error_highlights()
-                    
-                    # Highlight error in editor
-                    if hasattr(self.editor_view.text_editor, 'highlight_errors'):
-                        self.editor_view.text_editor.highlight_errors([error])
-                    
-                    # Create popup for the error - PUNTO CLAVE
-                    from GUI.components.pop_up_dialog import PopupDialog
-                    # Asignar el popup al editor_view
-                    self.editor_view.popup = PopupDialog(self.editor_view.screen, error['message'], 10000)
-                
-                # Change back to editor view to show the error
+
+                        # Usa los errores recolectados por el semantic analyzer
+                        errs = CompilerData.semantic_errors
+                        if errs and hasattr(self.editor_view.text_editor, 'highlight_errors'):
+                            self.editor_view.text_editor.highlight_errors(errs)
+
+                    # Popup informativo
+                    if self.editor_view:
+                        self.editor_view.popup = PopupDialog(
+                            self.editor_view.screen,
+                            "❌ IR generation failed – fix semantic errors",
+                            10000
+                        )
+
+                # 3) IR generado con éxito  → popup de confirmación
+                else:
+                    if self.editor_view:
+                        self.editor_view.popup = PopupDialog(
+                            self.editor_view.screen,
+                            "✅ IR generated successfully!\nGuardado en out/vGraph.ll",
+                            5000
+                        )
+
+                # 4) En ambos casos volvemos al editor
                 self.view_controller.change_state(States.EDITOR)
                 return True
             

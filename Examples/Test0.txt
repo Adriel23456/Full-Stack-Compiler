@@ -1,4 +1,4 @@
-#Example of a multiple semantic errors
+#Example
 (int) x, y1;
 (bool) a1, b1, c1;
 (color) c;

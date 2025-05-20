@@ -1,5 +1,3 @@
-# CompilerLogic/semanticAnalyzer.py (actualización)
-
 """
 Semantic analyzer module for the Full Stack Compiler
 Handles semantic analysis of code and generates semantic graphs and enhanced symbol tables
