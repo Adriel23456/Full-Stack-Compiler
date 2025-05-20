@@ -215,7 +215,7 @@ class SemanticAnalysisView(ViewBase):
                     if self.editor_view:
                         self.editor_view.popup = PopupDialog(
                             self.editor_view.screen,
-                            "❌ IR generation failed – fix semantic errors",
+                            "IR generation failed - fix semantic errors",
                             10000
                         )
 
@@ -224,7 +224,7 @@ class SemanticAnalysisView(ViewBase):
                     if self.editor_view:
                         self.editor_view.popup = PopupDialog(
                             self.editor_view.screen,
-                            "✅ IR generated successfully!\nGuardado en out/vGraph.ll",
+                            "IR generated successfully!\nGuardado en out/vGraph.ll",
                             5000
                         )
 

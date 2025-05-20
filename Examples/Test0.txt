@@ -1,9 +1,13 @@
-#Example
-(int) x, y1;
+(int) x1, y1, x2, y2;
 (bool) a1, b1, c1;
 (color) c;
-a1 = true;
-b1 = true;
-c1 = false;
 c = rojo;
-x = 5 + (2/2) * 3;
+x1 = 1;
+y1 = 1;
+x2 = 10;
+y2 = 25;
+
+clear();
+setcolor(c);
+draw pixel(x1, y1);
+draw pixel((x1+1)*20, (y1+2)*20);
