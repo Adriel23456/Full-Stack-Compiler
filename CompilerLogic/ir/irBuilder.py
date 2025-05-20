@@ -1,26 +1,26 @@
 """
 AST ➜ LLVM IR generator using llvmlite
 
-UPDATE #6
-• setcolor(c) con variable o literal ya funciona.
-• draw pixel/… toma argumentos evaluando nodos expr.
-• _coerce() acepta val =None.
+UPDATE #8
+• Arregla ImportError de TerminalNodeImpl.
+• Se volvió a incluir el helper _binary() (faltaba ➜ AttributeError).
+• draw pixel/… ahora filtra nodos Expr/BoolExpr correctamente.
 """
 
 from __future__ import annotations
-from antlr4 import TerminalNodeImpl
+from antlr4.tree.Tree import TerminalNodeImpl          # ← FIX import
 from llvmlite import ir, binding as llvm
 
-# ───────────────────────── Host info ──────────────────────────
-llvm.initialize(); llvm.initialize_native_target(); llvm.initialize_native_asmprinter()
-HOST_TRIPLE    = llvm.get_default_triple()
+# ──────────────── host triple / datalayout ────────────────
+llvm.initialize()
+llvm.initialize_native_target()
+llvm.initialize_native_asmprinter()
+HOST_TRIPLE = llvm.get_default_triple()
 HOST_DATALAYOUT = (
-    llvm.Target.from_default_triple()
-    .create_target_machine()
-    .target_data
+    llvm.Target.from_default_triple().create_target_machine().target_data
 )
 
-# ───────────────────────── Color map ──────────────────────────
+# ───────────────────── literal → RGB ──────────────────────
 COLORS = {
     "rojo": 0x00FF0000,
     "verde": 0x0000FF00,
@@ -39,7 +39,7 @@ def _dbg(msg: str) -> None:
 
 
 class IRGenerator:
-    # ───────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────
     def __init__(self, ast, symtab, parser):
         self.ast, self.symtab, self.parser = ast, symtab, parser
 
@@ -47,7 +47,7 @@ class IRGenerator:
         self.module.triple = HOST_TRIPLE
         self.module.data_layout = HOST_DATALAYOUT
 
-        # Common LLVM types
+        # tipos LLVM
         self.f64 = ir.DoubleType()
         self.i32 = ir.IntType(32)
         self.i1 = ir.IntType(1)
@@ -59,28 +59,26 @@ class IRGenerator:
         self._declare_runtime()
         self._codegen_globals()
 
-    # ───────────────────────── entry-point ─────────────────────
+    # ─────────────── punto de entrada generate() ─────────────
     def generate(self) -> str:
         _dbg("starting IR generation pass")
 
-        # Real entry (C ABI)
         fn_main = ir.Function(
             self.module, ir.FunctionType(self.i32, ()), name="main"
         )
         self.builder = ir.IRBuilder(fn_main.append_basic_block("entry"))
-        self._visit(self.ast)  # walk AST
+        self._visit(self.ast)
         self.builder.ret(ir.Constant(self.i32, 0))
 
-        # Wrapper for JIT tests (_main)
+        # wrapper _main para lli
         fn_wrap = ir.Function(self.module, fn_main.function_type, name="_main")
-        bwrap = ir.IRBuilder(fn_wrap.append_basic_block("entry"))
-        retv = bwrap.call(fn_main, [])
-        bwrap.ret(retv)
+        bw = ir.IRBuilder(fn_wrap.append_basic_block("entry"))
+        bw.ret(bw.call(fn_main, []))
 
         _dbg("IR generation completed")
         return str(self.module)
 
-    # ────────────────── runtime declarations ───────────────────
+    # ──────────────── runtime externals ──────────────────────
     def _declare_runtime(self):
         _dbg("declaring runtime externals")
         proto = {
@@ -100,12 +98,11 @@ class IRGenerator:
                     self.module, ir.FunctionType(ret, params), name=n
                 )
 
-    # ───────────────────── global variables ────────────────────
+    # ──────────────── global vars (x,y,c,…) ──────────────────
     def _codegen_globals(self):
         _dbg("emitting global variables")
-        for ident, info in (
-            self.symtab.get_all_symbols().get("global", {}).items()
-        ):
+        g_scope = self.symtab.get_all_symbols().get("global", {})
+        for ident, info in g_scope.items():
             typ = info.get("type", "int")
             if typ == "color":
                 g = ir.GlobalVariable(self.module, self.i32, ident)
@@ -118,7 +115,7 @@ class IRGenerator:
                 g.initializer = ir.Constant(self.f64, 0.0)
             self.value_ptr[ident] = g
 
-    # ───────────────────────── visitor ─────────────────────────
+    # ───────────────────────── visit gen ──────────────────────
     def _visit(self, node):
         h = getattr(self, f"_visit_{node.__class__.__name__}", None)
         if h:
@@ -129,7 +126,7 @@ class IRGenerator:
             res = res or v
         return res
 
-    # TERMINAL nodes
+    # ─────── terminales ───────
     def _visit_TerminalNodeImpl(self, tok):
         t = tok.getText()
         if t in ("true", "false"):
@@ -140,7 +137,7 @@ class IRGenerator:
             return ir.Constant(self.f64, float(t))
         return None
 
-    # ╭─────────  EXPRESIONES  (ejemplos) ─────────╮
+    # ─────── literales + ID ───
     def _visit_NumberExprContext(self, ctx):
         return ir.Constant(self.f64, float(ctx.getText()))
 
@@ -156,37 +153,65 @@ class IRGenerator:
             return ir.Constant(self.i32, COLORS[name])
         return self.builder.load(self._get_ptr(name))
 
-    # ╰────────────────────────────────────────────╯
-
     def _visit_ParenExprContext(self, ctx):
         return self._visit(ctx.expr())
 
     def _visit_CosExprContext(self, ctx):
-        return self.builder.call(self.module.globals["cos"], [self._visit(ctx.expr())])
+        return self.builder.call(
+            self.module.globals["cos"], [self._visit(ctx.expr())]
+        )
 
     def _visit_SinExprContext(self, ctx):
-        return self.builder.call(self.module.globals["sin"], [self._visit(ctx.expr())])
+        return self.builder.call(
+            self.module.globals["sin"], [self._visit(ctx.expr())]
+        )
 
-    # arithmetic ------------------------------------------------
+    # ─────── aritmética / comparaciones / booleanos ───────────
+    # helper binario
+    def _binary(self, ctx):
+        lhs = self._visit(ctx.getChild(0))
+        rhs = self._visit(ctx.getChild(2))
+        if lhs is None or rhs is None:
+            _dbg(f"⚠️ binary op got None lhs={lhs} rhs={rhs}")
+            lhs = lhs or self._const_zero(self.f64)
+            rhs = rhs or self._const_zero(self.f64)
+        return lhs, rhs
+
     def _visit_AddSubExprContext(self, ctx):
         lhs, rhs = self._binary(ctx)
-        return self.builder.fsub(lhs, rhs) if ctx.MINUS() else self.builder.fadd(lhs, rhs)
+        return (
+            self.builder.fsub(lhs, rhs)
+            if ctx.MINUS()
+            else self.builder.fadd(lhs, rhs)
+        )
 
     def _visit_MulDivExprContext(self, ctx):
         lhs, rhs = self._binary(ctx)
-        return self.builder.fdiv(lhs, rhs) if ctx.DIV() else self.builder.fmul(lhs, rhs)
+        return (
+            self.builder.fdiv(lhs, rhs)
+            if ctx.DIV()
+            else self.builder.fmul(lhs, rhs)
+        )
 
     def _visit_NegExprContext(self, ctx):
-        return self.builder.fsub(ir.Constant(self.f64, 0.0), self._visit(ctx.getChild(1)))
+        return self.builder.fsub(
+            ir.Constant(self.f64, 0.0), self._visit(ctx.getChild(1))
+        )
 
-    # comparisons ----------------------------------------------
     def _visit_ComparisonExprContext(self, ctx):
         lhs, rhs = self._binary(ctx)
         op = ctx.getChild(1).getText()
-        cmap = {"==": "oeq", "!=": "one", "<": "olt", "<=": "ole", ">": "ogt", ">=": "oge"}
-        return self.builder.fcmp_ordered(cmap[op], lhs, rhs)
+        cm = {
+            "==": "oeq",
+            "!=": "one",
+            "<": "olt",
+            "<=": "ole",
+            ">": "ogt",
+            ">=": "oge",
+        }
+        return self.builder.fcmp_ordered(cm[op], lhs, rhs)
 
-    # boolean ---------------------------------------------------
+    # booleanas
     def _visit_AndExprContext(self, ctx):
         lhs, rhs = self._binary(ctx)
         return self.builder.and_(lhs, rhs)
@@ -196,7 +221,9 @@ class IRGenerator:
         return self.builder.or_(lhs, rhs)
 
     def _visit_NotExprContext(self, ctx):
-        return self.builder.xor(self._visit(ctx.boolExpr()), ir.Constant(self.i1, 1))
+        return self.builder.xor(
+            self._visit(ctx.boolExpr()), ir.Constant(self.i1, 1)
+        )
 
     def _visit_ParenBoolExprContext(self, ctx):
         return self._visit(ctx.boolExpr())
@@ -204,8 +231,8 @@ class IRGenerator:
     def _visit_BoolIdExprContext(self, ctx):
         return self.builder.load(self._get_ptr(ctx.getText()))
 
-    # ╰──────────────────────────────────────────────────────────╯
-    # ╭────────────────────  STATEMENTS  ────────────────────────╮
+    # ────────────────── STATEMENTS ─────────────────────────────
+    # asignación
     def _visit_AssignmentStatementContext(self, ctx):
         assign = ctx.assignmentExpression()
         name = assign.ID().getText()
@@ -215,45 +242,42 @@ class IRGenerator:
         rhs_node = assign.getChild(assign.getChildCount() - 1)
         rhs_val = self._visit(rhs_node)
         if rhs_val is None:
-            _dbg(f"⚠️  RHS of '{name}' is None – injecting zero")
+            _dbg(f"⚠️ RHS of '{name}' is None – injecting zero")
             rhs_val = self._const_zero(dest_ty)
 
         rhs_val = self._coerce(rhs_val, dest_ty)
         self.builder.store(rhs_val, dest_ptr)
 
-    # ----------  setcolor ----------
+    # setcolor
     def _visit_SetColorStatementContext(self, ctx):
         raw = ctx.getChild(2)  # ID o COLOR_CONST
         arg_val = self._visit(raw)
-        if arg_val is None:
-            #   caso ID suelto (variable de color)
-            ident = raw.getText()
-            arg_val = self.builder.load(self._get_ptr(ident))
+        if arg_val is None:  # variable color
+            arg_val = self.builder.load(self._get_ptr(raw.getText()))
         arg_val = self._coerce(arg_val, self.i32)
         self.builder.call(self.module.globals["vg_set_color"], [arg_val])
 
-    # ----------  clear ----------
+    # clear
     def _visit_ClearStatementContext(self, _ctx):
         self.builder.call(self.module.globals["vg_clear"], [])
 
-    # ----------  wait ----------
+    # wait
     def _visit_WaitStatementContext(self, ctx):
         ms = self._round_to_i32(self._visit(ctx.expr()))
         self.builder.call(self.module.globals["vg_wait"], [ms])
 
-    # ----------  draw ----------
+    # draw pixel / circle / rect / line
     def _visit_DrawStatementContext(self, ctx):
         obj = ctx.drawObject()
-        kind = obj.getChild(0).getText()  # pixel / circle / …
+        kind = obj.getChild(0).getText()
         fn = self.module.globals[f"vg_draw_{kind}"]
 
-        # Recolectar nodos expr dentro de drawObject
         expr_nodes = [
-            ch for ch in obj.children if hasattr(ch, "getRuleIndex")
+            ch
+            for ch in obj.children
+            if ch.__class__.__name__.endswith("ExprContext")
         ]
-        args: list[ir.Value] = [
-            self._round_to_i32(self._visit(n)) for n in expr_nodes
-        ]
+        args = [self._round_to_i32(self._visit(n)) for n in expr_nodes]
         self.builder.call(fn, args)
 
     def _visit_IfStatementContext(self, ctx):
@@ -296,7 +320,7 @@ class IRGenerator:
         self.builder.position_at_start(end_bb)
 
     # ╰──────────────────────────────────────────────────────────╯
-    #  helpers --------------------------------------------------
+    # ────────────────── helpers ───────────────────────────────
     def _coerce(self, val: ir.Value | None, target_ty: ir.Type) -> ir.Value:
         if val is None:
             return self._const_zero(target_ty)
@@ -321,15 +345,16 @@ class IRGenerator:
                 return self.builder.sitofp(val, self.f64)
             if val.type is self.i1:
                 return self.builder.uitofp(val, self.f64)
-        _dbg(f"⚠️  cannot coerce {val.type} → {target_ty} – zero used")
+        _dbg(f"⚠️ cannot coerce {val.type} → {target_ty} – zero used")
         return self._const_zero(target_ty)
 
     def _round_to_i32(self, val: ir.Value) -> ir.Value:
         if val.type is self.i32:
             return val
         if val.type is self.f64:
-            half = ir.Constant(self.f64, 0.5)
-            return self.builder.fptosi(self.builder.fadd(val, half), self.i32)
+            return self.builder.fptosi(
+                self.builder.fadd(val, ir.Constant(self.f64, 0.5)), self.i32
+            )
         if val.type is self.i1:
             return self.builder.zext(val, self.i32)
         return ir.Constant(self.i32, 0)
@@ -346,7 +371,7 @@ class IRGenerator:
     def _get_ptr(self, name: str) -> ir.Value:
         ptr = self.value_ptr.get(name)
         if ptr is None:
-            _dbg(f"⚠️  '{name}' undeclared – creating implicit f64 global")
+            _dbg(f"⚠️ '{name}' undeclared – creating implicit f64 global")
             g = ir.GlobalVariable(self.module, self.f64, name)
             g.initializer = ir.Constant(self.f64, 0.0)
             self.value_ptr[name] = g
