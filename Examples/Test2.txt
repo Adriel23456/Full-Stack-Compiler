@@ -1,6 +1,7 @@
 # Variables para las posiciones y colores
 (int) x, y, r, t;
 (color) c;
+clear();
 
 frame {
     loop (t = 0; t < 360; t = t + 10) {
@@ -23,8 +24,11 @@ frame {
 
             setcolor(c);
             draw pixel(x, y);
+            draw pixel(x+1, y);
+            draw pixel(x, y+1);
+            draw pixel(x+1, y+1);
         }
 
-        wait(5);  # Pausa para animacion suave
+        wait(200);  # Pausa para animacion suave
     }
 }

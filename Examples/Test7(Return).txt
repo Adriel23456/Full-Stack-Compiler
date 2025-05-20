@@ -2,6 +2,7 @@
 (int) base, altura, resultado;
 (bool) esPositivo;
 (color) colorFigura;
+clear();
 
 function calcularArea(base, altura, extra) {
     resultado = base * altura;
@@ -22,5 +23,5 @@ frame {
     }
     
     setcolor(colorFigura);
-    draw rect(100, 100, base * 10, altura * 10);
+    draw rect(100, 100, 100 + base, 100 + altura);
 }

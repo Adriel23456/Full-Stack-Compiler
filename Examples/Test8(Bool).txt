@@ -2,6 +2,7 @@
 (bool) activo, visible, parpadeo;
 (int) contador;
 (color) colorLed;
+clear();
 
 frame {
     activo = true;
@@ -28,6 +29,6 @@ frame {
         
         setcolor(colorLed);
         draw circle(300, 300, 50);
-        wait(5);
+        wait(1000);
     }
 }

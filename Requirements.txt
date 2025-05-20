@@ -20,6 +20,7 @@ echo 'alias grun="java org.antlr.v4.gui.TestRig"' >> ~/.bashrc
 source ~/.bashrc
 
 
+#Codigo actual para la ejecucion del IR
 bash CompilerLogic/ir/build_runtime.sh
 clang -c out/vGraph.ll -o out/vGraph.o
 clang out/vGraph.o CompilerLogic/ir/runtime.o -lm -o out/vGraph.exe

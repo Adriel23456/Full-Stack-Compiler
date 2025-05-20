@@ -1,6 +1,7 @@
 # Variables para posición y ángulos
 (int) x1, y1, x2, y2, angle, depth;
 (color) c;
+clear();
 
 # Función recursiva para dibujar el árbol
 function tree(x1, y1, length, angle, depth) {
@@ -30,6 +31,6 @@ frame {
     loop (depth = 1; depth <= 8; depth = depth + 1) {
         clear();
         tree(320, 400, 100, 90, depth);
-        wait(10);
+        wait(250);
     }
 }
