@@ -20,6 +20,9 @@ function tree(x1, y1, length, angle, depth) {
 
     setcolor(c);
     draw line(x1, y1, x2, y2);
+    draw line(x1+1, y1, x2+1, y2);
+    draw line(x1, y1+1, x2, y2+1);
+    draw line(x1+1, y1+1, x2+1, y2+1);
 
     # Llamadas recursivas para las ramas izquierda y derecha
     tree(x2, y2, length * 0.7, angle - 25, depth - 1);
@@ -28,9 +31,9 @@ function tree(x1, y1, length, angle, depth) {
 
 # Animación con aumento de profundidad
 frame {
-    loop (depth = 1; depth <= 8; depth = depth + 1) {
+    loop (depth = 1; depth <= 10; depth = depth + 1) {
         clear();
         tree(320, 400, 100, 90, depth);
-        wait(250);
+        wait(500);
     }
 }
