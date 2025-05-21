@@ -1,9 +1,9 @@
 # Variables para las posiciones y colores
 (int) x, y, r, t;
 (color) c;
-clear();
 
 frame {
+    clear();
     loop (t = 0; t < 360; t = t + 10) {
         # Dibujar circulos concentricos
         loop (r = 20; r < 200; r = r + 20) {

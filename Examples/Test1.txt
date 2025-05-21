@@ -1,10 +1,10 @@
 # Definir variables para la espiral
-(color) c;
 (int) x, y, t;
-clear();
+(color) c;
 
 frame {
-    loop (t = 0; t < (360*2); t = t + 5) {
+    clear();
+    loop (t = 0; t < 360; t = t + 5) {
         # Calcular coordenadas de la espiral usando trigonometría
         x = 320 + t * cos(t * 3.1416 / 180);  # Centro en X=320
         y = 240 + t * sin(t * 3.1416 / 180);  # Centro en Y=240
