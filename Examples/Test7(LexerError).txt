@@ -1,0 +1,23 @@
+#Ejemplo de error Lexico
+
+# Definir variables para la espiralññññ
+(int) ñññx, ñy, ñññt;
+(color) c;
+
+frame {
+    loop (t = 0; t < 360; t = t + 5) {
+        # Calcular coordenadas de la espiral usando trigonometría
+        x = 320 + t * cos(t * 3.1416 / 180);  # Centro en X=320
+        y = 240 + t * sin(t * 3.1416 / 180);  # Centro en Y=240
+
+        # Cambiar color en cada iteración
+        if (t % 3 == 0) { c = rojo; }
+        elseñ if (t % 3 == 1) { c = azul; }
+        else { c = verde; }
+
+        setcolor(c);
+        draw pixel(x, y);
+
+        wait(1);  # Pequeño retraso para animación suave
+    }
+}

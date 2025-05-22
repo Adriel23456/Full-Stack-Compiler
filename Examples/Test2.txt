@@ -1,34 +1,92 @@
-# Variables para las posiciones y colores
-(int) x, y, r, t;
-(color) c;
+###############################################################################
+#  KINETIC MANDALA – versión 2 (sin booleanos, fondo negro)                   #
+###############################################################################
 
+(int) cx, cy, t, seg, ang, x, y, ray, x2, y2;
+(int) blades;
+(color) col;
+
+cx = 400;            # centro
+cy = 300;
+blades = 12;         # palas del diafragma
+
+###############################################################################
+#  Anillo de N segmentos – dir =  1 (horario) o -1 (antihorario)              #
+###############################################################################
+function drawRing(radius, segments, phase, dir) {
+    loop (seg = 0; seg < segments; seg = seg + 1) {
+
+        ang = dir * seg * 360 / segments + phase;
+
+        x = cx + radius * cos(ang * 3.1416 / 180);
+        y = cy + radius * sin(ang * 3.1416 / 180);
+
+        # paleta arcoíris
+        if (seg % 6 == 0) { col = rojo; }
+        else {
+            if (seg % 6 == 1) { col = amarillo; }
+            else {
+                if (seg % 6 == 2) { col = verde; }
+                else {
+                    if (seg % 6 == 3) { col = cyan; }
+                    else {
+                        if (seg % 6 == 4) { col = azul; }
+                        else { col = magenta; }
+                    }
+                }
+            }
+        }
+
+        setcolor(col);
+        draw circle(x, y, 5);
+    }
+}
+
+###############################################################################
+#  Diafragma (apertura de rayos)                                              #
+###############################################################################
+function aperture(step, blades, innerR, outerR) {
+    loop (ray = 0; ray < blades; ray = ray + 1) {
+
+        ang = ray * 360 / blades + step * 2;
+
+        # punto interior
+        x  = cx + innerR * cos(ang * 3.1416 / 180);
+        y  = cy + innerR * sin(ang * 3.1416 / 180);
+
+        # punto exterior
+        x2 = cx + outerR * cos(ang * 3.1416 / 180);
+        y2 = cy + outerR * sin(ang * 3.1416 / 180);
+
+        if (ray % 2 == 0) { col = blanco; }
+        else { col = cyan; }
+        setcolor(col);
+
+        draw line(x, y, x2, y2);
+        draw line(x+1, y, x2+1, y2);   # grosor pseudo-2 px
+    }
+}
+
+###############################################################################
+#  Animación infinita                                                         #
+###############################################################################
 frame {
-    clear();
-    loop (t = 0; t < 360; t = t + 10) {
-        # Dibujar circulos concentricos
-        loop (r = 20; r < 200; r = r + 20) {
-            if (r % 40 == 0) { c = amarillo; }
-            else { c = cyan; }
+    loop (t = 0; t < 360000; t = t + 3) {
 
-            setcolor(c);
-            draw circle(320, 240, r);
-        }
+        # 0) fondo completamente negro
+        setcolor(negro);
+        draw rect(0, 0, 799, 599);
 
-        # Dibujar lineas radiales giratorias
-        loop (r = 0; r < 200; r = r + 10) {
-            x = 320 + r * cos((t + r) * 3.1416 / 180);
-            y = 240 + r * sin((t + r) * 3.1416 / 180);
+        # 1) diafragma giratorio
+        aperture(t, blades, 10, 180);
 
-            if (r % 30 == 0) { c = magenta; }
-            else { c = blanco; }
+        # 2) cuatro anillos concéntricos contrarrotantes y pulsantes
+        drawRing( 60 + (t % 20), 24,  t,      1);   # dir horario
+        drawRing(120 - (t % 20), 30,  t*1.5, -1);   # dir antihorario
+        drawRing(180 + (t % 15), 36,  t*2,     1);
+        drawRing(240 - (t % 15), 42,  t*2.5,  -1);
 
-            setcolor(c);
-            draw pixel(x, y);
-            draw pixel(x+1, y);
-            draw pixel(x, y+1);
-            draw pixel(x+1, y+1);
-        }
-
-        wait(200);  # Pausa para animacion suave
+        # 3) ~50 FPS
+        wait(100);
     }
 }

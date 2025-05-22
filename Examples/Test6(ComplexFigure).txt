@@ -1,0 +1,103 @@
+###############################################################################
+#  GALAXY SPIN – VGraph demo                                                  #
+#  • 6 brazos espirales que se expanden y giran                                #
+#  • Núcleo pulsante que alterna colores                                       #
+#  • “Estrellas” (pixels) alrededor de los brazos                              #
+#  • Destellos (supernovas) pseudo-aleatorios                                  #
+###############################################################################
+
+# ──────────────── declaración de variables globales ────────────────
+(int) cx, cy, t, arm, ang, rad, x, y, star, sx, sy, sparkleT;
+(color) col;
+
+cx = 400;          # centro X
+cy = 300;          # centro Y
+
+###############################################################################
+#  función auxiliar: genera destello rápido en (px, py)                       #
+###############################################################################
+function sparkle(px, py) {
+    loop (sparkleT = 0; sparkleT < 6; sparkleT = sparkleT + 1) {
+        # alternar entre magenta y amarillo para simular la explosión
+        if (sparkleT % 2 == 0) { col = magenta; }
+        else { col = amarillo; }
+        setcolor(col);
+        draw circle(px, py, 4 - sparkleT / 2);   # círculo decreciente
+        wait(10);
+    }
+}
+
+###############################################################################
+#  Frame principal (animación infinita)                                       #
+###############################################################################
+frame {
+    clear();
+
+    # Fondo negro absoluto
+    setcolor(negro);
+    draw rect(0, 0, 799, 599);
+
+    # Bucle principal de tiempo – 0 … ∞
+    loop (t = 0; t < 36000; t = t + 2) {
+
+        # ───── 1) núcleo pulsante ─────
+        if ((t / 20) % 2 == 0) { col = blanco; }     # alterna blanco ↔ cian
+        else { col = cyan; }
+        setcolor(col);
+        draw circle(cx, cy, 12 + (t % 20) / 2);      # pulsa cada 20 pasos
+
+        # ───── 2) brazos espirales (6) ─────
+        loop (arm = 0; arm < 6; arm = arm + 1) {
+            rad = 0;
+
+            # cada brazo es una serie de círculos que se alejan
+            loop (rad = 6; rad < 260; rad = rad + 6) {
+                ang = t + arm * 60 + rad;            # offset de brazo + giro
+                x = cx + rad * cos(ang * 3.1416 / 180);
+                y = cy + rad * sin(ang * 3.1416 / 180);
+
+                # gradiente de color por distancia + brazo
+                if ( (rad / 24 + arm) % 6 == 0 ) { col = rojo; }
+                else if ( (rad / 24 + arm) % 6 == 1 ) { col = amarillo; }
+                else if ( (rad / 24 + arm) % 6 == 2 ) { col = verde; }
+                else if ( (rad / 24 + arm) % 6 == 3 ) { col = cyan; }
+                else if ( (rad / 24 + arm) % 6 == 4 ) { col = azul; }
+                else { col = magenta; }
+
+                setcolor(col);
+                draw circle(x, y, 4);                # “estrella” grande
+
+                # mini-estrellas (pixels) alrededor
+                setcolor(blanco);
+                draw pixel(x + 2, y);
+                draw pixel(x - 2, y);
+                draw pixel(x, y + 2);
+                draw pixel(x, y - 2);
+            }
+        }
+
+        # ───── 3) halo de estrellas aleatorias ─────
+        loop (star = 0; star < 50; star = star + 1) {
+            # posición pseudo-aleatoria dependiente de t y star
+            sx = (t * 13 + star * 97) % 800;
+            sy = (t * 29 + star * 53) % 600;
+
+            # brillo parpadeante
+            if (((t + star * 7) / 10) % 2 == 0) { col = blanco; }
+            else { col = cyan; }
+
+            setcolor(col);
+            draw pixel(sx, sy);
+        }
+
+        # ───── 4) “supernovas” esporádicas ─────
+        if (t % 180 == 0) {                       # cada 180 pasos ~3 s
+            # punto en el borde de la espiral
+            sx = cx + 260 * cos((t + 123) * 3.1416 / 180);
+            sy = cy + 260 * sin((t + 123) * 3.1416 / 180);
+            sparkle(sx, sy);                      # destello animado
+        }
+
+        wait(8);   # ~120 fps – movimiento fluido y rápido
+    }
+}

@@ -20,10 +20,11 @@ GRAY = (128, 128, 128)
 
 # Application states
 class States:
-    EDITOR = "EDITOR"  # Main editor state
-    LEXICAL_ANALYSIS = "LEXICAL_ANALYSIS"  #1st compilation state
-    SYNTACTIC_ANALYSIS = "SYNTACTIC_ANALYSIS" #2nd compilation state
-    SEMANTIC_ANALYSIS = "SEMANTIC_ANALYSIS" #3rd compilation state
+    EDITOR              = "EDITOR"
+    LEXICAL_ANALYSIS    = "LEXICAL_ANALYSIS"
+    SYNTACTIC_ANALYSIS  = "SYNTACTIC_ANALYSIS"
+    SEMANTIC_ANALYSIS   = "SEMANTIC_ANALYSIS"
+    IR_VIEW             = "IR_VIEW"
 
 # Font size configurations
 # Tamaños para la opción "small"

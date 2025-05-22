@@ -1,0 +1,34 @@
+# Manejo de variables booleanas y operadores lógicos (Simplemente me dibuja un circulo que cambia de color)
+(bool) activo, visible, parpadeo;
+(int) contador;
+(color) colorLed;
+clear();
+
+frame {
+    activo = true;
+    visible = false;
+    contador = 0;
+    
+    loop (contador = 0; contador < 10; contador = contador + 1) {
+        # Actualizar estado de parpadeo
+        parpadeo = (contador % 2) == 0;
+        
+        # Determinar visibilidad
+        visible = activo && parpadeo;
+        
+        # Determinar color basado en condiciones
+        if (visible) {
+            if (contador < 5) {
+                colorLed = azul;
+            } else {
+                colorLed = amarillo;
+            }
+        } else {
+            colorLed = negro;
+        }
+        
+        setcolor(colorLed);
+        draw circle(300, 300, 50);
+        wait(1000);
+    }
+}

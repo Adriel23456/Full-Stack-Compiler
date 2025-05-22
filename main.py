@@ -5,6 +5,7 @@ Initializes pygame and the View Controller
 import pygame
 import sys
 import os
+from GUI.views.ir_view import IRView
 from config import WINDOW_TITLE, States
 from GUI.view_controller import ViewController
 from GUI.views.editor_view import EditorView
@@ -49,6 +50,7 @@ def main():
         controller.add_state(States.LEXICAL_ANALYSIS, LexicalAnalysisView)
         controller.add_state(States.SYNTACTIC_ANALYSIS, SyntacticAnalysisView)
         controller.add_state(States.SEMANTIC_ANALYSIS, SemanticAnalysisView)
+        controller.add_state(States.IR_VIEW, IRView)
         
         # Set initial state to Editor
         controller.set_initial_state(States.EDITOR)

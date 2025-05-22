@@ -1,4 +1,4 @@
-# Definir variables para la espiral
+# Definir variables para la espiral (DIbuja solo una linea de pixeles en espiral)
 (int) x, y, t;
 (color) c;
 
@@ -23,6 +23,6 @@ frame {
         draw pixel(x-1, y);
         draw pixel(x, y-1);
 
-        wait(100);  # Pequeño retraso para animación suave
+        wait(100);  # Retraso para observar la animación (SIno estuviera simplemente se pintaria el contenido inmediatamente)
     }
 }

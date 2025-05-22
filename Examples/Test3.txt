@@ -1,39 +1,101 @@
-# Variables para posición y ángulos
-(int) x1, y1, x2, y2, angle, depth;
-(color) c;
-clear();
+###############################################################################
+#  SNOWFLAKE CONSTELLATION – 6 copos fractales sobre fondo negro              #
+###############################################################################
 
-# Función recursiva para dibujar el árbol
-function tree(x1, y1, length, angle, depth) {
+# ─────────── variables globales ───────────
+(int) x1, y1, x2, y2;
+(int) len100;
+(int) ang;
+(int) depth;
+(int) axis;
+(int) pos;               # índice de posición 0..5
+(color) col;
+
+###############################################################################
+#  función recursiva tri-branch (igual que antes)                             #
+###############################################################################
+function triBranch(x1, y1, len100, ang, depth) {
+
     if (depth == 0) {
-        return;
+        setcolor(verde);
+        draw circle(x1, y1, 2);
+        return 0;
     }
 
-    # Calcular nueva posición usando trigonometría
-    x2 = x1 + length * cos(angle * 3.1416 / 180);
-    y2 = y1 - length * sin(angle * 3.1416 / 180);
+    x2 = x1 + (len100 * cos(ang * 3.1416 / 180)) / 100;
+    y2 = y1 - (len100 * sin(ang * 3.1416 / 180)) / 100;
 
-    # Cambiar color según profundidad
-    if (depth % 3 == 0) { c = verde; }
-    else if (depth % 3 == 1) { c = marrón; }
-    else { c = amarillo; }
+    # color por profundidad (arcoíris)
+    if (depth % 6 == 0) { col = rojo; }
+    else {
+        if (depth % 6 == 1) { col = amarillo; }
+        else {
+            if (depth % 6 == 2) { col = verde; }
+            else {
+                if (depth % 6 == 3) { col = cyan; }
+                else {
+                    if (depth % 6 == 4) { col = azul; }
+                    else { col = magenta; }
+                }
+            }
+        }
+    }
 
-    setcolor(c);
+    setcolor(col);
     draw line(x1, y1, x2, y2);
-    draw line(x1+1, y1, x2+1, y2);
-    draw line(x1, y1+1, x2, y2+1);
-    draw line(x1+1, y1+1, x2+1, y2+1);
+    draw line(x1+1, y1, x2+1, y2);   # grosor 2 px
 
-    # Llamadas recursivas para las ramas izquierda y derecha
-    tree(x2, y2, length * 0.7, angle - 25, depth - 1);
-    tree(x2, y2, length * 0.7, angle + 25, depth - 1);
+    len100 = (len100 * 50) / 100;    # 50 % siguiente nivel
+
+    # tres sub-ramas
+    triBranch(x2, y2, len100, ang,      depth - 1);
+    triBranch(x2, y2, len100, ang - 60, depth - 1);
+    triBranch(x2, y2, len100, ang + 60, depth - 1);
 }
 
-# Animación con aumento de profundidad
+###############################################################################
+#  Frame único que dibuja 6 copos                                             #
+###############################################################################
 frame {
-    loop (depth = 1; depth <= 10; depth = depth + 1) {
-        clear();
-        tree(320, 400, 100, 90, depth);
-        wait(500);
+
+    # 1) Fondo negro absoluto
+    setcolor(negro);
+    draw rect(0, 0, 799, 599);
+
+    # 2) Profundidad y tamaño fijados
+    depth  = 5;
+    len100 = 1600;          # 16 px
+
+    # 3) Seis posiciones predefinidas
+    loop (pos = 0; pos < 6; pos = pos + 1) {
+
+        # asignar (x1, y1) según pos
+        if (pos == 0) {
+            x1 = 150; y1 = 150;
+        } else {
+            if (pos == 1) {
+                x1 = 650; y1 = 150;
+            } else {
+                if (pos == 2) {
+                    x1 = 400; y1 = 100;
+                } else {
+                    if (pos == 3) {
+                        x1 = 150; y1 = 450;
+                    } else {
+                        if (pos == 4) {
+                            x1 = 650; y1 = 450;
+                        } else {               # pos == 5
+                            x1 = 400; y1 = 500;
+                        }
+                    }
+                }
+            }
+        }
+
+        # dibujar el copo: seis ejes a 60 °
+        loop (axis = 0; axis < 6; axis = axis + 1) {
+            ang = axis * 60;
+            triBranch(x1, y1, len100, ang, depth);
+        }
     }
 }

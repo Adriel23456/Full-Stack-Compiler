@@ -1,0 +1,13 @@
+# Error: Usar variable antes de inicializarla
+(int) x, y, resultado;
+(color) miColor;
+
+frame {
+    # Error: 'y' no ha sido inicializada
+    x = y + 10;  
+    
+    # Error: 'miColor' no ha sido inicializada
+    setcolor(miColor);
+    
+    draw circle(x, x, 50);
+}

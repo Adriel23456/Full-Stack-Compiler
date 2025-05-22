@@ -218,19 +218,14 @@ class SemanticAnalysisView(ViewBase):
                             "IR generation failed - fix semantic errors",
                             10000
                         )
+                    
+                    self.view_controller.change_state(States.EDITOR)
+                    return True
 
-                # 3) IR generado con éxito  → popup de confirmación
+                # 3) IR generado con éxito  → siguiente vista
                 else:
-                    if self.editor_view:
-                        self.editor_view.popup = PopupDialog(
-                            self.editor_view.screen,
-                            "IR generated successfully!\nGuardado en out/vGraph.ll",
-                            5000
-                        )
-
-                # 4) En ambos casos volvemos al editor
-                self.view_controller.change_state(States.EDITOR)
-                return True
+                    self.view_controller.change_state(States.IR_VIEW)
+                    return True
             
             # Handle mouse dragging for camera control
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

@@ -1,0 +1,17 @@
+#Example of a multiple semantic errors
+(int) x, y1;
+(bool) a1, b1, c1;
+a1 = true;
+b1 = true;
+c1 = false;
+x = 5 + (2/2) * 3;
+
+y1 = a1 * x; #Deberia de darme error porque las operaciones aritmeticas solo funcionan entre numeros
+
+c1 = x > b1; #Deberia de darme error porque las comparaciones (<, >, <=, >=) solo se pueden hacer entre numeros.
+
+c1 = x == b1; #Deberia de darme error porque las comparaciones de igualdad (==, !=) pueden hacerse solo entre tipos iguales.
+
+c1 = x || b1; #Deberia de darme error porque las operaciones lógicas (&&, ||, !) solo pueden aplicarse a booleanos.
+
+x = cos(c1); #Deberia de darme error porque las funciones cos/sin solo aceptan numeros (int) y devuelven numeros (int).

@@ -9,6 +9,9 @@ from GUI.views.lexical_analysis_view import LexicalAnalysisView
 from GUI.views.syntactic_analysis_view import SyntacticAnalysisView
 from GUI.views.semantic_analysis_view import SemanticAnalysisView
 from GUI.views.symbol_table_view import SymbolTableView
+from GUI.views.ir_view import IRView
 
-__all__ = ['EditorView', 'ConfigView', 'CreditsView', 'GrammarView', 'LexicalAnalysisView', 'SyntacticAnalysisView', 'SemanticAnalysisView', 'SymbolTableView']
+__all__ = ['EditorView', 'ConfigView', 'CreditsView',
+           'GrammarView', 'LexicalAnalysisView', 'SyntacticAnalysisView',
+           'SemanticAnalysisView', 'SymbolTableView', 'IRView']
 

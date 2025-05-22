@@ -106,6 +106,11 @@ class ViewController:
                     self.semantic_analysis_path, 
                     self.enhanced_symbol_table_path
                 )
+
+            elif self.next_state == States.IR_VIEW:
+                self.current_view = self.states[self.next_state](
+                    self
+                )
                 
             else:
                 # Standard case - create new view instance

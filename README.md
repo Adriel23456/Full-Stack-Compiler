@@ -1,175 +1,220 @@
-# Full‑Stack‑Compiler
+# Full-Stack-Compiler
 
 ![status-badge](https://img.shields.io/badge/status-WIP-orange)
 
-An **end‑to‑end educational compiler** written in Python that translates **VGraph** source
-code into an x86 executable, updates a `800 × 600` memory buffer **in real time**, and—if
+An **end-to-end educational compiler** written in Python that translates **VGraph** source
+code into an x86 executable, updates a `800 × 600` RGB memory buffer **in real time**, and—if
 an HDMI port is detected—mirrors the live image to an external monitor.
 
 ---
 
 ## Table of Contents
-1. [Overview](#overview)  
-2. [Architecture](#architecture)  
-3. [VGraph Language](#vgraph-language)  
-4. [Project Layout](#project-layout)  
-5. [Installation](#installation)  
-6. [Basic Usage](#basic-usage)  
-7. [Road‑map (Sprints)](#road-map-sprints)  
-8. [Tool Stack](#tool-stack)  
-9. [License](#license)  
+
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [VGraph Language](#vgraph-language)
+4. [Project Layout](#project-layout)
+5. [Installation](#installation)
+6. [Basic Usage](#basic-usage)
+7. [Road-map](#road-map)
+8. [Tool Stack](#tool-stack)
+9. [License](#license)
 
 ---
 
 ## Overview
+
 The goal is to cover **every** compilation phase:
 
-| Phase | Purpose | Key Files |
-|-------|---------|-----------|
-| Front End | Lexical, syntactic, and semantic analysis | `CompilerLogic/lexicalAnalyzer.py`, `syntacticAnalyzer.py`, `semanticAnalyzer.py` |
-| Middle End | High‑ & low‑level IR + optimisations | `intermediateCodeGenerator.py`, `optimizer.py` |
-| Back End | Register allocation & code generation | `codeGenerator.py` |
-| Support | IDE/GUI, image viewer, file browser | `GUI/`, `ExternalPrograms/` |
+| Phase          | Purpose                                      | Key Files                                                                         |
+| -------------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Front-End**  | Lexical, syntactic & semantic analysis       | `CompilerLogic/lexicalAnalyzer.py`, `syntacticAnalyzer.py`, `semanticAnalyzer.py` |
+| **Middle-End** | High‐ & low-level **LLVM IR** + optimisation | `intermediateCodeGenerator.py`, `ir/irBuilder.py`, `optimizer.py`                 |
+| **Back-End**   | Register allocation & code emission          | `codeGenerator.py`                                                                |
+| **Support**    | IDE/GUI, image viewer, file browser          | `GUI/`, `ExternalPrograms/`                                                       |
 
 The produced executable (`out/vGraph.exe`) writes directly into
 `out/image.bin`; the Python viewer (`ExternalPrograms/imageViewer.py`)
-memory‑maps that file and displays it via **SDL 2 / Pygame**.
+memory-maps that file and displays it via **SDL 2 / Pygame**.
 
 ---
 
 ## Architecture
+
 ```
 ┌──────────────┐     ┌────────────┐     ┌────────────┐
 │  Lexer/      │──► │  IR &      │──► │  ASM/EXE    │
 │  Parser      │     │  Optimiser │     │  Generator │
 └──────────────┘     └────────────┘     └────────────┘
         ▲                   │                   │
-        │ GUI/IDE           │ LLVM passes       │ HDMI output
+        │   GUI/IDE         │ LLVM passes       │ HDMI output
 ```
 
-* **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing.  
-* **LLVM (llvmlite)** for IR, optimisation, and x86 back‑end.  
-* Fully modular pipeline.
+* **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing.
+* **LLVM (llvmlite)** for IR, optimisation & x86 back-end.
+* Fully modular pipeline with hot-reloading IR view inside the IDE.
 
 ---
 
 ## VGraph Language
-### Main Tokens
-Keywords like `draw`, `setcolor`, `frame`, `loop`, `if`, `else`, etc.
-Identifiers are **alphanumeric, ≤ 10 chars, start with a lowercase letter**.
-Integers range 0‑639 / 0‑479. Comments start with `#`.
 
-### Minimal Example
+### Main Tokens
+
+* Drawing: `draw line|circle|rect|pixel`
+* State: `setcolor`, `clear`, `wait`
+* Flow: `frame`, `loop`, `if`, `else`, `return`
+* Types: `(int)`, `(color)`, `(bool)`
+* Math helpers: `cos()`, `sin()`, arithmetic `+ - * / %`
+* Comments start with `#`.
+
+### Syntax Rules (extract)
+
+* **Declarations**  `(int) x = 42;`  |  `(color) r, g, b;`
+* **Loops**   `loop (i = 0; i < 10; i = i + 1) { … }`
+* **If / else-if chain** is written as nested `else { if (…) { … } }` (no `elif`).
+* **Angles** are given in degrees; trig functions expect degrees.
+* **Identifiers**: lower-case letter followed by ≤ 9 alphanumerics.
+* Screen coordinates: `x ∈ [0,799]`, `y ∈ [0,599]`.
+
+### Mini Example
+
 ```text
-(color) c = red;
+(int) i;
+(color) c;
 frame {
-    loop (i = 0; i < 100; i = i + 10) {
-        draw circle(i, 120, 15);
-        wait(3);
+    loop (i = 0; i < 360; i = i + 10) {
+        c = (i % 2 == 0) ? rojo : azul; # pseudo-ternary via if-else in real code
+        setcolor(c);
+        draw circle(400, 300, i / 4);
+        wait(5);
     }
 }
 ```
-Larger programs (spiral, mandala, fractal tree) live in `Examples/`. 
+
+See more programs under **`Examples/`** (spiral, mandala, snowflake tree …).
 
 ---
 
 ## Project Layout
+
 ```
 FULL-STACK-COMPILER
-├── assets/                 # Grammar, fonts, sample images
-│   ├── Images/ej?.png
-│   └── VGraph.g4
-├── CompilerLogic/          # Compiler core
+├── assets/
+│   ├── Images/              # generated PNGs for visualisations
+│   ├── VGraph.g4            # grammar
+│   └── fonts/               # JetBrainsMono, …
+├── CompilerLogic/
+│   ├── ir/                  # low-level runtime + IR builder
+│   │   ├── irBuilder.py
+│   │   ├── runtime.c|h|o
+│   │   ├── libvgraphrt.a
+│   │   └── build_runtime.sh
+│   ├── SemanticComponents/  # symbol table, type checker, …
+│   │   ├── astVisitor.py …
 │   ├── lexicalAnalyzer.py
 │   ├── syntacticAnalyzer.py
 │   ├── semanticAnalyzer.py
 │   ├── intermediateCodeGenerator.py
 │   ├── optimizer.py
 │   └── codeGenerator.py
-├── GUI/                    # Minimal IDE (MVC)
-│   ├── components/…        # button.py, textbox.py, …
-│   ├── models/execute_model.py
+├── GUI/
+│   ├── components/          # reusable buttons, textboxes
 │   ├── views/
 │   │   ├── editor_view.py
-│   │   ├── grammar_view.py
 │   │   ├── lexical_analysis_view.py
-│   │   └── … (other views WIP)
+│   │   ├── syntactic_analysis_view.py
+│   │   ├── semantic_analysis_view.py
+│   │   ├── ir_view.py       # NEW – LLVM IR viewer
+│   │   ├── symbol_table_view.py
+│   │   ├── grammar_view.py
+│   │   ├── credits_view.py
+│   │   └── config_view.py
+│   ├── design_base.py
+│   ├── view_base.py
 │   └── view_controller.py
-├── ExternalPrograms/       # Auxiliary tools
+├── ExternalPrograms/
 │   ├── fileExplorer.py
-│   └── imageViewer.py
-├── Examples/Test?.txt      # Test cases
-├── out/                    # Build artefacts
-│   ├── image.bin
-│   ├── vGraph.asm
-│   └── vGraph.exe
-├── config.py               # Global settings
-├── design_settings.json    # GUI theme
-├── main.py                 # CLI / GUI entry‑point
-└── README.md
+│   └── imageViewer.py       # mmap + SDL2 viewer
+├── Examples/
+│   ├── SnowflakeTree.txt
+│   └── Mandala.txt …        # more demos
+├── out/
+│   ├── image.bin            # 800×600 × 24-bit
+│   ├── vGraph.asm|exe|ll    # outputs of each back-end
+│   └── vGraph.o             # object file
+├── requirements.txt         # **new** – pinned versions of pygame, llvmlite, antlr4-runtime …
+├── config.py                # global constants
+├── design_settings.json     # GUI colour theme
+├── main.py                  # CLI / GUI entry-point
+├── LICENSE
+└── README.md (this file)
 ```
 
 ---
 
 ## Installation
+
 ```bash
-# 1 – clone repo
-git clone https://github.com/<user>/full-stack-compiler.git
-cd full-stack-compiler
+# 1 – clone repo
+$ git clone https://github.com/<user>/full-stack-compiler.git
+$ cd full-stack-compiler
 
-# 2 – create venv
-python3 -m venv .venv
-source .venv/bin/activate
+# 2 – create venv
+$ python3 -m venv .venv
+$ source .venv/bin/activate
 
-# 3 – install deps
-pip install -r requirements.txt   # pygame, llvmlite, antlr4-python3-runtime, …
+# 3 – install deps
+$ pip install -r requirements.txt
 
-# 4 – assembler & linker (Linux)
-sudo apt-get install nasm gcc
+# 4 – assembler & linker (Linux)
+$ sudo apt-get install nasm gcc
 
-# 5 – generate lexer/parser (first time or on .g4 change)
-antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
+# 5 – generate lexer/parser (first time or when VGraph.g4 changes)
+$ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 ```
 
 ---
 
 ## Basic Usage
 
-| Action | Command |
-|--------|---------|
-| Compile → `.exe` | `python main.py build Examples/Test1.txt` |
-| Compile + O2     | `python main.py build Examples/Test1.txt -O2` |
-| Emit IR          | `python main.py ir Examples/Test1.txt` |
-| Launch IDE GUI   | `python main.py gui` |
-| Live image view  | `python ExternalPrograms/imageViewer.py out/image.bin` |
+| Action                | Command                                                |
+| --------------------- | ------------------------------------------------------ |
+| Build EXE             | `python main.py build Examples/SnowflakeTree.txt`      |
+| Build with -O2        | `python main.py build Examples/SnowflakeTree.txt -O2`  |
+| Emit LLVM IR          | `python main.py ir Examples/SnowflakeTree.txt`         |
+| Launch IDE GUI        | `python main.py gui`                                   |
+| Live framebuffer view | `python ExternalPrograms/imageViewer.py out/image.bin` |
 
-> The generated executable writes into `out/image.bin`;  
-> the viewer maps that buffer and refreshes the SDL window / HDMI at 60 FPS.
-
----
-
-## Road‑map (Sprints)
-1. **IDE & framework integration**  
-2. **Lexical + syntactic analysis**  
-3. **Semantic analysis**  
-4. **IR + basic optimiser**  
-5. **x86 code generator**  
-6. **Real‑time HDMI visualization** 
+> The generated program writes into `out/image.bin`; the viewer refreshes the
+> SDL window (and HDMI) at 60 FPS.
 
 ---
 
-## Tool Stack
-| Purpose | Tech |
-|---------|------|
-| Main language | Python 3.12 |
-| Lexer / Parser | **ANTLR 4** |
-| IR & back‑end | **llvmlite** (LLVM) |
-| Assembler / Linker | `nasm`, `gcc` |
-| Visualisation | `pygame` / `PySDL2`, `mmap`, `pyudev` |
-| GUI | Custom MVC + SDL2 |
-| Target OS | Linux (Ubuntu) |
+## Road-map
+
+1. **IDE & framework integration** – *done*
+2. **Lexical + syntactic analysis** – *done*
+3. **Semantic analysis** – *done*
+4. **IR + basic optimiser** – in progress
+5. **x86 code generator** – TBD
+6. **Real-time HDMI visualisation** – TBD
+
+---
+
+## Tool Stack
+
+| Purpose            | Tech                                 |
+| ------------------ | ------------------------------------ |
+| Main language      | Python 3.12                          |
+| Lexer / Parser     | **ANTLR 4** (Python runtime)         |
+| IR & back-end      | **LLVM** via `llvmlite`              |
+| Assembler / Linker | `nasm`, `gcc`                        |
+| Visualisation      | `pygame`, `PySDL2`, `mmap`, `pyudev` |
+| GUI                | Custom MVC (Pygame + SDL2)           |
+| Target OS          | Linux (Ubuntu 22.04)                 |
 
 ---
 
 ## License
+
 Released under the **MIT License**. See [LICENSE](LICENSE) for details.

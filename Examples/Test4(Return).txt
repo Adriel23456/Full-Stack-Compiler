@@ -1,0 +1,27 @@
+# Función matemática con múltiples tipos
+(int) base, altura, resultado;
+(bool) esPositivo;
+(color) colorFigura;
+clear();
+
+function calcularArea(base, altura, extra) {
+    resultado = base * altura;
+    return resultado;
+}
+
+frame {
+    base = 10;
+    altura = 5;
+    resultado = calcularArea(base, altura, 0);
+    
+    if (resultado > 0) {
+        esPositivo = true;
+        colorFigura = verde;
+    } else {
+        esPositivo = false;
+        colorFigura = rojo;
+    }
+    
+    setcolor(colorFigura);
+    draw rect(100, 100, 100 + base, 100 + altura);
+}
