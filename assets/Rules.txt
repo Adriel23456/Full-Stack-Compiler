@@ -1,26 +1,26 @@
 # Reglas Semánticas del Lenguaje VGraph
 
 ## 1. Reglas de Tipos
-- Las variables deben declararse antes de usarse (LISTO)
-- Las variables solo pueden ser de tipos: int, color, bool (LISTO)
-- Las variables de tipo int, son en realidad de tipo numero, puesto que, aceptan ser hasta con decimales (LISTO)
-- Las operaciones aritméticas (+, -, *, /, %) solo pueden realizarse entre numeros (int) (FALTA)
-- Las comparaciones (<, >, <=, >=) solo pueden hacerse entre numeros (int) (FALTA)
-- Las comparaciones de igualdad (==, !=) pueden hacerse entre tipos iguales (FALTA)
-- Las operaciones lógicas (&&, ||, !) solo pueden aplicarse a booleanos (bool) (FALTA)
-- Las funciones cos/sin solo aceptan numeros (int) y devuelven numeros (int) (FALTA)
-- Los argumentos de las funciones de dibujo deben ser numeros (int) (LISTO)
-- La función setcolor requiere un argumento de tipo color (LISTO)
+- Las variables deben declararse antes de usarse
+- Las variables solo pueden ser de tipos: int, color, bool
+- Las variables de tipo int, son en realidad de tipo numero, puesto que, aceptan ser hasta con decimales
+- Las operaciones aritméticas (+, -, *, /, %) solo pueden realizarse entre numeros (int)
+- Las comparaciones (<, >, <=, >=) solo pueden hacerse entre numeros (int)
+- Las comparaciones de igualdad (==, !=) pueden hacerse entre tipos iguales
+- Las operaciones lógicas (&&, ||, !) solo pueden aplicarse a booleanos (bool)
+- Las funciones cos/sin solo aceptan numeros (int) y devuelven numeros (int)
+- Los argumentos de las funciones de dibujo deben ser numeros (int)
+- La función setcolor requiere un argumento de tipo color
 
 ## 2. Reglas de Ámbito
-- Las variables solo son visibles en su ámbito de declaración y ámbitos internos (LISTO)
-- No se permite redeclarar variables en el mismo ámbito (LISTO)
-- Las funciones solo pueden declararse en el ámbito global (LISTO)
-- Las sentencias return solo pueden aparecer dentro de funciones (LISTO)
+- Las variables solo son visibles en su ámbito de declaración y ámbitos internos
+- No se permite redeclarar variables en el mismo ámbito
+- Las funciones solo pueden declararse en el ámbito global
+- Las sentencias return solo pueden aparecer dentro de funciones
 
 ## 3. Reglas Específicas
-- Los identificadores deben ser alfanuméricos, ≤ 15 caracteres y comenzar con minúscula (LISTO)
-- Los numeros para coordenadas pueden estan en cualquier rango, que no estan limitados por el rango de imagen (LISTO)
-- El número de argumentos en una llamada a función debe coincidir con la declaración (LISTO)
-- Se advierte sobre variables declaradas pero no utilizadas (LISTO)
-- Da un error total sobre variables utilizadas sin inicializar (LISTO)
+- Los identificadores deben ser alfanuméricos, ≤ 15 caracteres y comenzar con minúscula
+- Los numeros para coordenadas pueden estan en cualquier rango, que no estan limitados por el rango de imagen
+- El número de argumentos en una llamada a función debe coincidir con la declaración
+- Se advierte sobre variables declaradas pero no utilizadas
+- Da un error total sobre variables utilizadas sin inicializar

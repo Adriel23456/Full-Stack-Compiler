@@ -124,7 +124,8 @@ FULL-STACK-COMPILER
 │   │   ├── lexical_analysis_view.py
 │   │   ├── syntactic_analysis_view.py
 │   │   ├── semantic_analysis_view.py
-│   │   ├── ir_view.py       # NEW – LLVM IR viewer
+│   │   ├── ir_view.py      
+│   │   ├── optimizer_view.py      
 │   │   ├── symbol_table_view.py
 │   │   ├── grammar_view.py
 │   │   ├── credits_view.py

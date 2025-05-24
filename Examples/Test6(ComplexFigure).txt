@@ -23,7 +23,6 @@ function sparkle(px, py) {
         else { col = amarillo; }
         setcolor(col);
         draw circle(px, py, 4 - sparkleT / 2);   # círculo decreciente
-        wait(10);
     }
 }
 
@@ -98,6 +97,6 @@ frame {
             sparkle(sx, sy);                      # destello animado
         }
 
-        wait(8);   # ~120 fps – movimiento fluido y rápido
+        wait(2);   # ~120 fps – movimiento fluido y rápido
     }
 }

@@ -1,7 +1,7 @@
-# File: GUI/views/ir_view.py
+# File: GUI/views/optimizer_view.py
 import os
 import pygame
-from CompilerLogic.optimizer import Optimizer
+from CompilerLogic.codeGenerator import CodeGenerator
 from GUI.components.pop_up_dialog import PopupDialog
 from GUI.view_base import ViewBase
 from GUI.components.button import Button
@@ -9,9 +9,9 @@ from GUI.design_base import design
 from config import States, BASE_DIR
 
 
-class IRView(ViewBase):
+class OptimizerView(ViewBase):
     """
-    Muestra el contenido textual de out/vGraph.ll con scroll.
+    Muestra el contenido textual de out/vGraph_opt.ll con scroll.
     No necesita que se le inyecte la ruta: la resuelve sola.
     """
     NOT_FOUND_MSG = ["IR file not found – compile first."]
@@ -41,11 +41,11 @@ class IRView(ViewBase):
     def _find_ir_path(self) -> str | None:
         """
         1)  Si el controlador almacenó `ir_path`, úsalo.
-        2)  Si existe out/vGraph.ll, devuélvelo.
+        2)  Si existe out/vGraph_opt.ll, devuélvelo.
         3)  Si no, None.
         """
         # 1) Ruta por defecto
-        default = os.path.join(BASE_DIR, "out", "vGraph.ll")
+        default = os.path.join(BASE_DIR, "out", "vGraph_opt.ll")
         return default if os.path.exists(default) else None
 
     # ────────────────────────────────────────────────────────────
@@ -107,20 +107,33 @@ class IRView(ViewBase):
                 self.view_controller.change_state(States.EDITOR)
 
             if self.next_btn.handle_event(ev):
-                # Ejecutar el optimizador
-                optimizer = Optimizer()
-                success, message, output_path = optimizer.optimize(optimization_level=3)
+                # Ejecutar el generador de código ensamblador
+                code_gen = CodeGenerator()
+                success, message, output_path = code_gen.generate_assembly()
+                
                 if success:
-                    self.view_controller.change_state(States.OPTIMIZER_VIEW)
-                    return True
+                    # Mostrar popup de éxito
+                    popup = PopupDialog(
+                        self.screen,
+                        message,
+                        5000  # 5 segundos
+                    )
+                    self.popup = popup
+                    print(f"[OptimizerView] Assembly generation successful: {message}")
+                    
+                    # Cambiar a la vista de ensamblador (si existe) o ejecutar
+                    # Por ahora, vamos directo a la ejecución
+                    #if hasattr(self.view_controller, 'assembly_view_state'):
+                    #    self.view_controller.change_state(States.ASSEMBLY_VIEW)
                 else:
                     # Mostrar popup de error
                     popup = PopupDialog(
                         self.screen,
-                        f"Optimization failed: {message}",
+                        f"Assembly generation failed: {message}",
                         5000
                     )
                     self.popup = popup
+                    print(f"[OptimizerView] Assembly generation failed: {message}")
 
             # Rueda del mouse
             if ev.type == pygame.MOUSEWHEEL:
@@ -178,7 +191,7 @@ class IRView(ViewBase):
 
         # Título
         title_surf = design.get_font("large").render(
-            "Intermediate Representation (LLVM IR)",
+            "Intermediate Optimized Representation (LLVM IR Optimized)",
             True, design.colors["text"]
         )
         self.screen.blit(title_surf, title_surf.get_rect(midtop=(self.screen_rect.centerx, 15)))

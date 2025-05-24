@@ -28,8 +28,6 @@ COLORS = {
     "blanco": 0x00FFFFFF,  "negro": 0x00000000, "marrón": 0x00800000,
 }
 
-def _dbg(msg: str) -> None: print(f"[IR-BUILDER] {msg}")
-
 
 # ╭────────────────────────────────────────────╮
 # │                IRGenerator                 │
@@ -72,7 +70,6 @@ class IRGenerator:
 
     # ───────────── generate() ─────────────
     def generate(self) -> str:
-        _dbg("starting IR generation pass")
 
         fn_main = ir.Function(self.module, ir.FunctionType(self.i32, ()), name="main")
         self.builder = ir.IRBuilder(fn_main.append_basic_block("entry"))
@@ -83,12 +80,10 @@ class IRGenerator:
         bw = ir.IRBuilder(fn_wrap.append_basic_block("entry"))
         bw.ret(bw.call(fn_main, []))
 
-        _dbg("IR generation completed")
         return str(self.module)
 
     # ───────────── runtime externals ─────────────
     def _declare_runtime(self):
-        _dbg("declaring runtime externals")
         proto = {
             "vg_set_color":  (self.void, (self.i32,)),
             "vg_draw_pixel": (self.void, (self.i32, self.i32)),
@@ -106,7 +101,6 @@ class IRGenerator:
 
     # ───────────── global vars ─────────────
     def _codegen_globals(self):
-        _dbg("emitting global variables")
         for ident, info in self.symtab.get_all_symbols().get("global", {}).items():
             if ident in self.fn_names:          # ¡evitar colisión con funciones!
                 continue
@@ -162,7 +156,6 @@ class IRGenerator:
         lhs = self._visit(ctx.getChild(0))
         rhs = self._visit(ctx.getChild(2))
         if lhs is None or rhs is None:
-            _dbg(f"⚠️ binary op got None lhs={lhs} rhs={rhs}")
             lhs = lhs or self._const_zero(self.f64)
             rhs = rhs or self._const_zero(self.f64)
         return lhs, rhs
@@ -349,7 +342,6 @@ class IRGenerator:
 
         fn = self.module.globals.get(name)
         if not isinstance(fn, ir.Function):
-            _dbg(f"⚠️ call to undefined function '{name}'")
             return
         args = [self._visit(e) for e in (args_ctx.expr() if args_ctx else [])]
         self.builder.call(fn, args)
@@ -365,7 +357,6 @@ class IRGenerator:
 
         fn = self.module.globals.get(name)
         if not isinstance(fn, ir.Function):
-            _dbg(f"⚠️ call to undefined function '{name}' – 0.0 used")
             return ir.Constant(self.f64, 0.0)
         args = [self._visit(e) for e in (args_ctx.expr() if args_ctx else [])]
         self.builder.call(fn, args)
@@ -399,7 +390,6 @@ class IRGenerator:
             if val.type is self.i1:
                 return self.builder.uitofp(val, self.f64)
 
-        _dbg(f"⚠️ cannot coerce {val.type} → {target_ty} – zero used")
         return self._const_zero(target_ty)
 
     def _round_to_i32(self, val: ir.Value) -> ir.Value:
@@ -428,7 +418,6 @@ class IRGenerator:
             return ptr
 
         if name in self.fn_names:          # no crear variable homónima a función
-            _dbg(f"⚠️ '{name}' usado como variable pero es función – ignorado")
             return ir.Undef(self.f64)      # valor “vacío”
 
         # local dentro de función
@@ -445,7 +434,6 @@ class IRGenerator:
             return slot
 
         # global implícito
-        _dbg(f"⚠️ '{name}' undeclared – creating implicit f64 global")
         g = ir.GlobalVariable(self.module, self.f64, name)
         g.initializer = ir.Constant(self.f64, 0.0)
         self.value_ptr[name] = g

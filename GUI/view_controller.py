@@ -111,6 +111,11 @@ class ViewController:
                 self.current_view = self.states[self.next_state](
                     self
                 )
+            
+            elif self.next_state == States.OPTIMIZER_VIEW:
+                self.current_view = self.states[self.next_state](
+                    self
+                )
                 
             else:
                 # Standard case - create new view instance

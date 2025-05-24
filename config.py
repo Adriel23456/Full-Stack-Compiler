@@ -25,6 +25,7 @@ class States:
     SYNTACTIC_ANALYSIS  = "SYNTACTIC_ANALYSIS"
     SEMANTIC_ANALYSIS   = "SEMANTIC_ANALYSIS"
     IR_VIEW             = "IR_VIEW"
+    OPTIMIZER_VIEW             = "OPTIMIZER_VIEW"
 
 # Font size configurations
 # Tamaños para la opción "small"

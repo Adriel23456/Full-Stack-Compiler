@@ -16,10 +16,6 @@ from CompilerLogic.SemanticComponents.symbolTable import SymbolTable
 from CompilerLogic.ir.irBuilder import IRGenerator
 
 
-def _dbg(msg: str) -> None:
-    print(f"[IR-GEN] {msg}")
-
-
 class IntermediateCodeGenerator:
     """
     Single public entry-point → `emit_ir()`
@@ -31,7 +27,6 @@ class IntermediateCodeGenerator:
         """Guarantee a SymbolTable instance (wrap plain dict if needed)."""
         if isinstance(raw, SymbolTable):
             return raw
-        _dbg("raw symbol table was a plain dict – wrapping into SymbolTable")
         return SymbolTable(raw or {})
 
     # ────────────────────────────────────────────────────────────
@@ -43,18 +38,15 @@ class IntermediateCodeGenerator:
         Returns the IR text or **None** when generation fails.
         All exceptions are caught and transformed into `CompilerData.semantic_errors`.
         """
-        _dbg("emit_ir() called")
 
         # 1) check pending semantic errors
         if CompilerData.semantic_errors:
-            _dbg(f"aborting – {len(CompilerData.semantic_errors)} semantic errors present")
             return None
 
         # 2) collect data from previous phases
         ast    = CompilerData.ast
         parser = CompilerData.parser
         if ast is None or parser is None:
-            _dbg("No AST or parser found – did syntactic analysis run?")
             return None
 
         symtab = IntermediateCodeGenerator._ensure_symbol_table(CompilerData.symbol_table)
@@ -63,7 +55,6 @@ class IntermediateCodeGenerator:
         try:
             ir_text = IRGenerator(ast, symtab, parser).generate()
         except Exception as exc:  # pylint: disable=broad-except
-            _dbg("💥 IR generation threw an exception – see trace below")
             traceback.print_exc()
 
             # store as synthetic semantic error so GUI highlights something
@@ -82,5 +73,4 @@ class IntermediateCodeGenerator:
         with open(output_path, "w", encoding="utf-8") as fh:
             fh.write(ir_text)
 
-        _dbg(f"IR written to {output_path}")
         return ir_text
