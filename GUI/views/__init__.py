@@ -12,9 +12,10 @@ from GUI.views.symbol_table_view import SymbolTableView
 from GUI.views.ir_view import IRView
 from GUI.views.optimizer_view import OptimizerView
 from GUI.views.code_generator_view import CodeGeneratorView
+from GUI.views.report_view import ReportView
 
 __all__ = ['EditorView', 'ConfigView', 'CreditsView',
            'GrammarView', 'LexicalAnalysisView', 'SyntacticAnalysisView',
            'SemanticAnalysisView', 'SymbolTableView', 'IRView', 'OptimizerView',
-           'CodeGeneratorView']
+           'CodeGeneratorView','ReportView']
 
