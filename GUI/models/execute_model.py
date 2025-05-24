@@ -199,8 +199,6 @@ if __name__ == '__main__':
             print("Please complete the compilation process first.")
             return False
         
-        print(f"Found executable: {exe_path}")
-        
         # Ejecutar vGraph
         ok_vgraph = self.run_vgraph_executable()
         
