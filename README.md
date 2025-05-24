@@ -197,9 +197,9 @@ $ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 1. **IDE & framework integration** – *done*
 2. **Lexical + syntactic analysis** – *done*
 3. **Semantic analysis** – *done*
-4. **IR + basic optimiser** – in progress
-5. **x86 code generator** – TBD
-6. **Real-time HDMI visualisation** – TBD
+4. **IR + basic optimiser** – *done*
+5. **x86 code generator** – *done*
+6. **Real-time HDMI visualisation** – in progress
 
 ---
 
@@ -210,7 +210,7 @@ $ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 | Main language      | Python 3.12                          |
 | Lexer / Parser     | **ANTLR 4** (Python runtime)         |
 | IR & back-end      | **LLVM** via `llvmlite`              |
-| Assembler / Linker | `nasm`, `gcc`                        |
+| Assembler / Linker | `clang`, `gcc`                       |
 | Visualisation      | `pygame`, `PySDL2`, `mmap`, `pyudev` |
 | GUI                | Custom MVC (Pygame + SDL2)           |
 | Target OS          | Linux (Ubuntu 22.04)                 |
