@@ -73,25 +73,34 @@ memory-maps that file and displays it via **SDL 2 / Pygame**.
 * **Loops**   `loop (i = 0; i < 10; i = i + 1) { … }`
 * **If / else-if chain** is written as nested `else { if (…) { … } }` (no `elif`).
 * **Angles** are given in degrees; trig functions expect degrees.
-* **Identifiers**: lower-case letter followed by ≤ 9 alphanumerics.
+* **Identifiers**: lower-case letter followed by ≤ 15 alphanumerics.
 * Screen coordinates: `x ∈ [0,799]`, `y ∈ [0,599]`.
 
 ### Mini Example
 
 ```text
-(int) i;
+# Definir variables para la espiral (Dibuja solo una linea de pixeles en espiral)
+(int) x, y, t;
 (color) c;
+
 frame {
-    loop (i = 0; i < 360; i = i + 10) {
-        c = (i % 2 == 0) ? rojo : azul; # pseudo-ternary via if-else in real code
+    clear();
+    loop (t = 0; t < 360; t = t + 5) {
+        # Calcular coordenadas de la espiral usando trigonometría
+        x = 320 + t * cos(t * 3.1416 / 180);  # Centro en X=320
+        y = 240 + t * sin(t * 3.1416 / 180);  # Centro en Y=240
+        # Cambiar color en cada iteración
+        if (t % 3 == 0) { c = rojo; }
+        else if (t % 3 == 1) { c = azul; }
+        else { c = verde; }
         setcolor(c);
-        draw circle(400, 300, i / 4);
-        wait(5);
+        draw pixel(x, y);
+        wait(100);  # Retraso para observar la animación (SIno estuviera simplemente se pintaria el contenido inmediatamente)
     }
 }
 ```
 
-See more programs under **`Examples/`** (spiral, mandala, snowflake tree …).
+See more programs under **`Examples/`** (universe, snowflake tree …).
 
 ---
 
@@ -158,21 +167,18 @@ FULL-STACK-COMPILER
 
 ```bash
 # 1 – clone repo
-$ git clone https://github.com/<user>/full-stack-compiler.git
-$ cd full-stack-compiler
+$ git clone https://github.com/Adriel23456/Full-Stack-Compiler.git
+$ cd Full-Stack-Compiler
 
 # 2 – create venv
 $ python3 -m venv .venv
 $ source .venv/bin/activate
 
-# 3 – install deps
-$ pip install -r requirements.txt
+# 3 – install deps (run the commands depending on your OS)
+$ ./requirements.txt
 
-# 4 – assembler & linker (Linux)
-$ sudo apt-get install nasm gcc
-
-# 5 – generate lexer/parser (first time or when VGraph.g4 changes)
-$ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
+# 4 – execute the program and enjoy
+$ python main.py
 ```
 
 ---
@@ -181,11 +187,10 @@ $ antlr4 -Dlanguage=Python3 assets/VGraph.g4 -o assets
 
 | Action                | Command                                                |
 | --------------------- | ------------------------------------------------------ |
-| Build EXE             | `python main.py build Examples/SnowflakeTree.txt`      |
-| Build with -O2        | `python main.py build Examples/SnowflakeTree.txt -O2`  |
-| Emit LLVM IR          | `python main.py ir Examples/SnowflakeTree.txt`         |
-| Launch IDE GUI        | `python main.py gui`                                   |
-| Live framebuffer view | `python ExternalPrograms/imageViewer.py out/image.bin` |
+| Launch IDE GUI        | `python main.py`                                       |
+| Execute of imagen.bin | `./out/vGraph.exe`                                     |
+| Execute of viewer     | `./out/Visualizer.exe`                                 |
+| Execute of HDMI-Out   | `./out/HDMI.exe`                                       |
 
 > The generated program writes into `out/image.bin`; the viewer refreshes the
 > SDL window (and HDMI) at 60 FPS.

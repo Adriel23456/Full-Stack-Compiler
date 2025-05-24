@@ -1,4 +1,4 @@
-# Definir variables para la espiral (DIbuja solo una linea de pixeles en espiral)
+# Definir variables para la espiral (Dibuja solo una linea de pixeles en espiral)
 (int) x, y, t;
 (color) c;
 
