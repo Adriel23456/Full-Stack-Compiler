@@ -26,6 +26,7 @@ class States:
     SEMANTIC_ANALYSIS   = "SEMANTIC_ANALYSIS"
     IR_VIEW             = "IR_VIEW"
     OPTIMIZER_VIEW             = "OPTIMIZER_VIEW"
+    CODE_GENERATOR_VIEW             = "CODE_GENERATOR_VIEW"
 
 # Font size configurations
 # Tamaños para la opción "small"

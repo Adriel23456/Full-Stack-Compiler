@@ -5,6 +5,7 @@ Initializes pygame and the View Controller
 import pygame
 import sys
 import os
+from GUI.views.code_generator_view import CodeGeneratorView
 from GUI.views.ir_view import IRView
 from GUI.views.optimizer_view import OptimizerView
 from config import WINDOW_TITLE, States
@@ -53,6 +54,7 @@ def main():
         controller.add_state(States.SEMANTIC_ANALYSIS, SemanticAnalysisView)
         controller.add_state(States.IR_VIEW, IRView)
         controller.add_state(States.OPTIMIZER_VIEW, OptimizerView)
+        controller.add_state(States.CODE_GENERATOR_VIEW, CodeGeneratorView)
         
         # Set initial state to Editor
         controller.set_initial_state(States.EDITOR)

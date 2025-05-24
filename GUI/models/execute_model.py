@@ -22,59 +22,50 @@ class ExecuteModel:
         self.viewer_process = None
 
     # ──────────────────────────────────────────────────────────────
-    #  vGraph: ensamblar + enlazar + ejecutar en GNOME-terminal
+    #  vGraph: solo ejecutar el .exe ya creado
     # ──────────────────────────────────────────────────────────────
     def run_vgraph_executable(self) -> bool:
         """
-        Abre un GNOME-terminal, ensambla el código ASM y ejecuta vGraph.exe
+        Ejecuta el vGraph.exe ya compilado en un GNOME-terminal
         """
         try:
             # Rutas
-            exe_dir = os.path.join(BASE_DIR, "out")
-            exe_path = os.path.join(exe_dir, "vGraph.exe")
-            asm_path = os.path.join(exe_dir, "vGraph.asm")
-            obj_path = os.path.join(exe_dir, "vGraph.o")
-            runtime_path = os.path.join(BASE_DIR, "CompilerLogic", "ir", "runtime.o")
-            build_script = os.path.join(BASE_DIR, "CompilerLogic", "ir", "build_runtime.sh")
-
-            # Verificar que existe el archivo ASM
-            if not os.path.exists(asm_path):
-                print(f"Error: No se encuentra {asm_path}. Genere el código ensamblador primero.")
+            exe_path = os.path.join(BASE_DIR, "out", "vGraph.exe")
+            
+            # Verificar que existe el ejecutable
+            if not os.path.exists(exe_path):
+                print(f"Error: No se encuentra {exe_path}. Compile el programa primero.")
                 return False
 
-            # Comandos a lanzar en orden dentro del terminal
-            # Nota: Usamos 'as' (GNU assembler) porque llvmlite genera sintaxis AT&T
+            # Comandos a ejecutar en el terminal
             cmds = [
                 f"cd {BASE_DIR}",
-                f"echo 'Building VGraph runtime...'",
-                f"bash {build_script}",
-                f"echo 'Assembling {asm_path}...'",
-                f"as {asm_path} -o {obj_path}",  # GNU assembler para sintaxis AT&T
-                f"echo 'Linking executable...'",
-                f"gcc {obj_path} {runtime_path} -lm -no-pie -o {exe_path}",  # -no-pie para evitar PIE
-                f"echo 'Running VGraph...'",
+                f"echo 'Running VGraph executable...'",
+                f"echo 'Path: {exe_path}'",
+                f"echo '─────────────────────────────────'",
                 f"{exe_path}",
-                "echo 'Presiona Enter para cerrar'; read"
+                f"echo '─────────────────────────────────'",
+                f"echo 'VGraph execution completed.'",
+                "echo 'Press Enter to close'; read"
             ]
             bash_cmd = " && ".join(cmds)
 
             # Verificar disponibilidad de gnome-terminal
             if subprocess.run(["which", "gnome-terminal"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode != 0:
-                print("Error: gnome-terminal no está disponible en este sistema.")
-                # Fallback: ejecutar en terminal actual
-                for cmd in cmds[:-1]:  # Omitir el 'read' final
-                    print(f"Ejecutando: {cmd}")
-                    result = subprocess.run(cmd, shell=True, cwd=BASE_DIR)
-                    if result.returncode != 0:
-                        print(f"Error al ejecutar: {cmd}")
-                        return False
-                return True
+                print("Warning: gnome-terminal not available. Running in current terminal...")
+                # Fallback: ejecutar directamente
+                try:
+                    result = subprocess.run(exe_path, cwd=BASE_DIR)
+                    return result.returncode == 0
+                except Exception as e:
+                    print(f"Error running executable: {e}")
+                    return False
 
             # Lanzar gnome-terminal
             self.vgraph_process = subprocess.Popen(
                 ["gnome-terminal", "--", "bash", "-c", bash_cmd]
             )
-            print(f"vGraph.exe lanzado en gnome-terminal (ensamblado desde {asm_path})")
+            print(f"VGraph executable launched in gnome-terminal")
             return True
 
         except Exception as e:
@@ -178,14 +169,14 @@ if __name__ == '__main__':
                     ["gnome-terminal", "--", "python3", script_path],
                     env=env
                 )
-                print("Image Viewer lanzado en gnome-terminal")
+                print("Image Viewer launched in gnome-terminal")
                 return True
 
             # Fallback: ejecutar directamente
             env = os.environ.copy()
             env["PYTHONPATH"] = f"{BASE_DIR}:{env.get('PYTHONPATH', '')}"
             self.viewer_process = subprocess.Popen(["python3", script_path], env=env)
-            print("Image Viewer lanzado directamente")
+            print("Image Viewer launched directly")
             return True
 
         except Exception as e:
@@ -200,7 +191,23 @@ if __name__ == '__main__':
         Execute both the vGraph executable and the image viewer
         """
         import time
+        
+        # Verificar que el ejecutable existe antes de intentar ejecutarlo
+        exe_path = os.path.join(BASE_DIR, "out", "vGraph.exe")
+        if not os.path.exists(exe_path):
+            print(f"Error: Executable not found at {exe_path}")
+            print("Please complete the compilation process first.")
+            return False
+        
+        print(f"Found executable: {exe_path}")
+        
+        # Ejecutar vGraph
         ok_vgraph = self.run_vgraph_executable()
-        time.sleep(1)  # pequeño respiro
+        
+        # Pequeña pausa para que vGraph inicialice
+        time.sleep(1)
+        
+        # Ejecutar el visualizador
         ok_viewer = self.start_image_viewer()
+        
         return ok_vgraph and ok_viewer

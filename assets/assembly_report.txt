@@ -1,0 +1,42 @@
+============================================================
+ASSEMBLY CODE GENERATION REPORT
+============================================================
+Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
+Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.asm
+Object: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.o
+Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.exe
+
+Assembly Statistics:
+----------------------------------------
+Total Lines         :        211
+Code Lines          :        100
+Functions           :         10
+Labels              :         10
+Calls               :          8
+Jumps               :          8
+Moves               :         42
+Arithmetic          :         16
+Stack Ops           :         12
+
+Build Steps:
+----------------------------------------
+1. Generate assembly from LLVM IR
+2. Build runtime library (if needed)
+3. Assemble to object file
+4. Link with runtime to create executable
+
+Target Architecture: x86-64
+Assembly Syntax: AT&T (GNU Assembler)
+
+Functions found:
+----------------------------------------
+  - main
+  - _main
+  - x1
+  - y1
+  - x2
+  - y2
+  - a1
+  - b1
+  - c1
+  - c

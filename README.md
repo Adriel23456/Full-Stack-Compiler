@@ -126,6 +126,7 @@ FULL-STACK-COMPILER
 │   │   ├── semantic_analysis_view.py
 │   │   ├── ir_view.py      
 │   │   ├── optimizer_view.py      
+│   │   ├── code_generator_view.py    
 │   │   ├── symbol_table_view.py
 │   │   ├── grammar_view.py
 │   │   ├── credits_view.py

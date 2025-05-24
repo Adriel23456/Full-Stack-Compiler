@@ -1,20 +1,18 @@
 # File: GUI/views/optimizer_view.py
 import os
 import pygame
-from CompilerLogic.codeGenerator import CodeGenerator
 from GUI.components.pop_up_dialog import PopupDialog
 from GUI.view_base import ViewBase
 from GUI.components.button import Button
 from GUI.design_base import design
 from config import States, BASE_DIR
 
-
-class OptimizerView(ViewBase):
+class CodeGeneratorView(ViewBase):
     """
-    Muestra el contenido textual de out/vGraph_opt.ll con scroll.
+    Muestra el contenido textual de out/vGraph.asm con scroll.
     No necesita que se le inyecte la ruta: la resuelve sola.
     """
-    NOT_FOUND_MSG = ["IR file not found – compile first."]
+    NOT_FOUND_MSG = ["ASM file not found - compile first."]
 
     # ────────────────────────────────────────────────────────────
     def __init__(self, view_controller):
@@ -41,11 +39,11 @@ class OptimizerView(ViewBase):
     def _find_ir_path(self) -> str | None:
         """
         1)  Si el controlador almacenó `ir_path`, úsalo.
-        2)  Si existe out/vGraph_opt.ll, devuélvelo.
+        2)  Si existe out/vGraph.asm, devuélvelo.
         3)  Si no, None.
         """
         # 1) Ruta por defecto
-        default = os.path.join(BASE_DIR, "out", "vGraph_opt.ll")
+        default = os.path.join(BASE_DIR, "out", "vGraph.asm")
         return default if os.path.exists(default) else None
 
     # ────────────────────────────────────────────────────────────
@@ -71,14 +69,10 @@ class OptimizerView(ViewBase):
 
         # Botones
         self.back_btn = Button(
-            pygame.Rect(margin, scr.bottom - button_h - margin, button_w, button_h),
-            "Back to Home"
-        )
-        self.next_btn = Button(
             pygame.Rect(scr.right - button_w - margin,
                         scr.bottom - button_h - margin,
                         button_w, button_h),
-            "Next",
+            "Back To Home",
             fixed_width=button_w,
             fixed_height=button_h
         )
@@ -105,23 +99,6 @@ class OptimizerView(ViewBase):
 
             if self.back_btn.handle_event(ev):
                 self.view_controller.change_state(States.EDITOR)
-
-            if self.next_btn.handle_event(ev):
-                # Ejecutar el generador de código ensamblador
-                code_gen = CodeGenerator()
-                success, message, output_path = code_gen.generate_assembly()
-                
-                if success:
-                    self.view_controller.change_state(States.CODE_GENERATOR_VIEW)
-                    return True
-                else:
-                    # Mostrar popup de error
-                    popup = PopupDialog(
-                        self.screen,
-                        f"Assembly generation failed: {message}",
-                        5000
-                    )
-                    self.popup = popup
 
             # Rueda del mouse
             if ev.type == pygame.MOUSEWHEEL:
@@ -179,7 +156,7 @@ class OptimizerView(ViewBase):
 
         # Título
         title_surf = design.get_font("large").render(
-            "Intermediate Optimized Representation (LLVM IR Optimized)",
+            "Code Generator View (x86-64 ~ GNU Assembler)",
             True, design.colors["text"]
         )
         self.screen.blit(title_surf, title_surf.get_rect(midtop=(self.screen_rect.centerx, 15)))
@@ -206,7 +183,6 @@ class OptimizerView(ViewBase):
 
         # Botones
         self.back_btn.render(self.screen)
-        self.next_btn.render(self.screen)
 
         # Renderizar popup si existe
         if hasattr(self, 'popup') and self.popup:
