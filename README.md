@@ -104,7 +104,7 @@ FULL-STACK-COMPILER
 │   ├── VGraph.g4            # grammar
 │   └── fonts/               # JetBrainsMono, …
 ├── CompilerLogic/
-│   ├── ir/                  # low-level runtime + IR builder
+│   ├── Ir/                  # low-level runtime + IR builder
 │   │   ├── irBuilder.py
 │   │   ├── runtime.c|h|o
 │   │   ├── libvgraphrt.a

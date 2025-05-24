@@ -13,7 +13,7 @@ from typing import Any
 
 from config import BASE_DIR, CompilerData
 from CompilerLogic.SemanticComponents.symbolTable import SymbolTable
-from CompilerLogic.ir.irBuilder import IRGenerator
+from CompilerLogic.Ir.irBuilder import IRGenerator
 
 
 class IntermediateCodeGenerator:

@@ -1,4 +1,3 @@
-# File: GUI/views/ir_view.py
 import os
 import pygame
 from CompilerLogic.optimizer import Optimizer
@@ -11,8 +10,9 @@ from config import States, BASE_DIR
 
 class IRView(ViewBase):
     """
-    Muestra el contenido textual de out/vGraph.ll con scroll.
-    No necesita que se le inyecte la ruta: la resuelve sola.
+    Muestra (con scroll) el contenido textual de out/vGraph.ll.
+    Ahora incluye números de línea, fuente monoespaciada grande
+    y conserva la indentación (reemplazando TABs → espacios).
     """
     NOT_FOUND_MSG = ["IR file not found – compile first."]
 
@@ -40,38 +40,48 @@ class IRView(ViewBase):
     # ────────────────────────────────────────────────────────────
     def _find_ir_path(self) -> str | None:
         """
-        1)  Si el controlador almacenó `ir_path`, úsalo.
-        2)  Si existe out/vGraph.ll, devuélvelo.
-        3)  Si no, None.
+        Devuelve la ruta a out/vGraph.ll si existe; de lo contrario None.
         """
-        # 1) Ruta por defecto
         default = os.path.join(BASE_DIR, "out", "vGraph.ll")
         return default if os.path.exists(default) else None
 
     # ────────────────────────────────────────────────────────────
     def _load_ir_lines(self) -> list[str]:
+        """
+        Lee el fichero IR y devuelve TODAS las líneas, incluida la última
+        vacía si el archivo termina en '\n'. También convierte TABs → espacios.
+        """
         if not self.ir_path:
             return self.NOT_FOUND_MSG
         try:
             with open(self.ir_path, "r", encoding="utf-8") as fh:
-                return fh.read().splitlines() or ["(empty file)"]
-        except Exception as exc:             # archivo bloqueado o leer falló
+                TAB_SIZE = 4
+                raw_text = fh.read()
+                if raw_text == "":
+                    return ["(empty file)"]
+
+                # split('\n') conserva la línea vacía final (si existe)
+                lines = raw_text.split('\n')
+                return [ln.expandtabs(TAB_SIZE) for ln in lines]
+        except Exception as exc:
             return [f"Error reading IR: {exc}"]
+
 
     # ────────────────────────────────────────────────────────────
     def setup(self):
         """Recalcula layout y vuelve a cargar el fichero por si cambió."""
-        # (re)-cargar líneas por si el usuario volvió a compilar
+        # – recargar líneas por si el usuario recompiló –
         self.ir_path = self._find_ir_path()
         self.lines = self._load_ir_lines()
 
-        # Layout dinámico
+        # Layout dinámico ------------------------------------------------------
         scr = self.screen.get_rect()
         button_w, button_h, margin = 150, 40, 20
 
         # Botones
         self.back_btn = Button(
-            pygame.Rect(margin, scr.bottom - button_h - margin, button_w, button_h),
+            pygame.Rect(margin, scr.bottom - button_h - margin,
+                        button_w, button_h),
             "Back to Home"
         )
         self.next_btn = Button(
@@ -85,17 +95,31 @@ class IRView(ViewBase):
 
         # Área de texto
         top = 60
+        self.line_number_width = 60                              # ← NUEVO
         self.text_rect = pygame.Rect(
             margin, top,
             scr.width - margin * 2,
             scr.height - top - button_h - margin * 2
         )
+        # Área solo para el código (sin números de línea) --------
+        self.code_rect = pygame.Rect(
+            self.text_rect.x + self.line_number_width,
+            self.text_rect.y,
+            self.text_rect.width - self.line_number_width - 15,  # 15 px scrollbar
+            self.text_rect.height
+        )
 
-        # Scroll máximo
-        font = design.get_font("small")
-        self.max_scroll = max(0,
-                              len(self.lines) * font.get_linesize()
-                              - self.text_rect.height)
+        # Fuente monoespaciada grande ----------------------------
+        self.code_font = pygame.font.Font(
+            pygame.font.match_font("monospace"), 16
+        )
+        self.line_height = self.code_font.get_linesize()
+
+        # Scroll máximo ------------------------------------------
+        self.max_scroll = max(
+            0,
+            len(self.lines) * self.line_height - self.text_rect.height
+        )
 
     # ────────────────────────────────────────────────────────────
     def handle_events(self, events):
@@ -107,46 +131,44 @@ class IRView(ViewBase):
                 self.view_controller.change_state(States.EDITOR)
 
             if self.next_btn.handle_event(ev):
-                # Ejecutar el optimizador
+                # Ejecutar optimizador
                 optimizer = Optimizer()
-                success, message, output_path = optimizer.optimize(optimization_level=3)
+                success, message, _ = optimizer.optimize(optimization_level=3)
                 if success:
                     self.view_controller.change_state(States.OPTIMIZER_VIEW)
-                    return True
+                    return
                 else:
-                    # Mostrar popup de error
-                    popup = PopupDialog(
+                    self.popup = PopupDialog(
                         self.screen,
                         f"Optimization failed: {message}",
                         5000
                     )
-                    self.popup = popup
 
             # Rueda del mouse
             if ev.type == pygame.MOUSEWHEEL:
                 self.scroll_y = max(
                     0,
-                    min(self.max_scroll, self.scroll_y - ev.y * self.scroll_speed)
+                    min(self.max_scroll,
+                        self.scroll_y - ev.y * self.scroll_speed)
                 )
 
-            # Drag manual sobre thumb
+            # Drag del thumb
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 if self.thumb_rect and self.thumb_rect.collidepoint(ev.pos):
                     self.scrollbar_dragging = True
                     self.drag_offset = ev.pos[1] - self.thumb_rect.y
-
             if ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
                 self.scrollbar_dragging = False
-
             if ev.type == pygame.MOUSEMOTION and self.scrollbar_dragging:
                 new_y = ev.pos[1] - self.drag_offset
                 track_h = self.scrollbar_rect.height - self.thumb_rect.height
-                ratio = max(0, min(1, (new_y - self.scrollbar_rect.y) / track_h))
+                ratio = max(0, min(1,
+                                   (new_y - self.scrollbar_rect.y) / track_h))
                 self.scroll_y = int(ratio * self.max_scroll)
 
     # ────────────────────────────────────────────────────────────
-    def update(self, dt):  # No lógica aun
-        pass
+    def update(self, dt):
+        pass  # no se necesita lógica de actualización por ahora
 
     # ────────────────────────────────────────────────────────────
     def _draw_scrollbar(self):
@@ -157,49 +179,75 @@ class IRView(ViewBase):
             bar_w,
             self.text_rect.height
         )
-
-        pygame.draw.rect(self.screen, design.colors["button"], self.scrollbar_rect)
+        pygame.draw.rect(self.screen, design.colors["button"],
+                         self.scrollbar_rect)
 
         if self.max_scroll == 0:
             return
 
-        # Tamaño y posición del thumb
-        ratio_visible = self.text_rect.height / (self.text_rect.height + self.max_scroll)
+        # Thumb
+        ratio_visible = self.text_rect.height / (self.text_rect.height +
+                                                 self.max_scroll)
         thumb_h = max(20, int(self.scrollbar_rect.height * ratio_visible))
         track_h = self.scrollbar_rect.height - thumb_h
-        thumb_y = self.scrollbar_rect.y + int(track_h * (self.scroll_y / self.max_scroll))
-
-        self.thumb_rect = pygame.Rect(self.scrollbar_rect.x, thumb_y, bar_w, thumb_h)
-        pygame.draw.rect(self.screen, design.colors["button_hover"], self.thumb_rect, 0, 3)
+        thumb_y = self.scrollbar_rect.y + int(
+            track_h * (self.scroll_y / self.max_scroll))
+        self.thumb_rect = pygame.Rect(self.scrollbar_rect.x, thumb_y,
+                                      bar_w, thumb_h)
+        pygame.draw.rect(self.screen, design.colors["button_hover"],
+                         self.thumb_rect, 0, 3)
 
     # ────────────────────────────────────────────────────────────
     def render(self):
         self.screen.fill(design.colors["background"])
 
-        # Título
+        # Título --------------------------------------------------
         title_surf = design.get_font("large").render(
             "Intermediate Representation (LLVM IR)",
             True, design.colors["text"]
         )
-        self.screen.blit(title_surf, title_surf.get_rect(midtop=(self.screen_rect.centerx, 15)))
+        self.screen.blit(
+            title_surf,
+            title_surf.get_rect(midtop=(self.screen_rect.centerx, 15))
+        )
 
-        # Marco del área de texto
+        # Marco del área de texto --------------------------------
         pygame.draw.rect(self.screen, (255, 255, 255), self.text_rect)
-        pygame.draw.rect(self.screen, design.colors["textbox_border"], self.text_rect, 1)
+        pygame.draw.rect(self.screen, design.colors["textbox_border"],
+                         self.text_rect, 1)
 
-        # Sub-superficie con clipping
+        # Sub-superficie con clipping ----------------------------
         clip = self.screen.subsurface(self.text_rect)
         clip.fill((255, 255, 255))
 
-        font = design.get_font("small")
-        line_h = font.get_linesize()
-        y = -self.scroll_y
-        for line in self.lines:
-            if -line_h < y < self.text_rect.height:
-                clip.blit(font.render(line, True, (0, 0, 0)), (5, y))
-            y += line_h
+        # Fondo gris para números de línea
+        ln_bg = pygame.Rect(0, 0,
+                            self.line_number_width - 5,
+                            self.text_rect.height)
+        pygame.draw.rect(clip, (240, 240, 240), ln_bg)
+        pygame.draw.line(clip, (200, 200, 200),
+                         (self.line_number_width - 5, 0),
+                         (self.line_number_width - 5,
+                          self.text_rect.height))
 
-        # Scrollbar
+        # Dibuja líneas -----------------------------------------
+        start = int(self.scroll_y / self.line_height)
+        end = min(len(self.lines),
+                  start + int(self.text_rect.height / self.line_height) + 2)
+        y = -self.scroll_y % self.line_height
+        for i in range(start, end):
+            # Número de línea
+            ln_surf = self.code_font.render(f"{i + 1:4d}",
+                                            True, (100, 100, 100))
+            clip.blit(ln_surf, (5, y))
+
+            # Contenido de la línea
+            code_surf = self.code_font.render(self.lines[i],
+                                              True, (0, 0, 0))
+            clip.blit(code_surf, (self.line_number_width, y))
+            y += self.line_height
+
+        # Scrollbar ---------------------------------------------
         if self.max_scroll > 0:
             self._draw_scrollbar()
 
@@ -207,7 +255,7 @@ class IRView(ViewBase):
         self.back_btn.render(self.screen)
         self.next_btn.render(self.screen)
 
-        # Renderizar popup si existe
-        if hasattr(self, 'popup') and self.popup:
+        # Popup (si existe)
+        if hasattr(self, "popup") and self.popup:
             if self.popup.render():
-                self.popup = None  # Eliminar cuando expire
+                self.popup = None

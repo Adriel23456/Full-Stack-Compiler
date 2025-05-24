@@ -11,8 +11,9 @@ from config import States, BASE_DIR
 
 class OptimizerView(ViewBase):
     """
-    Muestra el contenido textual de out/vGraph_opt.ll con scroll.
-    No necesita que se le inyecte la ruta: la resuelve sola.
+    Muestra (con scroll) el contenido textual de out/vGraph_opt.ll.
+    Añade números de línea, fuente monoespaciada grande y conserva la
+    indentación (reemplazando TABs por espacios).
     """
     NOT_FOUND_MSG = ["IR file not found – compile first."]
 
@@ -20,7 +21,7 @@ class OptimizerView(ViewBase):
     def __init__(self, view_controller):
         super().__init__(view_controller)
 
-        # Resuelve la ruta al .ll (si existe)
+        # Resuelve la ruta al .ll optimizado
         self.ir_path: str | None = self._find_ir_path()
 
         # Carga las líneas (o mensaje de error)
@@ -40,38 +41,44 @@ class OptimizerView(ViewBase):
     # ────────────────────────────────────────────────────────────
     def _find_ir_path(self) -> str | None:
         """
-        1)  Si el controlador almacenó `ir_path`, úsalo.
-        2)  Si existe out/vGraph_opt.ll, devuélvelo.
-        3)  Si no, None.
+        Devuelve la ruta a out/vGraph_opt.ll si existe; de lo contrario None.
         """
-        # 1) Ruta por defecto
         default = os.path.join(BASE_DIR, "out", "vGraph_opt.ll")
         return default if os.path.exists(default) else None
 
     # ────────────────────────────────────────────────────────────
     def _load_ir_lines(self) -> list[str]:
+        """
+        Lee el fichero IR optimizado y devuelve TODAS las líneas, incluida la
+        vacía final cuando el archivo termina en '\n'. También convierte
+        TABs → espacios para mantener la sangría sin caracteres «?».
+        """
         if not self.ir_path:
             return self.NOT_FOUND_MSG
         try:
             with open(self.ir_path, "r", encoding="utf-8") as fh:
-                return fh.read().splitlines() or ["(empty file)"]
-        except Exception as exc:             # archivo bloqueado o leer falló
+                TAB_SIZE = 4
+                raw = fh.read()
+                if raw == "":
+                    return ["(empty file)"]
+                return [ln.expandtabs(TAB_SIZE) for ln in raw.split('\n')]
+        except Exception as exc:
             return [f"Error reading IR: {exc}"]
 
     # ────────────────────────────────────────────────────────────
     def setup(self):
         """Recalcula layout y vuelve a cargar el fichero por si cambió."""
-        # (re)-cargar líneas por si el usuario volvió a compilar
         self.ir_path = self._find_ir_path()
         self.lines = self._load_ir_lines()
 
-        # Layout dinámico
+        # Layout dinámico ----------------------------------------
         scr = self.screen.get_rect()
         button_w, button_h, margin = 150, 40, 20
 
         # Botones
         self.back_btn = Button(
-            pygame.Rect(margin, scr.bottom - button_h - margin, button_w, button_h),
+            pygame.Rect(margin, scr.bottom - button_h - margin,
+                        button_w, button_h),
             "Back to Home"
         )
         self.next_btn = Button(
@@ -83,19 +90,33 @@ class OptimizerView(ViewBase):
             fixed_height=button_h
         )
 
-        # Área de texto
+        # Área de texto general
         top = 60
+        self.line_number_width = 60
         self.text_rect = pygame.Rect(
             margin, top,
             scr.width - margin * 2,
             scr.height - top - button_h - margin * 2
         )
+        # Área exclusiva para código (sin números de línea)
+        self.code_rect = pygame.Rect(
+            self.text_rect.x + self.line_number_width,
+            self.text_rect.y,
+            self.text_rect.width - self.line_number_width - 15,  # 15 px scrollbar
+            self.text_rect.height
+        )
+
+        # Fuente monoespaciada grande
+        self.code_font = pygame.font.Font(
+            pygame.font.match_font("monospace"), 16
+        )
+        self.line_height = self.code_font.get_linesize()
 
         # Scroll máximo
-        font = design.get_font("small")
-        self.max_scroll = max(0,
-                              len(self.lines) * font.get_linesize()
-                              - self.text_rect.height)
+        self.max_scroll = max(
+            0,
+            len(self.lines) * self.line_height - self.text_rect.height
+        )
 
     # ────────────────────────────────────────────────────────────
     def handle_events(self, events):
@@ -107,21 +128,17 @@ class OptimizerView(ViewBase):
                 self.view_controller.change_state(States.EDITOR)
 
             if self.next_btn.handle_event(ev):
-                # Ejecutar el generador de código ensamblador
+                # Ejecutar el generador de ensamblador
                 code_gen = CodeGenerator()
-                success, message, output_path = code_gen.generate_assembly()
-                
+                success, message, _ = code_gen.generate_assembly()
                 if success:
                     self.view_controller.change_state(States.CODE_GENERATOR_VIEW)
-                    return True
                 else:
-                    # Mostrar popup de error
-                    popup = PopupDialog(
+                    self.popup = PopupDialog(
                         self.screen,
                         f"Assembly generation failed: {message}",
                         5000
                     )
-                    self.popup = popup
 
             # Rueda del mouse
             if ev.type == pygame.MOUSEWHEEL:
@@ -130,15 +147,13 @@ class OptimizerView(ViewBase):
                     min(self.max_scroll, self.scroll_y - ev.y * self.scroll_speed)
                 )
 
-            # Drag manual sobre thumb
+            # Drag del thumb
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 if self.thumb_rect and self.thumb_rect.collidepoint(ev.pos):
                     self.scrollbar_dragging = True
                     self.drag_offset = ev.pos[1] - self.thumb_rect.y
-
             if ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
                 self.scrollbar_dragging = False
-
             if ev.type == pygame.MOUSEMOTION and self.scrollbar_dragging:
                 new_y = ev.pos[1] - self.drag_offset
                 track_h = self.scrollbar_rect.height - self.thumb_rect.height
@@ -146,7 +161,7 @@ class OptimizerView(ViewBase):
                 self.scroll_y = int(ratio * self.max_scroll)
 
     # ────────────────────────────────────────────────────────────
-    def update(self, dt):  # No lógica aun
+    def update(self, dt):
         pass
 
     # ────────────────────────────────────────────────────────────
@@ -158,13 +173,11 @@ class OptimizerView(ViewBase):
             bar_w,
             self.text_rect.height
         )
-
         pygame.draw.rect(self.screen, design.colors["button"], self.scrollbar_rect)
 
         if self.max_scroll == 0:
             return
 
-        # Tamaño y posición del thumb
         ratio_visible = self.text_rect.height / (self.text_rect.height + self.max_scroll)
         thumb_h = max(20, int(self.scrollbar_rect.height * ratio_visible))
         track_h = self.scrollbar_rect.height - thumb_h
@@ -179,28 +192,50 @@ class OptimizerView(ViewBase):
 
         # Título
         title_surf = design.get_font("large").render(
-            "Intermediate Optimized Representation (LLVM IR Optimized)",
+            "Optimized LLVM IR",
             True, design.colors["text"]
         )
-        self.screen.blit(title_surf, title_surf.get_rect(midtop=(self.screen_rect.centerx, 15)))
+        self.screen.blit(
+            title_surf,
+            title_surf.get_rect(midtop=(self.screen_rect.centerx, 15))
+        )
 
         # Marco del área de texto
         pygame.draw.rect(self.screen, (255, 255, 255), self.text_rect)
-        pygame.draw.rect(self.screen, design.colors["textbox_border"], self.text_rect, 1)
+        pygame.draw.rect(self.screen, design.colors["textbox_border"],
+                         self.text_rect, 1)
 
         # Sub-superficie con clipping
         clip = self.screen.subsurface(self.text_rect)
         clip.fill((255, 255, 255))
 
-        font = design.get_font("small")
-        line_h = font.get_linesize()
-        y = -self.scroll_y
-        for line in self.lines:
-            if -line_h < y < self.text_rect.height:
-                clip.blit(font.render(line, True, (0, 0, 0)), (5, y))
-            y += line_h
+        # Fondo gris para números de línea
+        ln_bg = pygame.Rect(0, 0,
+                            self.line_number_width - 5,
+                            self.text_rect.height)
+        pygame.draw.rect(clip, (240, 240, 240), ln_bg)
+        pygame.draw.line(clip, (200, 200, 200),
+                         (self.line_number_width - 5, 0),
+                         (self.line_number_width - 5, self.text_rect.height))
 
-        # Scrollbar
+        # Dibujar líneas visibles
+        start = int(self.scroll_y / self.line_height)
+        end = min(len(self.lines),
+                  start + int(self.text_rect.height / self.line_height) + 2)
+        y = -self.scroll_y % self.line_height
+        for i in range(start, end):
+            # N.º de línea
+            ln_surf = self.code_font.render(f"{i + 1:4d}",
+                                            True, (100, 100, 100))
+            clip.blit(ln_surf, (5, y))
+
+            # Contenido
+            code_surf = self.code_font.render(self.lines[i],
+                                              True, (0, 0, 0))
+            clip.blit(code_surf, (self.line_number_width, y))
+            y += self.line_height
+
+        # Scroll-bar
         if self.max_scroll > 0:
             self._draw_scrollbar()
 
@@ -208,7 +243,7 @@ class OptimizerView(ViewBase):
         self.back_btn.render(self.screen)
         self.next_btn.render(self.screen)
 
-        # Renderizar popup si existe
-        if hasattr(self, 'popup') and self.popup:
+        # Popup (si existe)
+        if hasattr(self, "popup") and self.popup:
             if self.popup.render():
-                self.popup = None  # Eliminar cuando expire
+                self.popup = None

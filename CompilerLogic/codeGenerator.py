@@ -22,8 +22,8 @@ class CodeGenerator:
         self.asm_path = os.path.join(BASE_DIR, "out", "vGraph.asm")
         self.obj_path = os.path.join(BASE_DIR, "out", "vGraph.o")
         self.exe_path = os.path.join(BASE_DIR, "out", "vGraph.exe")
-        self.runtime_path = os.path.join(BASE_DIR, "CompilerLogic", "ir", "runtime.o")
-        self.build_script = os.path.join(BASE_DIR, "CompilerLogic", "ir", "build_runtime.sh")
+        self.runtime_path = os.path.join(BASE_DIR, "CompilerLogic", "Ir", "runtime.o")
+        self.build_script = os.path.join(BASE_DIR, "CompilerLogic", "Ir", "build_runtime.sh")
         
         # Create target machine for x86-64
         target = llvm.Target.from_default_triple()
