@@ -10,7 +10,7 @@ pip3 install llvmlite
 pip3 install antlr4-python3-runtime==4.9.2
 pip3 install pydot
 pip3 install pyudev
-pip install PySDL2
+pip3 install PySDL2 PySDL2-dll
 
 mkdir -p /tmp
 wget https://www.antlr.org/download/antlr-4.9.2-complete.jar -P /tmp/
