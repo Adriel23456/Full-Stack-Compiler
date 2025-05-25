@@ -8,15 +8,15 @@ Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.exe
 
 Assembly Statistics:
 ----------------------------------------
-Total Lines         :        243
-Code Lines          :        148
-Functions           :          6
-Labels              :          6
-Calls               :         13
-Jumps               :          4
-Moves               :         50
-Arithmetic          :         36
-Stack Ops           :         15
+Total Lines         :        608
+Code Lines          :        365
+Functions           :         16
+Labels              :         16
+Calls               :         20
+Jumps               :         15
+Moves               :        136
+Arithmetic          :         79
+Stack Ops           :         31
 
 Build Steps:
 ----------------------------------------
@@ -31,8 +31,18 @@ Assembly Syntax: AT&T (GNU Assembler)
 Functions found:
 ----------------------------------------
   - main
+  - drawRing
+  - aperture
   - _main
+  - cx
+  - cy
+  - t
+  - seg
+  - ang
   - x
   - y
-  - t
-  - c
+  - ray
+  - x2
+  - y2
+  - blades
+  - col

@@ -9,15 +9,15 @@ Optimization Statistics:
 ----------------------------------------
 Metric                   Before      After     Change
 ----------------------------------------
-functions                     2          2          0
-globals                       4          4          0
-alloca                        0          0          0
-load                         23         17         -6
-store                         7          5         -2
-calls                        13         13          0
-branches                     10          2         -8
-basic_blocks                 12          2        -10
-total_lines                 151        118        -33
+functions                     4          4          0
+globals                      12         13         +1
+alloca                        8          0         -8
+load                         61         32        -29
+store                        33         19        -14
+calls                        20         20          0
+branches                     30         12        -18
+basic_blocks                 34          4        -30
+total_lines                 373        237       -136
 
 Optimizations Applied:
 ----------------------------------------
@@ -35,5 +35,5 @@ Optimizations Applied:
 ✓ Loop invariant code motion
 
 Optimization complete (Level 3)
-Lines: 162 → 130 (19.8% reduction)
+Lines: 386 → 262 (32.1% reduction)
 Output: vGraph_opt.ll

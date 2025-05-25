@@ -1,52 +1,205 @@
-/* runtime.c – VGraph stub runtime
+/* runtime.c – VGraph runtime portable
  *
- *  • Frame-buffer 800×600 RGB (24-bit) mapeado a out/image.bin
- *  • Todas las funciones escriben sobre ese mapeo y lo sincronizan
- *    con disco mediante msync().
+ *  • Frame-buffer 800×600 RGB (24-bit) mapeado a image.bin
+ *  • Busca image.bin en el mismo directorio que el ejecutable
+ *  • Compatible con Linux, macOS, Windows (via MinGW/Cygwin)
  */
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>     /* write, usleep         */
-#include <fcntl.h>      /* open, O_* flags       */
-#include <sys/mman.h>   /* mmap, munmap, msync   */
-#include <sys/stat.h>   /* ftruncate             */
-#include <math.h>       /* sqrt, abs             */
+#include <math.h>       /* sqrt, abs */
+
+/* Detección de plataforma */
+#ifdef _WIN32
+    #include <windows.h>
+    #define PATH_SEPARATOR "\\"
+#else
+    #include <unistd.h>     /* usleep, readlink */
+    #include <fcntl.h>      /* open, O_* flags */
+    #include <sys/mman.h>   /* mmap, munmap, msync */
+    #include <sys/stat.h>   /* ftruncate */
+    #include <libgen.h>     /* dirname */
+    #include <limits.h>     /* PATH_MAX */
+    #define PATH_SEPARATOR "/"
+    
+    #ifdef __APPLE__
+        #include <mach-o/dyld.h>  /* _NSGetExecutablePath */
+    #endif
+#endif
+
+#ifndef PATH_MAX
+    #define PATH_MAX 4096
+#endif
 
 #define W 800
 #define H 600
 #define BYTES (W * H * 3)
 
-static uint8_t *img   = NULL;      /* frame-buffer                   */
-static int      fdimg = -1;        /* descriptor de out/image.bin    */
-static uint32_t CUR   = 0x00FFFFFF;
+static uint8_t *img      = NULL;        /* frame-buffer */
+static int      fdimg    = -1;          /* descriptor de image.bin */
+static uint32_t CUR      = 0x00FFFFFF;  /* color actual */
+static char     img_path[PATH_MAX];     /* ruta completa a image.bin */
 
-/* ───────── helpers ───────── */
+#ifdef _WIN32
+static HANDLE hMapFile = NULL;
+static HANDLE hFile = INVALID_HANDLE_VALUE;
+#endif
+
+/* ───────── Funciones auxiliares ───────── */
+
+/* Obtiene el directorio donde se encuentra el ejecutable (multi-plataforma) */
+static void get_executable_dir(char *dir, size_t size)
+{
+    char path[PATH_MAX];
+    
+#ifdef _WIN32
+    /* Windows */
+    DWORD len = GetModuleFileNameA(NULL, path, sizeof(path));
+    if (len > 0 && len < sizeof(path)) {
+        /* Eliminar el nombre del ejecutable para obtener solo el directorio */
+        char *last_sep = strrchr(path, '\\');
+        if (last_sep) {
+            *last_sep = '\0';
+        }
+        strncpy(dir, path, size - 1);
+        dir[size - 1] = '\0';
+        return;
+    }
+    
+#elif defined(__APPLE__)
+    /* macOS */
+    uint32_t bufsize = sizeof(path);
+    if (_NSGetExecutablePath(path, &bufsize) == 0) {
+        char *dir_path = dirname(path);
+        strncpy(dir, dir_path, size - 1);
+        dir[size - 1] = '\0';
+        return;
+    }
+    
+#elif defined(__linux__)
+    /* Linux */
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (len != -1) {
+        path[len] = '\0';
+        char *dir_path = dirname(path);
+        strncpy(dir, dir_path, size - 1);
+        dir[size - 1] = '\0';
+        return;
+    }
+#endif
+    
+    /* Fallback: usar directorio actual */
+    #ifdef _WIN32
+        GetCurrentDirectoryA(size, dir);
+    #else
+        if (getcwd(dir, size) == NULL) {
+            strncpy(dir, ".", size - 1);
+            dir[size - 1] = '\0';
+        }
+    #endif
+}
+
+/* Función para dormir (multi-plataforma) */
+static void sleep_ms(int ms)
+{
+#ifdef _WIN32
+    Sleep(ms);
+#else
+    usleep(ms * 1000);
+#endif
+}
+
 static void init_buf(void)
 {
-    if (img) return;                          /* ya inicializado */
-
-    /* 1- asegúrate de que exista ./out                       */
-    if (access("out", F_OK) != 0)
-        mkdir("out", 0755);
-
-    /* 2- abre/crea archivo binario de imagen                 */
-    fdimg = open("out/image.bin", O_RDWR | O_CREAT, 0644);
-    if (fdimg < 0) { perror("open image.bin"); exit(1); }
-
-    /* 3- reserva tamaño fijo                                 */
-    if (ftruncate(fdimg, BYTES) != 0) {
-        perror("ftruncate"); exit(1);
+    if (img) return;  /* ya inicializado */
+    
+    char exe_dir[PATH_MAX];
+    
+    /* Obtener directorio del ejecutable */
+    get_executable_dir(exe_dir, sizeof(exe_dir));
+    
+    /* Construir path completo a image.bin */
+    snprintf(img_path, sizeof(img_path), "%s%simage.bin", exe_dir, PATH_SEPARATOR);
+    
+    printf("[VGraph] Ejecutable en: %s\n", exe_dir);
+    printf("[VGraph] Usando image.bin en: %s\n", img_path);
+    
+#ifdef _WIN32
+    /* Windows: usar CreateFile y CreateFileMapping */
+    hFile = CreateFileA(img_path,
+                        GENERIC_READ | GENERIC_WRITE,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        NULL,
+                        OPEN_ALWAYS,
+                        FILE_ATTRIBUTE_NORMAL,
+                        NULL);
+    
+    if (hFile == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "[VGraph] Error: No se pudo abrir/crear %s\n", img_path);
+        exit(1);
     }
-
-    /* 4- mapea a memoria                                     */
+    
+    /* Establecer tamaño del archivo */
+    LARGE_INTEGER size;
+    size.QuadPart = BYTES;
+    SetFilePointerEx(hFile, size, NULL, FILE_BEGIN);
+    SetEndOfFile(hFile);
+    
+    /* Crear mapping */
+    hMapFile = CreateFileMappingA(hFile,
+                                  NULL,
+                                  PAGE_READWRITE,
+                                  0,
+                                  BYTES,
+                                  NULL);
+    
+    if (hMapFile == NULL) {
+        fprintf(stderr, "[VGraph] Error: No se pudo crear file mapping\n");
+        CloseHandle(hFile);
+        exit(1);
+    }
+    
+    /* Mapear vista del archivo */
+    img = (uint8_t*)MapViewOfFile(hMapFile,
+                                  FILE_MAP_ALL_ACCESS,
+                                  0,
+                                  0,
+                                  BYTES);
+    
+    if (img == NULL) {
+        fprintf(stderr, "[VGraph] Error: No se pudo mapear archivo\n");
+        CloseHandle(hMapFile);
+        CloseHandle(hFile);
+        exit(1);
+    }
+    
+#else
+    /* Unix/Linux/macOS: usar mmap */
+    fdimg = open(img_path, O_RDWR | O_CREAT, 0644);
+    if (fdimg < 0) {
+        fprintf(stderr, "[VGraph] Error: No se pudo abrir/crear %s\n", img_path);
+        perror("open");
+        exit(1);
+    }
+    
+    /* Reservar tamaño fijo */
+    if (ftruncate(fdimg, BYTES) != 0) {
+        perror("ftruncate");
+        exit(1);
+    }
+    
+    /* Mapear a memoria */
     img = mmap(NULL, BYTES, PROT_READ | PROT_WRITE,
                MAP_SHARED, fdimg, 0);
     if (img == MAP_FAILED) {
-        perror("mmap"); exit(1);
+        perror("mmap");
+        exit(1);
     }
+#endif
+    
+    printf("[VGraph] image.bin mapeado correctamente (%d bytes)\n", BYTES);
 }
 
 static inline void put_px(int x, int y, uint32_t rgb)
@@ -60,15 +213,21 @@ static inline void put_px(int x, int y, uint32_t rgb)
 
 static inline void flush_buf(void)
 {
-    /* fuerza escritura en disco (modo síncrono) */
+#ifdef _WIN32
+    /* Windows: forzar escritura */
+    FlushViewOfFile(img, BYTES);
+    FlushFileBuffers(hFile);
+#else
+    /* Unix: msync */
     msync(img, BYTES, MS_SYNC);
+#endif
 }
 
 /* ───────── API invocada desde el IR ───────── */
 void vg_clear(void)
 {
     init_buf();
-    memset(img, 0xFF, BYTES);               /* blanco */
+    memset(img, 0xFF, BYTES);  /* blanco */
     flush_buf();
 }
 
@@ -80,8 +239,6 @@ void vg_draw_pixel(int x, int y)
     put_px(x, y, CUR);
     flush_buf();
 }
-
-/* ───────── nuevas primitivas ───────── */
 
 /* círculo relleno mediante scan-lines */
 void vg_draw_circle(int cx, int cy, int r)
@@ -149,12 +306,24 @@ void vg_draw_rect(int x1, int y1, int x2, int y2)
     flush_buf();
 }
 
-void vg_wait(int ms) { usleep(ms * 1000); }
+void vg_wait(int ms) { sleep_ms(ms); }
 
 /* ───────── limpieza al salir ───────── */
 __attribute__((destructor))
 static void close_buf(void)
 {
-    if (img  && img != MAP_FAILED) munmap(img, BYTES);
-    if (fdimg >= 0) close(fdimg);
+    if (img) {
+#ifdef _WIN32
+        UnmapViewOfFile(img);
+        if (hMapFile != NULL) CloseHandle(hMapFile);
+        if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
+#else
+        if (img != MAP_FAILED) {
+            munmap(img, BYTES);
+            printf("[VGraph] image.bin desmapeado\n");
+        }
+        if (fdimg >= 0) close(fdimg);
+#endif
+        img = NULL;
+    }
 }

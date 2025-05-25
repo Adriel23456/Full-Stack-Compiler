@@ -140,22 +140,32 @@ FULL-STACK-COMPILER
 │   │   ├── grammar_view.py
 │   │   ├── credits_view.py
 │   │   └── config_view.py
+│   ├── models/
+│   │   ├── fileExplorer.py
+│   │   ├── execute_model.py
 │   ├── design_base.py
 │   ├── view_base.py
 │   └── view_controller.py
-├── ExternalPrograms/
-│   ├── fileExplorer.py
-│   └── imageViewer.py       # mmap + SDL2 viewer
 ├── Examples/
-│   ├── SnowflakeTree.txt
-│   └── Mandala.txt …        # more demos
+│   ├── Test0.txt
+│   ├── Test1.txt
+│   ├── Test2.txt
+│   ├── Test3.txt
+│   ├── Test6(ComplexFigure).txt
+│   ├── Test7(LexerError).txt
+│   ├── Test8(SyntacticError).txt
+│   └── Test11(SemanticError3).txt
 ├── out/
 │   ├── image.bin            # 800×600 × 24-bit
 │   ├── vGraph.asm|exe|ll    # outputs of each back-end
+│   ├── Client_execute.exe    # General client execute
+│   ├── Client_visualizer.exe    # General client visualizer execute
+│   ├── HDMI_execute.exe    # General hdmi execute
+│   ├── HDMI_visualizer.exe    # General hdmi visualizer execute
 │   └── vGraph.o             # object file
-├── requirements.txt         # **new** – pinned versions of pygame, llvmlite, antlr4-runtime …
-├── config.py                # global constants
-├── design_settings.json     # GUI colour theme
+├── requirements.txt         # all necesary libraries for each version
+├── config.py                # global constants and important variables
+├── design_settings.json     # GUI colour theme and extras
 ├── main.py                  # CLI / GUI entry-point
 ├── LICENSE
 └── README.md (this file)

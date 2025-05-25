@@ -3,7 +3,7 @@ from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
 from GUI.view_base import ViewBase
 from GUI.views.grammar_view import GrammarView
-from ExternalPrograms.fileExplorer import FileExplorer
+from GUI.models.fileExplorer import FileExplorer
 from GUI.design_base import design
 from GUI.components.button import Button, ToolbarButton
 from GUI.components.textbox import TextBox
@@ -285,7 +285,7 @@ class EditorView(ViewBase):
                 self.open_grammar_view()
             
             if self.execute_button.handle_event(event):
-                self.execute_model.execute()
+                self.execute_model.execute_client()
     
     def open_config_view(self):
         """Open the configuration view"""
