@@ -1,4 +1,5 @@
 from GUI.components.pop_up_dialog import PopupDialog
+from GUI.components.execution_popup import ExecutionPopup 
 from GUI.views.config_view import ConfigView
 from GUI.views.credits_view import CreditsView
 from GUI.view_base import ViewBase
@@ -182,6 +183,11 @@ class EditorView(ViewBase):
         Args:
             events: List of pygame events
         """
+        # ───── Pop-up modal: absorbe todos los eventos ─────
+        if hasattr(self, 'popup') and self.popup.active:
+            self.popup.handle_events(events)   # siempre delega
+            return True                        # y evita que lleguen al resto
+
         # If config view is active, let it handle events first
         if self.config_view:
             if self.config_view.handle_events(events):
@@ -285,7 +291,13 @@ class EditorView(ViewBase):
                 self.open_grammar_view()
             
             if self.execute_button.handle_event(event):
-                self.execute_model.execute_client()
+                # crear pop-up si no existe ya
+                if not hasattr(self, 'popup') or not self.popup.active:
+                    self.popup = ExecutionPopup(
+                        self.screen,
+                        self.execute_model,
+                        on_close=lambda: None
+                    )
     
     def open_config_view(self):
         """Open the configuration view"""
