@@ -2,23 +2,23 @@
 LLVM IR OPTIMIZATION REPORT
 ============================================================
 Optimization Level: 3
-Platform: windows
-Input: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.ll
-Output: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph_opt.ll
+Platform: linux
+Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.ll
+Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
 
 Optimization Statistics:
 ----------------------------------------
 Metric                   Before      After     Change
 ----------------------------------------
-functions                     3          3          0
-globals                      13         14         +1
-alloca                        2          0         -2
-load                         66         38        -28
-store                        34         26         -8
-calls                        23         24         +1
-branches                     46         16        -30
-basic_blocks                 49          3        -46
-total_lines                 445        306       -139
+functions                     2          2          0
+globals                       4          4          0
+alloca                        0          0          0
+load                         23         17         -6
+store                         7          5         -2
+calls                        13         13          0
+branches                     10          2         -8
+basic_blocks                 12          2        -10
+total_lines                 151        118        -33
 
 Optimizations Applied:
 ----------------------------------------
@@ -36,5 +36,5 @@ Optimizations Applied:
 [OK] Loop invariant code motion
 
 Optimization complete (Level 3)
-Lines: 457 -> 335 (26.7% reduction)
+Lines: 162 -> 130 (19.8% reduction)
 Output: vGraph_opt.ll
