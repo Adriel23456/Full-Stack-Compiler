@@ -11,8 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>       /* sqrt, abs */
-#include <stdarg.h>
-#include <errno.h>
+
+#if defined(__linux__)
+    #include <stdarg.h>
+    #include <errno.h>
+#endif
 
 /* Detección de plataforma mejorada */
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
@@ -534,6 +537,3 @@ static void vg_destructor(void)
     close_buf();
 }
 #endif
-
-/* Incluir stdarg.h para va_list */
-#include <stdarg.h>

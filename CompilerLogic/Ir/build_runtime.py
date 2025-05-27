@@ -102,8 +102,6 @@ class RuntimeBuilder:
         if not self.runtime_c.exists():
             return False, f"Source file not found: {self.runtime_c}"
         
-        print(f"[Build] Compiling {self.runtime_c.name}...")
-        
         # Build command
         flags = self._get_compiler_flags()
         

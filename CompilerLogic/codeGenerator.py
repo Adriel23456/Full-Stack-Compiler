@@ -371,8 +371,6 @@ class CodeGenerator:
                 # Unix-like systems
                 cmd = [compiler, '-O2', '-fPIC', '-c', self.runtime_c_path, '-o', self.runtime_o_path]
             
-            print(f"Compiling runtime with: {' '.join(cmd)}")
-            
             result = subprocess.run(
                 cmd,
                 cwd=self.runtime_dir,

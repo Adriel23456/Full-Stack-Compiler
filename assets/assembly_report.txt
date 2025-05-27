@@ -16,15 +16,15 @@ Archiver            : ar
 
 Assembly Statistics:
 ----------------------------------------
-Total Lines         :        243
-Code Lines          :        148
-Functions           :          6
-Labels              :          6
-Calls               :         13
-Jumps               :          4
-Moves               :         50
-Arithmetic          :         36
-Stack Ops           :         15
+Total Lines         :        661
+Code Lines          :        423
+Functions           :         16
+Labels              :         16
+Calls               :         24
+Jumps               :         24
+Moves               :        166
+Arithmetic          :         99
+Stack Ops           :         23
 
 Build Steps:
 ----------------------------------------
@@ -39,8 +39,18 @@ Assembly Syntax: AT&T (GNU Assembler)
 Functions found:
 ----------------------------------------
   - main
+  - sparkle
   - _main
+  - cx
+  - cy
+  - t
+  - arm
+  - ang
+  - rad
   - x
   - y
-  - t
-  - c
+  - star
+  - sx
+  - sy
+  - sparkleT
+  - col
