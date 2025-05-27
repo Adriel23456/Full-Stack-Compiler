@@ -1,237 +1,377 @@
 # Full-Stack-Compiler
 
-![status-badge](https://img.shields.io/badge/status-WIP-orange)
+![status-badge](https://img.shields.io/badge/status-COMPLETE-green)
+![platform-badge](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
+![python-badge](https://img.shields.io/badge/python-3.7+-yellow)
+![license-badge](https://img.shields.io/badge/license-MIT-purple)
 
-An **end-to-end educational compiler** written in Python that translates **VGraph** source
-code into an x86 executable, updates a `800 × 600` RGB memory buffer **in real time**, and—if
-an HDMI port is detected—mirrors the live image to an external monitor.
+An **end-to-end educational compiler** written in Python that translates **VGraph** source code into native executables, updates an `800 × 600` RGB memory buffer **in real time**, and supports **HDMI output** for external monitor visualization.
+
+**✨ 100% Cross-Platform Compatible: Windows & Linux**
 
 ---
 
-## Table of Contents
+## 🎯 Key Features
+
+- **Complete Compiler Pipeline**: From lexical analysis to native code generation
+- **Cross-Platform**: Fully compatible with Windows and Linux
+- **Real-Time Visualization**: Live preview of graphics output
+- **HDMI Support**: Mirror output to external displays
+- **Integrated IDE**: Custom-built development environment
+- **Educational Design**: Clear separation of compilation phases
+
+---
+
+## 📋 Table of Contents
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [VGraph Language](#vgraph-language)
-4. [Project Layout](#project-layout)
-5. [Installation](#installation)
-6. [Basic Usage](#basic-usage)
-7. [Road-map](#road-map)
-8. [Tool Stack](#tool-stack)
-9. [License](#license)
+4. [Cross-Platform Compatibility](#cross-platform-compatibility)
+5. [Project Layout](#project-layout)
+6. [Installation](#installation)
+7. [Usage Guide](#usage-guide)
+8. [Execution Modes](#execution-modes)
+9. [Development Status](#development-status)
+10. [Tool Stack](#tool-stack)
+11. [Contributing](#contributing)
+12. [License](#license)
 
 ---
 
 ## Overview
 
-The goal is to cover **every** compilation phase:
+This compiler covers **every** compilation phase:
 
 | Phase          | Purpose                                      | Key Files                                                                         |
 | -------------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
 | **Front-End**  | Lexical, syntactic & semantic analysis       | `CompilerLogic/lexicalAnalyzer.py`, `syntacticAnalyzer.py`, `semanticAnalyzer.py` |
-| **Middle-End** | High‐ & low-level **LLVM IR** + optimisation | `intermediateCodeGenerator.py`, `ir/irBuilder.py`, `optimizer.py`                 |
-| **Back-End**   | Register allocation & code emission          | `codeGenerator.py`                                                                |
-| **Support**    | IDE/GUI, image viewer, file browser          | `GUI/`, `ExternalPrograms/`                                                       |
+| **Middle-End** | High‐ & low-level **LLVM IR** + optimization | `intermediateCodeGenerator.py`, `ir/irBuilder.py`, `optimizer.py`                 |
+| **Back-End**   | Register allocation & native code emission   | `codeGenerator.py`                                                                |
+| **Runtime**    | Graphics buffer management & HDMI output     | `Ir/runtime.c`, `ExternalPrograms/`                                              |
+| **IDE**        | Integrated development environment           | `GUI/`, `main.py`                                                                 |
 
-The produced executable (`out/vGraph.exe`) writes directly into
-`out/image.bin`; the Python viewer (`ExternalPrograms/imageViewer.py`)
-memory-maps that file and displays it via **SDL 2 / Pygame**.
+The compiler produces platform-specific executables that write directly to a shared memory buffer (`out/image.bin`), which is then displayed by the visualization components.
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────┐     ┌────────────┐     ┌────────────┐
-│  Lexer/      │──► │  IR &      │──► │  ASM/EXE    │
-│  Parser      │     │  Optimiser │     │  Generator │
-└──────────────┘     └────────────┘     └────────────┘
-        ▲                   │                   │
-        │   GUI/IDE         │ LLVM passes       │ HDMI output
+┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Source Code     │     │                 │     │                 │
+│  (.vgraph)       │───▶│  Lexer/Parser   │────▶│ Semantic        │
+│                  │     │  (ANTLR 4)      │     │ Analyzer        │
+└──────────────────┘     └─────────────────┘     └─────────────────┘
+                                                            │
+                                                            ▼
+┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Native Code     │     │  Code           │     │  IR Generator   │
+│  (.exe)          │◀───│  Generator       │◀───│  & Optimizer    │
+│                  │     │  (LLVM)         │     │  (LLVM)         │
+└──────────────────┘     └─────────────────┘     └─────────────────┘
+         │                                                 
+         ▼                                                 
+┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  HDMI Output     │◀────│  Visualizer     │◀────│  Memory Buffer  │
+│  (External)      │     │  (SDL2/Pygame)  │     │  (image.bin)    │
+└──────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
-* **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing.
-* **LLVM (llvmlite)** for IR, optimisation & x86 back-end.
-* Fully modular pipeline with hot-reloading IR view inside the IDE.
+### Key Components:
+* **ANTLR 4** grammar (`assets/VGraph.g4`) for lexing/parsing
+* **LLVM (llvmlite)** for IR generation, optimization & native code emission
+* **SDL2/Pygame** for cross-platform graphics visualization
+* **Custom Runtime** for memory buffer management and HDMI output
 
 ---
 
 ## VGraph Language
 
-### Main Tokens
+VGraph is a domain-specific language designed for educational graphics programming.
 
-* Drawing: `draw line|circle|rect|pixel`
-* State: `setcolor`, `clear`, `wait`
-* Flow: `frame`, `loop`, `if`, `else`, `return`
-* Types: `(int)`, `(color)`, `(bool)`
-* Math helpers: `cos()`, `sin()`, arithmetic `+ - * / %`
-* Comments start with `#`.
+### Language Features
 
-### Syntax Rules (extract)
+* **Drawing Primitives**: `draw line|circle|rect|pixel`
+* **State Management**: `setcolor`, `clear`, `wait`
+* **Control Flow**: `frame`, `loop`, `if`, `else`, `return`
+* **Type System**: `(int)`, `(color)`, `(bool)`
+* **Built-in Functions**: `cos()`, `sin()`, arithmetic operators `+ - * / %`
+* **Comments**: Single-line comments with `#`
 
-* **Declarations**  `(int) x = 42;`  |  `(color) r, g, b;`
-* **Loops**   `loop (i = 0; i < 10; i = i + 1) { … }`
-* **If / else-if chain** is written as nested `else { if (…) { … } }` (no `elif`).
-* **Angles** are given in degrees; trig functions expect degrees.
-* **Identifiers**: lower-case letter followed by ≤ 15 alphanumerics.
-* Screen coordinates: `x ∈ [0,799]`, `y ∈ [0,599]`.
+### Syntax Rules
 
-### Mini Example
+* **Variable Declaration**: `(int) x = 42;` | `(color) r, g, b;`
+* **Loop Structure**: `loop (i = 0; i < 10; i = i + 1) { … }`
+* **Conditional Logic**: `if (condition) { … } else { … }`
+* **Coordinate System**: Screen space `x ∈ [0,799]`, `y ∈ [0,599]`
+* **Angle Units**: All trigonometric functions use degrees
+* **Identifier Rules**: Start with lowercase letter, max 15 alphanumeric characters
 
-```text
-# Definir variables para la espiral (Dibuja solo una linea de pixeles en espiral)
-(int) x, y, t;
+### Example: Animated Spiral
+
+```vgraph
+# Spiral animation with color transitions
+(int) x, y, t, radius;
 (color) c;
 
 frame {
     clear();
-    loop (t = 0; t < 360; t = t + 5) {
-        # Calcular coordenadas de la espiral usando trigonometría
-        x = 320 + t * cos(t * 3.1416 / 180);  # Centro en X=320
-        y = 240 + t * sin(t * 3.1416 / 180);  # Centro en Y=240
-        # Cambiar color en cada iteración
-        if (t % 3 == 0) { c = rojo; }
-        else if (t % 3 == 1) { c = azul; }
-        else { c = verde; }
+    loop (t = 0; t < 720; t = t + 5) {
+        # Calculate spiral coordinates
+        radius = t / 4;
+        x = 400 + radius * cos(t);  # Center X = 400
+        y = 300 + radius * sin(t);  # Center Y = 300
+        
+        # Cycle through colors
+        if (t % 3 == 0) { 
+            c = rojo; 
+        } else if (t % 3 == 1) { 
+            c = azul; 
+        } else { 
+            c = verde; 
+        }
+        
         setcolor(c);
         draw pixel(x, y);
-        wait(100);  # Retraso para observar la animación (SIno estuviera simplemente se pintaria el contenido inmediatamente)
+        wait(50);  # Animation delay
     }
 }
 ```
 
-See more programs under **`Examples/`** (universe, snowflake tree …).
+More examples available in the **`Examples/`** directory.
+
+---
+
+## Cross-Platform Compatibility
+
+The compiler is **100% compatible** with both Windows and Linux:
+
+### Platform-Specific Executables
+
+| Component | Windows | Linux |
+|-----------|---------|-------|
+| Client Launcher | `Client_execute_windows.exe` | `Client_execute_linux` |
+| HDMI Launcher | `HDMI_execute_windows.exe` | `HDMI_execute_linux` |
+| Compiled Output | `vGraph.exe` | `vGraph` |
+
+### Terminal Support
+
+- **Windows**: CMD, PowerShell
+- **Linux**: gnome-terminal, konsole, xfce4-terminal, xterm, terminator
+
+### Automatic Platform Detection
+
+The system automatically detects your OS and uses the appropriate:
+- Executable formats
+- Terminal emulators
+- Path separators
+- System commands
+
+For unsupported operating systems, the message "OS [name] integration: Not yet implemented" will be displayed.
 
 ---
 
 ## Project Layout
 
 ```
-FULL-STACK-COMPILER
+FULL-STACK-COMPILER/
 ├── assets/
-│   ├── Images/              # generated PNGs for visualisations
-│   ├── VGraph.g4            # grammar
-│   └── fonts/               # JetBrainsMono, …
+│   ├── Images/                      # Generated visualizations
+│   ├── VGraph.g4                    # ANTLR grammar definition
+│   └── fonts/                       # UI fonts (JetBrainsMono)
 ├── CompilerLogic/
-│   ├── Ir/                  # low-level runtime + IR builder
-│   │   ├── irBuilder.py
-│   │   ├── runtime.c|h|o
-│   │   ├── libvgraphrt.a
-│   │   └── build_runtime.sh
-│   ├── SemanticComponents/  # symbol table, type checker, …
-│   │   ├── astVisitor.py …
-│   ├── lexicalAnalyzer.py
-│   ├── syntacticAnalyzer.py
-│   ├── semanticAnalyzer.py
-│   ├── intermediateCodeGenerator.py
-│   ├── optimizer.py
-│   └── codeGenerator.py
+│   ├── Ir/                          # LLVM IR and runtime
+│   │   ├── irBuilder.py             # IR construction
+│   │   ├── runtime.c|h              # C runtime library
+│   │   ├── libvgraphrt.a            # Static runtime library
+│   │   └── build_runtime.sh         # Runtime build script
+│   ├── SemanticComponents/          # AST and semantic analysis
+│   ├── lexicalAnalyzer.py           # Tokenization
+│   ├── syntacticAnalyzer.py         # Parsing
+│   ├── semanticAnalyzer.py          # Type checking & validation
+│   ├── intermediateCodeGenerator.py # IR generation
+│   ├── optimizer.py                 # LLVM optimization passes
+│   └── codeGenerator.py             # Native code emission
 ├── GUI/
-│   ├── components/          # reusable buttons, textboxes
-│   ├── views/
-│   │   ├── editor_view.py
-│   │   ├── lexical_analysis_view.py
-│   │   ├── syntactic_analysis_view.py
-│   │   ├── semantic_analysis_view.py
-│   │   ├── ir_view.py      
-│   │   ├── optimizer_view.py      
-│   │   ├── code_generator_view.py    
-│   │   ├── symbol_table_view.py
-│   │   ├── grammar_view.py
-│   │   ├── credits_view.py
-│   │   └── config_view.py
+│   ├── components/                  # Reusable UI components
+│   ├── views/                       # IDE views
+│   │   ├── editor_view.py           # Code editor
+│   │   ├── lexical_analysis_view.py # Token visualization
+│   │   ├── syntactic_analysis_view.py # AST visualization
+│   │   ├── semantic_analysis_view.py  # Semantic errors
+│   │   ├── ir_view.py               # LLVM IR display
+│   │   ├── optimizer_view.py        # Optimization passes
+│   │   ├── code_generator_view.py   # Assembly output
+│   │   └── symbol_table_view.py     # Symbol table viewer
 │   ├── models/
-│   │   ├── fileExplorer.py
-│   │   ├── execute_model.py
-│   ├── design_base.py
-│   ├── view_base.py
-│   └── view_controller.py
-├── Examples/
-│   ├── Test0.txt
-│   ├── Test1.txt
-│   ├── Test2.txt
-│   ├── Test3.txt
-│   ├── Test6(ComplexFigure).txt
-│   ├── Test7(LexerError).txt
-│   ├── Test8(SyntacticError).txt
-│   └── Test11(SemanticError3).txt
-├── out/
-│   ├── image.bin            # 800×600 × 24-bit
-│   ├── vGraph.asm|exe|ll    # outputs of each back-end
-│   ├── Client_execute.exe    # General client execute
-│   ├── Client_visualizer.exe    # General client visualizer execute
-│   ├── HDMI_execute.exe    # General hdmi execute
-│   ├── HDMI_visualizer.exe    # General hdmi visualizer execute
-│   └── vGraph.o             # object file
-├── requirements.txt         # all necesary libraries for each version
-├── config.py                # global constants and important variables
-├── design_settings.json     # GUI colour theme and extras
-├── main.py                  # CLI / GUI entry-point
-├── LICENSE
-└── README.md (this file)
+│   │   ├── fileExplorer.py          # File browser
+│   │   └── execute_model.py         # Cross-platform execution
+│   └── view_controller.py           # MVC controller
+├── Examples/                        # Sample VGraph programs
+│   ├── Test0.txt                    # Basic shapes
+│   ├── Test1.txt                    # Animation demo
+│   ├── Test2.txt                    # Color manipulation
+│   ├── Test3.txt                    # Mathematical curves
+│   ├── Test6(ComplexFigure).txt     # Advanced graphics
+│   ├── Test7(LexerError).txt        # Error handling demo
+│   ├── Test8(SyntacticError).txt    # Parser error demo
+│   └── Test11(SemanticError3).txt   # Semantic error demo
+├── ExternalPrograms/
+│   ├── imageViewer.py               # Memory-mapped display
+│   └── hdmiOutput.py                # HDMI output handler
+├── out/                             # Compiler output directory
+│   ├── image.bin                    # 800×600×24-bit buffer
+│   ├── vGraph.exe/                  # Compiled program
+│   ├── Client_execute_*             # Platform launchers
+│   └── HDMI_execute_*               # HDMI launchers
+├── setup_dependencies.py            # Automated setup script
+├── requirements.txt                 # Python dependencies
+├── config.py                        # Global configuration
+├── design_settings.json             # IDE theme settings
+├── main.py                          # Entry point
+├── LICENSE                          # MIT License
+└── README.md                        # This file
 ```
 
 ---
 
 ## Installation
 
+### Prerequisites
+
+- Python 3.7 or higher
+- Git
+- Administrator/sudo privileges (for system packages)
+
+### Quick Install
+
 ```bash
-# 1 – clone repo
-$ git clone https://github.com/Adriel23456/Full-Stack-Compiler.git
-$ cd Full-Stack-Compiler
+# 1. Clone the repository
+git clone https://github.com/Adriel23456/Full-Stack-Compiler.git
+cd Full-Stack-Compiler
 
-# 2 – create venv
-$ python3 -m venv .venv
-$ source .venv/bin/activate
+# 2. Run the automated setup script
+python setup_dependencies.py
 
-# 3 – install deps (run the commands depending on your OS)
-$ ./requirements.txt
-
-# 4 – execute the program and enjoy
-$ python main.py
+# 3. Launch the IDE
+python main.py
 ```
 
+### Platform-Specific Requirements
+
+#### Windows
+- Visual Studio Build Tools or MinGW-w64
+- Java Runtime Environment (JRE)
+
+#### Linux
+- GCC/Clang compiler
+- SDL2 development libraries
+- X11 development headers
+- Java Runtime Environment (JRE)
+
+The setup script will automatically detect your platform and install all necessary dependencies.
+
 ---
 
-## Basic Usage
+## Usage Guide
 
-| Action                | Command                                                |
-| --------------------- | ------------------------------------------------------ |
-| Launch IDE GUI        | `python main.py`                                       |
-| Execute of imagen.bin | `./out/vGraph.exe`                                     |
-| Execute of viewer     | `./out/Visualizer.exe`                                 |
-| Execute of HDMI-Out   | `./out/HDMI.exe`                                       |
+### IDE Mode (Recommended)
 
-> The generated program writes into `out/image.bin`; the viewer refreshes the
-> SDL window (and HDMI) at 60 FPS.
+```bash
+python main.py
+```
+
+This launches the integrated development environment with:
+- Syntax highlighting editor
+- Real-time compilation feedback
+- Visual analysis tools for each compilation phase
+- Integrated execution and visualization
 
 ---
 
-## Road-map
+## Execution Modes
 
-1. **IDE & framework integration** – *done*
-2. **Lexical + syntactic analysis** – *done*
-3. **Semantic analysis** – *done*
-4. **IR + basic optimiser** – *done*
-5. **x86 code generator** – *done*
-6. **Real-time HDMI visualisation** – in progress
+### 1. Client Mode
+Standard execution with local display window:
+- Click "Execute Client" in the IDE
+- Or run the platform-specific launcher directly
+
+### 2. HDMI Mode
+For external monitor output:
+- Connect HDMI display
+- Click "Execute HDMI" in the IDE
+- The output will mirror to the external display
+
+### 3. Development Mode
+For debugging and analysis:
+- Use the IDE's analysis views
+- Step through compilation phases
+- Examine IR and assembly output
+
+---
+
+## Development Status
+
+### ✅ Completed Features
+
+1. **Full Compiler Pipeline** - All phases implemented
+2. **Cross-Platform Support** - Windows & Linux compatibility
+3. **Integrated IDE** - Custom development environment
+4. **Real-Time Visualization** - Live graphics preview
+5. **HDMI Output** - External display support
+6. **Error Handling** - Comprehensive error messages
+7. **Optimization** - LLVM optimization passes
+8. **Example Programs** - Educational samples included
+
+### 🎉 Project Status: COMPLETE
+
+The Full-Stack Compiler is now feature-complete and ready for educational use!
 
 ---
 
 ## Tool Stack
 
-| Purpose            | Tech                                 |
+| Component          | Technology                           |
 | ------------------ | ------------------------------------ |
-| Main language      | Python 3.12                          |
-| Lexer / Parser     | **ANTLR 4** (Python runtime)         |
-| IR & back-end      | **LLVM** via `llvmlite`              |
-| Assembler / Linker | `clang`, `gcc`                       |
-| Visualisation      | `pygame`, `PySDL2`, `mmap`, `pyudev` |
-| GUI                | Custom MVC (Pygame + SDL2)           |
-| Target OS          | Linux (Ubuntu 22.04)                 |
+| Language           | Python 3.7+                          |
+| Parser Generator   | **ANTLR 4** (Python runtime)         |
+| IR & Backend       | **LLVM** via `llvmlite`              |
+| Native Toolchain   | `clang`, `gcc`, MSVC                 |
+| Graphics           | `pygame`, `PySDL2`                   |
+| Memory Mapping     | `mmap` (cross-platform)              |
+| GUI Framework      | Custom MVC with Pygame               |
+| Target Platforms   | Windows 10/11, Linux (Ubuntu 20.04+) |
+
+---
+
+### Areas for Contribution
+- Support for macOS
+- Additional VGraph language features
+- More example programs
+- Documentation improvements
+- Performance optimizations
 
 ---
 
 ## License
 
-Released under the **MIT License**. See [LICENSE](LICENSE) for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- ANTLR team for the excellent parser generator
+- LLVM project for the compilation infrastructure
+- SDL/Pygame communities for graphics support
+- All contributors and testers
+
+---
+
+## Contact
+
+**Project Author**: Adriel23456  
+**Repository**: [https://github.com/Adriel23456/Full-Stack-Compiler](https://github.com/Adriel23456/Full-Stack-Compiler)
+
+Feel free to open an issue for questions, bug reports, or feature requests!
