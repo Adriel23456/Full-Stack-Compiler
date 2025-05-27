@@ -2,9 +2,9 @@
 LLVM IR OPTIMIZATION REPORT
 ============================================================
 Optimization Level: 3
-Platform: linux
-Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.ll
-Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
+Platform: windows
+Input: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.ll
+Output: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph_opt.ll
 
 Optimization Statistics:
 ----------------------------------------
