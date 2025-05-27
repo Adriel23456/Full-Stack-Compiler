@@ -450,39 +450,54 @@ alias grun="java org.antlr.v4.gui.TestRig"
                 return False
     
     def verify_installation(self):
-        """Verify that key components are working"""
+        """
+        Verify that key components are working **y** asegúrate de que los
+        binarios indicados tengan permisos de ejecución en Linux.
+        """
         print("\n🔍 Verifying installation...")
-        
-        # Test Python imports
-        python_modules = [
-            'pygame',
-            'llvmlite', 
-            'antlr4',
-            'pydot'
-        ]
-        
+
+        # ── 1) Pruebas de importación de módulos Python ─────────────────────
+        python_modules = ['pygame', 'llvmlite', 'antlr4', 'pydot']
         for module in python_modules:
             try:
                 __import__(module)
                 self.log_status(f"Python module {module} imports successfully")
             except ImportError:
                 self.log_status(f"Python module {module} failed to import", False)
-        
-        # Test Java
+
+        # ── 2) Verificar Java / ANTLR ───────────────────────────────────────
         java_result = self.run_command(['java', '-version'])
-        if java_result:
-            self.log_status("Java is working")
-        else:
-            self.log_status("Java is not working", False)
-        
-        # Test ANTLR jar
+        self.log_status("Java is working" if java_result else "Java is not working", bool(java_result))
+
         if os.path.exists(self.antlr_jar_path):
             antlr_test = self.run_command(['java', '-jar', self.antlr_jar_path], check=False)
-            if antlr_test is not None:
-                self.log_status("ANTLR jar is accessible")
-            else:
-                self.log_status("ANTLR jar test failed", False)
-        
+            self.log_status("ANTLR jar is accessible" if antlr_test else "ANTLR jar test failed", bool(antlr_test))
+        else:
+            self.log_status("ANTLR jar not found", False)
+
+        # ── 3) Asegurar permisos de ejecución en Linux ─────────────────────
+        if self.is_linux:
+            print("\n🔧 Ensuring execute permissions on generated binaries...")
+            binaries = [
+                Path("out/Client_execute_linux"),
+                Path("out/Client_visualizer.exe"),
+                Path("out/HDMI_execute_linux"),
+                Path("out/HDMI_visualizer.exe"),
+                Path("out/vGraph.exe")
+            ]
+
+            for bin_path in binaries:
+                try:
+                    if bin_path.exists():
+                        # Añade bits de ejecución (u+rwx,g+rx,o+rx)
+                        bin_path.chmod(bin_path.stat().st_mode | 0o755)
+                        self.log_status(f"Set +x : {bin_path}")
+                    else:
+                        self.log_status(f"File not found (skip chmod): {bin_path}", False)
+                except Exception as e:
+                    self.log_status(f"chmod failed for {bin_path}: {e}", False)
+
+        # ── 4) Resultado final ─────────────────────────────────────────────
         return len(self.failed_installations) == 0
     
     def print_summary(self):

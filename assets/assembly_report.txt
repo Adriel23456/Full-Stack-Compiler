@@ -1,30 +1,30 @@
 ============================================================
 ASSEMBLY CODE GENERATION REPORT
 ============================================================
-Platform: windows
-Input: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph_opt.ll
-Output: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.asm
-Object: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.o
-Executable: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.exe
+Platform: linux
+Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
+Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.asm
+Object: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.o
+Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.exe
 
 Build Tools Used:
 ----------------------------------------
 C Compiler          : clang
-Assembler           : clang
-Linker              : gcc
+Assembler           : as
+Linker              : clang
 Archiver            : ar
 
 Assembly Statistics:
 ----------------------------------------
-Total Lines         :        658
-Code Lines          :        417
-Functions           :         40
-Labels              :         38
-Calls               :         24
-Jumps               :         10
-Moves               :        143
-Arithmetic          :        102
-Stack Ops           :         21
+Total Lines         :        608
+Code Lines          :        365
+Functions           :         16
+Labels              :         16
+Calls               :         20
+Jumps               :         15
+Moves               :        136
+Arithmetic          :         79
+Stack Ops           :         31
 
 Build Steps:
 ----------------------------------------
@@ -38,43 +38,19 @@ Assembly Syntax: AT&T (GNU Assembler)
 
 Functions found:
 ----------------------------------------
-  - @feat.00
-  - __real@4034000000000000
-  - __real@3fe0000000000000
-  - __real@4028000000000000
-  - __real@4018000000000000
-  - __real@404e000000000000
-  - __real@400921ff2e48e8a7
-  - __real@4066800000000000
-  - __real@4038000000000000
-  - __real@4000000000000000
-  - __real@c000000000000000
-  - __real@4070400000000000
-  - __real@3ff0000000000000
-  - __real@402a000000000000
-  - __real@4058400000000000
-  - __real@403d000000000000
-  - __real@404a800000000000
-  - __real@401c000000000000
-  - __real@4024000000000000
-  - __real@4049000000000000
-  - __real@405ec00000000000
-  - __real@4010000000000000
-  - __real@40e1940000000000
   - main
-  - sparkle
+  - drawRing
+  - aperture
   - _main
   - cx
   - cy
   - t
-  - arm
+  - seg
   - ang
-  - rad
   - x
   - y
-  - star
-  - sx
-  - sy
-  - sparkleT
+  - ray
+  - x2
+  - y2
+  - blades
   - col
-  - _fltused
