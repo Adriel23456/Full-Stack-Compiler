@@ -2,7 +2,8 @@
  *
  *  • Frame-buffer 800×600 RGB (24-bit) mapeado a image.bin
  *  • Busca image.bin en el mismo directorio que el ejecutable
- *  • Compatible con Linux, macOS, Windows (via MinGW/Cygwin)
+ *  • Compatible con Linux, macOS, Windows (via MinGW/MSVC/Cygwin)
+ *  • Mejorado para máxima compatibilidad cross-platform
  */
 
 #include <stdio.h>
@@ -11,11 +12,17 @@
 #include <string.h>
 #include <math.h>       /* sqrt, abs */
 
-/* Detección de plataforma */
-#ifdef _WIN32
+/* Detección de plataforma mejorada */
+#if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+    #define PLATFORM_WINDOWS
     #include <windows.h>
+    #include <io.h>
     #define PATH_SEPARATOR "\\"
+    #ifndef PATH_MAX
+        #define PATH_MAX MAX_PATH
+    #endif
 #else
+    #define PLATFORM_UNIX
     #include <unistd.h>     /* usleep, readlink */
     #include <fcntl.h>      /* open, O_* flags */
     #include <sys/mman.h>   /* mmap, munmap, msync */
@@ -38,44 +45,70 @@
 #define BYTES (W * H * 3)
 
 static uint8_t *img      = NULL;        /* frame-buffer */
-static int      fdimg    = -1;          /* descriptor de image.bin */
 static uint32_t CUR      = 0x00FFFFFF;  /* color actual */
 static char     img_path[PATH_MAX];     /* ruta completa a image.bin */
+static int      initialized = 0;        /* flag de inicialización */
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 static HANDLE hMapFile = NULL;
 static HANDLE hFile = INVALID_HANDLE_VALUE;
+#else
+static int      fdimg    = -1;          /* descriptor de image.bin */
 #endif
 
-/* ───────── Funciones auxiliares ───────── */
+/* ───────── Funciones auxiliares mejoradas ───────── */
 
-/* Obtiene el directorio donde se encuentra el ejecutable (multi-plataforma) */
-static void get_executable_dir(char *dir, size_t size)
+/* Función de logging thread-safe */
+static void vg_log(const char *level, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    fprintf(stdout, "[VGraph-%s] ", level);
+    vfprintf(stdout, format, args);
+    fprintf(stdout, "\n");
+    fflush(stdout);
+    va_end(args);
+}
+
+/* Obtiene el directorio donde se encuentra el ejecutable (multi-plataforma mejorado) */
+static int get_executable_dir(char *dir, size_t size)
 {
     char path[PATH_MAX];
     
-#ifdef _WIN32
-    /* Windows */
+#ifdef PLATFORM_WINDOWS
+    /* Windows - funciona con MSVC, MinGW, Cygwin */
     DWORD len = GetModuleFileNameA(NULL, path, sizeof(path));
     if (len > 0 && len < sizeof(path)) {
+        /* Convertir separadores a formato Windows */
+        for (char *p = path; *p; p++) {
+            if (*p == '/') *p = '\\';
+        }
+        
         /* Eliminar el nombre del ejecutable para obtener solo el directorio */
         char *last_sep = strrchr(path, '\\');
         if (last_sep) {
             *last_sep = '\0';
         }
-        strncpy(dir, path, size - 1);
-        dir[size - 1] = '\0';
-        return;
+        
+        /* Copiar resultado */
+        if (strlen(path) < size) {
+            strcpy(dir, path);
+            return 1;
+        }
     }
     
 #elif defined(__APPLE__)
     /* macOS */
     uint32_t bufsize = sizeof(path);
     if (_NSGetExecutablePath(path, &bufsize) == 0) {
-        char *dir_path = dirname(path);
-        strncpy(dir, dir_path, size - 1);
-        dir[size - 1] = '\0';
-        return;
+        /* Usar dirname de forma segura */
+        char temp_path[PATH_MAX];
+        strcpy(temp_path, path);
+        char *dir_path = dirname(temp_path);
+        if (strlen(dir_path) < size) {
+            strcpy(dir, dir_path);
+            return 1;
+        }
     }
     
 #elif defined(__linux__)
@@ -83,50 +116,97 @@ static void get_executable_dir(char *dir, size_t size)
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
     if (len != -1) {
         path[len] = '\0';
-        char *dir_path = dirname(path);
-        strncpy(dir, dir_path, size - 1);
-        dir[size - 1] = '\0';
-        return;
+        /* Usar dirname de forma segura */
+        char temp_path[PATH_MAX];
+        strcpy(temp_path, path);
+        char *dir_path = dirname(temp_path);
+        if (strlen(dir_path) < size) {
+            strcpy(dir, dir_path);
+            return 1;
+        }
     }
 #endif
     
     /* Fallback: usar directorio actual */
-    #ifdef _WIN32
-        GetCurrentDirectoryA(size, dir);
-    #else
-        if (getcwd(dir, size) == NULL) {
-            strncpy(dir, ".", size - 1);
-            dir[size - 1] = '\0';
-        }
-    #endif
+#ifdef PLATFORM_WINDOWS
+    if (GetCurrentDirectoryA(size, dir) > 0) {
+        return 1;
+    }
+#else
+    if (getcwd(dir, size) != NULL) {
+        return 1;
+    }
+#endif
+    
+    /* Último recurso */
+    if (size > 1) {
+        strcpy(dir, ".");
+        return 1;
+    }
+    
+    return 0;
 }
 
 /* Función para dormir (multi-plataforma) */
 static void sleep_ms(int ms)
 {
-#ifdef _WIN32
+    if (ms <= 0) return;
+    
+#ifdef PLATFORM_WINDOWS
     Sleep(ms);
 #else
-    usleep(ms * 1000);
+    /* Usar nanosleep en sistemas Unix para mayor precisión */
+    struct timespec ts;
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+    nanosleep(&ts, NULL);
 #endif
 }
 
-static void init_buf(void)
+/* Verificar si un archivo existe */
+static int file_exists(const char *path)
 {
-    if (img) return;  /* ya inicializado */
+#ifdef PLATFORM_WINDOWS
+    DWORD attrs = GetFileAttributesA(path);
+    return (attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY));
+#else
+    return access(path, F_OK) == 0;
+#endif
+}
+
+/* Crear directorio si no existe */
+static int ensure_directory(const char *path)
+{
+#ifdef PLATFORM_WINDOWS
+    return CreateDirectoryA(path, NULL) || GetLastError() == ERROR_ALREADY_EXISTS;
+#else
+    return mkdir(path, 0755) == 0 || errno == EEXIST;
+#endif
+}
+
+static int init_buf(void)
+{
+    if (initialized) return 1;  /* ya inicializado */
     
     char exe_dir[PATH_MAX];
     
     /* Obtener directorio del ejecutable */
-    get_executable_dir(exe_dir, sizeof(exe_dir));
+    if (!get_executable_dir(exe_dir, sizeof(exe_dir))) {
+        vg_log("ERROR", "No se pudo obtener directorio del ejecutable");
+        return 0;
+    }
     
     /* Construir path completo a image.bin */
-    snprintf(img_path, sizeof(img_path), "%s%simage.bin", exe_dir, PATH_SEPARATOR);
+    int ret = snprintf(img_path, sizeof(img_path), "%s%simage.bin", exe_dir, PATH_SEPARATOR);
+    if (ret >= sizeof(img_path) || ret < 0) {
+        vg_log("ERROR", "Path demasiado largo para image.bin");
+        return 0;
+    }
     
-    printf("[VGraph] Ejecutable en: %s\n", exe_dir);
-    printf("[VGraph] Usando image.bin en: %s\n", img_path);
+    vg_log("INFO", "Ejecutable en: %s", exe_dir);
+    vg_log("INFO", "Usando image.bin en: %s", img_path);
     
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     /* Windows: usar CreateFile y CreateFileMapping */
     hFile = CreateFileA(img_path,
                         GENERIC_READ | GENERIC_WRITE,
@@ -137,15 +217,20 @@ static void init_buf(void)
                         NULL);
     
     if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "[VGraph] Error: No se pudo abrir/crear %s\n", img_path);
-        exit(1);
+        DWORD error = GetLastError();
+        vg_log("ERROR", "No se pudo abrir/crear %s (Error: %lu)", img_path, error);
+        return 0;
     }
     
     /* Establecer tamaño del archivo */
     LARGE_INTEGER size;
     size.QuadPart = BYTES;
-    SetFilePointerEx(hFile, size, NULL, FILE_BEGIN);
-    SetEndOfFile(hFile);
+    if (!SetFilePointerEx(hFile, size, NULL, FILE_BEGIN) || !SetEndOfFile(hFile)) {
+        vg_log("ERROR", "No se pudo establecer tamaño del archivo");
+        CloseHandle(hFile);
+        hFile = INVALID_HANDLE_VALUE;
+        return 0;
+    }
     
     /* Crear mapping */
     hMapFile = CreateFileMappingA(hFile,
@@ -156,9 +241,10 @@ static void init_buf(void)
                                   NULL);
     
     if (hMapFile == NULL) {
-        fprintf(stderr, "[VGraph] Error: No se pudo crear file mapping\n");
+        vg_log("ERROR", "No se pudo crear file mapping");
         CloseHandle(hFile);
-        exit(1);
+        hFile = INVALID_HANDLE_VALUE;
+        return 0;
     }
     
     /* Mapear vista del archivo */
@@ -169,42 +255,53 @@ static void init_buf(void)
                                   BYTES);
     
     if (img == NULL) {
-        fprintf(stderr, "[VGraph] Error: No se pudo mapear archivo\n");
+        vg_log("ERROR", "No se pudo mapear archivo");
         CloseHandle(hMapFile);
         CloseHandle(hFile);
-        exit(1);
+        hMapFile = NULL;
+        hFile = INVALID_HANDLE_VALUE;
+        return 0;
     }
     
 #else
     /* Unix/Linux/macOS: usar mmap */
     fdimg = open(img_path, O_RDWR | O_CREAT, 0644);
     if (fdimg < 0) {
-        fprintf(stderr, "[VGraph] Error: No se pudo abrir/crear %s\n", img_path);
+        vg_log("ERROR", "No se pudo abrir/crear %s", img_path);
         perror("open");
-        exit(1);
+        return 0;
     }
     
     /* Reservar tamaño fijo */
     if (ftruncate(fdimg, BYTES) != 0) {
+        vg_log("ERROR", "No se pudo establecer tamaño del archivo");
         perror("ftruncate");
-        exit(1);
+        close(fdimg);
+        fdimg = -1;
+        return 0;
     }
     
     /* Mapear a memoria */
     img = mmap(NULL, BYTES, PROT_READ | PROT_WRITE,
                MAP_SHARED, fdimg, 0);
     if (img == MAP_FAILED) {
+        vg_log("ERROR", "No se pudo mapear archivo a memoria");
         perror("mmap");
-        exit(1);
+        close(fdimg);
+        fdimg = -1;
+        img = NULL;
+        return 0;
     }
 #endif
     
-    printf("[VGraph] image.bin mapeado correctamente (%d bytes)\n", BYTES);
+    initialized = 1;
+    vg_log("INFO", "image.bin mapeado correctamente (%d bytes)", BYTES);
+    return 1;
 }
 
 static inline void put_px(int x, int y, uint32_t rgb)
 {
-    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    if (!img || x < 0 || x >= W || y < 0 || y >= H) return;
     int idx = (y * W + x) * 3;
     img[idx + 0] = (rgb >> 16) & 0xFF;    /* R */
     img[idx + 1] = (rgb >>  8) & 0xFF;    /* G */
@@ -213,29 +310,46 @@ static inline void put_px(int x, int y, uint32_t rgb)
 
 static inline void flush_buf(void)
 {
-#ifdef _WIN32
+    if (!img) return;
+    
+#ifdef PLATFORM_WINDOWS
     /* Windows: forzar escritura */
-    FlushViewOfFile(img, BYTES);
-    FlushFileBuffers(hFile);
+    if (!FlushViewOfFile(img, BYTES)) {
+        vg_log("WARN", "FlushViewOfFile falló");
+    }
+    if (hFile != INVALID_HANDLE_VALUE && !FlushFileBuffers(hFile)) {
+        vg_log("WARN", "FlushFileBuffers falló");
+    }
 #else
     /* Unix: msync */
-    msync(img, BYTES, MS_SYNC);
+    if (msync(img, BYTES, MS_SYNC) != 0) {
+        vg_log("WARN", "msync falló");
+    }
 #endif
 }
 
 /* ───────── API invocada desde el IR ───────── */
 void vg_clear(void)
 {
-    init_buf();
+    if (!init_buf()) {
+        vg_log("ERROR", "No se pudo inicializar buffer en vg_clear");
+        return;
+    }
     memset(img, 0xFF, BYTES);  /* blanco */
     flush_buf();
 }
 
-void vg_set_color(uint32_t rgb) { CUR = rgb; }
+void vg_set_color(uint32_t rgb) 
+{ 
+    CUR = rgb & 0x00FFFFFF;  /* Asegurar que solo usamos 24 bits */
+}
 
 void vg_draw_pixel(int x, int y)
 {
-    init_buf();
+    if (!init_buf()) {
+        vg_log("ERROR", "No se pudo inicializar buffer en vg_draw_pixel");
+        return;
+    }
     put_px(x, y, CUR);
     flush_buf();
 }
@@ -243,7 +357,11 @@ void vg_draw_pixel(int x, int y)
 /* círculo relleno mediante scan-lines */
 void vg_draw_circle(int cx, int cy, int r)
 {
-    init_buf();
+    if (!init_buf()) {
+        vg_log("ERROR", "No se pudo inicializar buffer en vg_draw_circle");
+        return;
+    }
+    
     if (r <= 0) return;
 
     int r2 = r * r;
@@ -252,7 +370,8 @@ void vg_draw_circle(int cx, int cy, int r)
         int y = cy + dy;
         if (y < 0 || y >= H) continue;
 
-        int dx_max = (int)(sqrt((double)(r2 - dy * dy)) + 0.5);
+        double dx_max_d = sqrt((double)(r2 - dy * dy));
+        int dx_max = (int)(dx_max_d + 0.5);
         int x0 = cx - dx_max;
         int x1 = cx + dx_max;
 
@@ -268,7 +387,10 @@ void vg_draw_circle(int cx, int cy, int r)
 /* línea Bresenham */
 void vg_draw_line(int x1, int y1, int x2, int y2)
 {
-    init_buf();
+    if (!init_buf()) {
+        vg_log("ERROR", "No se pudo inicializar buffer en vg_draw_line");
+        return;
+    }
 
     int dx =  abs(x2 - x1), sx = x1 < x2 ?  1 : -1;
     int dy = -abs(y2 - y1), sy = y1 < y2 ?  1 : -1;
@@ -289,7 +411,10 @@ void vg_draw_line(int x1, int y1, int x2, int y2)
 /* rectángulo relleno */
 void vg_draw_rect(int x1, int y1, int x2, int y2)
 {
-    init_buf();
+    if (!init_buf()) {
+        vg_log("ERROR", "No se pudo inicializar buffer en vg_draw_rect");
+        return;
+    }
 
     if (x1 > x2) { int t = x1; x1 = x2; x2 = t; }
     if (y1 > y2) { int t = y1; y1 = y2; y2 = t; }
@@ -306,24 +431,107 @@ void vg_draw_rect(int x1, int y1, int x2, int y2)
     flush_buf();
 }
 
-void vg_wait(int ms) { sleep_ms(ms); }
+void vg_wait(int ms) 
+{ 
+    sleep_ms(ms); 
+}
+
+/* ───────── Funciones de información y debug ───────── */
+void vg_get_info(void)
+{
+    vg_log("INFO", "VGraph Runtime Information");
+    vg_log("INFO", "=========================");
+#ifdef PLATFORM_WINDOWS
+    vg_log("INFO", "Platform: Windows");
+#elif defined(__APPLE__)
+    vg_log("INFO", "Platform: macOS");
+#else
+    vg_log("INFO", "Platform: Linux/Unix");
+#endif
+    vg_log("INFO", "Frame buffer: %dx%d (%d bytes)", W, H, BYTES);
+    vg_log("INFO", "Initialized: %s", initialized ? "Yes" : "No");
+    if (initialized) {
+        vg_log("INFO", "Image file: %s", img_path);
+        vg_log("INFO", "Current color: 0x%06X", CUR);
+    }
+}
 
 /* ───────── limpieza al salir ───────── */
-__attribute__((destructor))
 static void close_buf(void)
 {
+    if (!initialized) return;
+    
     if (img) {
-#ifdef _WIN32
-        UnmapViewOfFile(img);
-        if (hMapFile != NULL) CloseHandle(hMapFile);
-        if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
+#ifdef PLATFORM_WINDOWS
+        if (!UnmapViewOfFile(img)) {
+            vg_log("WARN", "UnmapViewOfFile falló");
+        }
+        if (hMapFile != NULL) {
+            CloseHandle(hMapFile);
+            hMapFile = NULL;
+        }
+        if (hFile != INVALID_HANDLE_VALUE) {
+            CloseHandle(hFile);
+            hFile = INVALID_HANDLE_VALUE;
+        }
 #else
         if (img != MAP_FAILED) {
-            munmap(img, BYTES);
-            printf("[VGraph] image.bin desmapeado\n");
+            if (munmap(img, BYTES) != 0) {
+                vg_log("WARN", "munmap falló");
+            } else {
+                vg_log("INFO", "image.bin desmapeado");
+            }
         }
-        if (fdimg >= 0) close(fdimg);
+        if (fdimg >= 0) {
+            close(fdimg);
+            fdimg = -1;
+        }
 #endif
         img = NULL;
     }
+    
+    initialized = 0;
 }
+
+/* Funciones de inicialización y limpieza explícitas */
+void vg_init(void)
+{
+    if (!initialized) {
+        init_buf();
+    }
+}
+
+void vg_cleanup(void)
+{
+    close_buf();
+}
+
+/* Constructor/Destructor automático */
+#ifdef PLATFORM_WINDOWS
+/* Windows DLL entry point para auto-inicialización */
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+    switch (fdwReason) {
+        case DLL_PROCESS_DETACH:
+            close_buf();
+            break;
+    }
+    return TRUE;
+}
+#else
+/* Unix constructor/destructor */
+__attribute__((constructor))
+static void vg_constructor(void)
+{
+    /* Inicialización automática opcional */
+}
+
+__attribute__((destructor))
+static void vg_destructor(void)
+{
+    close_buf();
+}
+#endif
+
+/* Incluir stdarg.h para va_list */
+#include <stdarg.h>

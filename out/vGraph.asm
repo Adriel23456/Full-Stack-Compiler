@@ -1,271 +1,392 @@
 # VGraph Assembly Code
 # Generated from LLVM IR
-# Target: x86-64
+# Target: x86-64 (windows)
 # Syntax: AT&T (GNU Assembler)
 
 	.text
+	.def	@feat.00;
+	.scl	3;
+	.type	0;
+	.endef
+	.globl	@feat.00
+.set @feat.00, 0
 	.file	"<string>"
-	.section	.rodata.cst8,"aM",@progbits,8
+	.def	main;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	__real@4062c00000000000
+	.section	.rdata,"dr",discard,__real@4062c00000000000
 	.p2align	3
-.LCPI0_0:
-	.quad	0x4034000000000000
-.LCPI0_1:
-	.quad	0x3fe0000000000000
-.LCPI0_2:
-	.quad	0x4028000000000000
-.LCPI0_3:
-	.quad	0x4018000000000000
-.LCPI0_4:
-	.quad	0x404e000000000000
-.LCPI0_5:
-	.quad	0x400921ff2e48e8a7
-.LCPI0_6:
-	.quad	0x4066800000000000
-.LCPI0_7:
-	.quad	0x4038000000000000
-.LCPI0_8:
-	.quad	0x4000000000000000
-.LCPI0_9:
-	.quad	0xc000000000000000
-.LCPI0_10:
-	.quad	0x4070400000000000
-.LCPI0_11:
+__real@4062c00000000000:
+	.quad	0x4062c00000000000
+	.globl	__real@4084500000000000
+	.section	.rdata,"dr",discard,__real@4084500000000000
+	.p2align	3
+__real@4084500000000000:
+	.quad	0x4084500000000000
+	.globl	__real@3ff0000000000000
+	.section	.rdata,"dr",discard,__real@3ff0000000000000
+	.p2align	3
+__real@3ff0000000000000:
 	.quad	0x3ff0000000000000
-.LCPI0_12:
-	.quad	0x402a000000000000
-.LCPI0_13:
-	.quad	0x4058400000000000
-.LCPI0_14:
-	.quad	0x403d000000000000
-.LCPI0_15:
-	.quad	0x404a800000000000
-.LCPI0_16:
-	.quad	0x401c000000000000
-.LCPI0_17:
-	.quad	0x4024000000000000
-.LCPI0_18:
-	.quad	0x4049000000000000
-.LCPI0_19:
-	.quad	0x405ec00000000000
-.LCPI0_20:
+	.globl	__real@4059000000000000
+	.section	.rdata,"dr",discard,__real@4059000000000000
+	.p2align	3
+__real@4059000000000000:
+	.quad	0x4059000000000000
+	.globl	__real@4079000000000000
+	.section	.rdata,"dr",discard,__real@4079000000000000
+	.p2align	3
+__real@4079000000000000:
+	.quad	0x4079000000000000
+	.globl	__real@4000000000000000
+	.section	.rdata,"dr",discard,__real@4000000000000000
+	.p2align	3
+__real@4000000000000000:
+	.quad	0x4000000000000000
+	.globl	__real@407c200000000000
+	.section	.rdata,"dr",discard,__real@407c200000000000
+	.p2align	3
+__real@407c200000000000:
+	.quad	0x407c200000000000
+	.globl	__real@4008000000000000
+	.section	.rdata,"dr",discard,__real@4008000000000000
+	.p2align	3
+__real@4008000000000000:
+	.quad	0x4008000000000000
+	.globl	__real@4010000000000000
+	.section	.rdata,"dr",discard,__real@4010000000000000
+	.p2align	3
+__real@4010000000000000:
 	.quad	0x4010000000000000
-.LCPI0_21:
-	.quad	0x40e1940000000000
+	.globl	__xmm@40845000000000004079000000000000
+	.section	.rdata,"dr",discard,__xmm@40845000000000004079000000000000
+	.p2align	4
+__xmm@40845000000000004079000000000000:
+	.quad	0x4079000000000000
+	.quad	0x4084500000000000
+	.globl	__xmm@407c200000000000407f400000000000
+	.section	.rdata,"dr",discard,__xmm@407c200000000000407f400000000000
+	.p2align	4
+__xmm@407c200000000000407f400000000000:
+	.quad	0x407f400000000000
+	.quad	0x407c200000000000
+	.globl	__real@404e000000000000
+	.section	.rdata,"dr",discard,__real@404e000000000000
+	.p2align	3
+__real@404e000000000000:
+	.quad	0x404e000000000000
+	.globl	__real@4018000000000000
+	.section	.rdata,"dr",discard,__real@4018000000000000
+	.p2align	3
+__real@4018000000000000:
+	.quad	0x4018000000000000
 	.text
 	.globl	main
 	.p2align	4, 0x90
-	.type	main,@function
 main:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	pushq	%r15
-	.cfi_def_cfa_offset 24
-	pushq	%r14
-	.cfi_def_cfa_offset 32
-	pushq	%r13
-	.cfi_def_cfa_offset 40
-	pushq	%r12
-	.cfi_def_cfa_offset 48
-	pushq	%rbx
-	.cfi_def_cfa_offset 56
-	subq	$24, %rsp
-	.cfi_def_cfa_offset 80
-	.cfi_offset %rbx, -56
-	.cfi_offset %r12, -48
-	.cfi_offset %r13, -40
-	.cfi_offset %r14, -32
-	.cfi_offset %r15, -24
-	.cfi_offset %rbp, -16
-	movq	cx@GOTPCREL(%rip), %rcx
-	movabsq	$4645744490609377280, %rax
-	movq	%rax, (%rcx)
-	movq	cy@GOTPCREL(%rip), %rcx
-	movabsq	$4643985272004935680, %rax
-	movq	%rax, (%rcx)
-	callq	vg_clear@PLT
-	xorl	%edi, %edi
-	callq	vg_set_color@PLT
-	xorl	%edi, %edi
-	xorl	%esi, %esi
-	movl	$799, %edx
-	movl	$599, %ecx
-	callq	vg_draw_rect@PLT
-	movq	t@GOTPCREL(%rip), %r13
-	movq	$0, (%r13)
+.seh_proc main
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	subq	$216, %rsp
+	.seh_stackalloc 216
+	movaps	%xmm15, 192(%rsp)
+	.seh_savexmm %xmm15, 192
+	movaps	%xmm14, 176(%rsp)
+	.seh_savexmm %xmm14, 176
+	movaps	%xmm13, 160(%rsp)
+	.seh_savexmm %xmm13, 160
+	movaps	%xmm12, 144(%rsp)
+	.seh_savexmm %xmm12, 144
+	movaps	%xmm11, 128(%rsp)
+	.seh_savexmm %xmm11, 128
+	movaps	%xmm10, 112(%rsp)
+	.seh_savexmm %xmm10, 112
+	movaps	%xmm9, 96(%rsp)
+	.seh_savexmm %xmm9, 96
+	movapd	%xmm8, 80(%rsp)
+	.seh_savexmm %xmm8, 80
+	movaps	%xmm7, 64(%rsp)
+	.seh_savexmm %xmm7, 64
+	movaps	%xmm6, 48(%rsp)
+	.seh_savexmm %xmm6, 48
+	.seh_endprologue
+	xorl	%ecx, %ecx
+	callq	vg_set_color
+	xorl	%ecx, %ecx
+	xorl	%edx, %edx
+	movl	$799, %r8d
+	movl	$599, %r9d
+	callq	vg_draw_rect
+	movabsq	$4617315517961601024, %rax
+	movq	%rax, depth(%rip)
+	movabsq	$4654751689864118272, %rax
+	movq	%rax, len100(%rip)
+	movq	$0, pos(%rip)
+	xorpd	%xmm8, %xmm8
+	movsd	__real@4062c00000000000(%rip), %xmm9
+	movsd	__real@404e000000000000(%rip), %xmm10
+	movsd	__real@3ff0000000000000(%rip), %xmm7
+	movsd	__real@4018000000000000(%rip), %xmm6
+	movsd	__real@4084500000000000(%rip), %xmm11
+	movsd	__real@4059000000000000(%rip), %xmm12
+	movsd	__real@4079000000000000(%rip), %xmm13
+	movsd	__real@4000000000000000(%rip), %xmm14
+	movsd	__real@407c200000000000(%rip), %xmm15
+	leaq	__xmm@40845000000000004079000000000000(%rip), %rsi
+	leaq	__xmm@407c200000000000407f400000000000(%rip), %rdi
 	xorpd	%xmm0, %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	movl	$16777215, %ecx
-	movq	col@GOTPCREL(%rip), %rdx
-	movq	rad@GOTPCREL(%rip), %r15
-	movq	x@GOTPCREL(%rip), %rbp
-	movq	y@GOTPCREL(%rip), %rbx
-	jmp	.LBB0_1
 	.p2align	4, 0x90
-.LBB0_14:
-	movl	$2, %edi
-	callq	vg_wait@PLT
-	movsd	(%r13), %xmm0
-	addsd	.LCPI0_8(%rip), %xmm0
-	movsd	%xmm0, (%r13)
-	movsd	.LCPI0_21(%rip), %xmm1
-	ucomisd	%xmm0, %xmm1
-	movsd	.LCPI0_1(%rip), %xmm1
-	movl	$16777215, %ecx
-	movq	col@GOTPCREL(%rip), %rdx
-	jbe	.LBB0_15
 .LBB0_1:
-	divsd	.LCPI0_0(%rip), %xmm0
-	addsd	%xmm1, %xmm0
-	movq	%r13, %r14
-	cvttsd2si	%xmm0, %eax
-	testb	$1, %al
-	movl	$65535, %edi
-	cmovel	%ecx, %edi
-	movl	%edi, (%rdx)
-	callq	vg_set_color@PLT
-	movq	cx@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movq	cy@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	movsd	(%r13), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %eax
-	cltq
-	imulq	$1717986919, %rax, %rcx
-	movq	%rcx, %rdx
-	shrq	$63, %rdx
-	sarq	$35, %rcx
-	addl	%edx, %ecx
-	shll	$2, %ecx
-	leal	(%rcx,%rcx,4), %ecx
-	subl	%ecx, %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sd	%eax, %xmm0
-	mulsd	%xmm1, %xmm0
-	addsd	.LCPI0_2(%rip), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edx
-	callq	vg_draw_circle@PLT
-	movq	arm@GOTPCREL(%rip), %rax
-	movq	$0, (%rax)
-	movsd	.LCPI0_3(%rip), %xmm1
-	jmp	.LBB0_2
-	.p2align	4, 0x90
+	ucomisd	%xmm8, %xmm0
+	movaps	%xmm9, %xmm1
+	movaps	%xmm9, %xmm2
+	jne	.LBB0_6
+	jnp	.LBB0_2
 .LBB0_6:
-	movq	arm@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	addsd	.LCPI0_11(%rip), %xmm0
-	movsd	%xmm0, (%rax)
-	ucomisd	%xmm0, %xmm1
-	jbe	.LBB0_7
-.LBB0_2:
-	movabsq	$4618441417868443648, %rax
-	movq	%rax, (%r15)
-	movapd	%xmm1, %xmm2
-	jmp	.LBB0_3
+	ucomisd	%xmm7, %xmm0
+	movaps	%xmm11, %xmm1
+	movaps	%xmm9, %xmm2
+	jne	.LBB0_7
+	jnp	.LBB0_2
+.LBB0_7:
+	ucomisd	%xmm14, %xmm0
+	movaps	%xmm13, %xmm1
+	movaps	%xmm12, %xmm2
+	jne	.LBB0_8
+	jnp	.LBB0_2
+.LBB0_8:
+	ucomisd	__real@4008000000000000(%rip), %xmm0
+	movaps	%xmm9, %xmm1
+	movaps	%xmm15, %xmm2
+	jne	.LBB0_9
+	jnp	.LBB0_2
+.LBB0_9:
+	cmpeqsd	__real@4010000000000000(%rip), %xmm0
+	movq	%xmm0, %rax
+	andl	$1, %eax
+	movsd	(%rsi,%rax,8), %xmm1
+	movsd	(%rdi,%rax,8), %xmm2
 	.p2align	4, 0x90
-.LBB0_5:
-	movq	col@GOTPCREL(%rip), %rax
-	movl	%edi, (%rax)
-	callq	vg_set_color@PLT
-	movsd	(%rbp), %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%rbx), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	movl	$4, %edx
-	callq	vg_draw_circle@PLT
-	movl	$16777215, %edi
-	callq	vg_set_color@PLT
-	movsd	(%rbp), %xmm0
-	movsd	.LCPI0_8(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%rbx), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	callq	vg_draw_pixel@PLT
-	movsd	(%rbp), %xmm0
-	movsd	.LCPI0_9(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%rbx), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	callq	vg_draw_pixel@PLT
-	movsd	(%rbp), %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%rbx), %xmm0
-	addsd	.LCPI0_8(%rip), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	callq	vg_draw_pixel@PLT
-	movsd	(%rbp), %xmm0
-	movsd	.LCPI0_1(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%rbx), %xmm0
-	addsd	.LCPI0_9(%rip), %xmm0
-	addsd	%xmm1, %xmm0
-	cvttsd2si	%xmm0, %esi
-	callq	vg_draw_pixel@PLT
-	movsd	(%r15), %xmm2
-	movsd	.LCPI0_3(%rip), %xmm1
-	addsd	%xmm1, %xmm2
-	movsd	%xmm2, (%r15)
-	movsd	.LCPI0_10(%rip), %xmm0
-	ucomisd	%xmm2, %xmm0
-	jbe	.LBB0_6
+.LBB0_2:
+	movsd	%xmm1, x1(%rip)
+	movsd	%xmm2, y1(%rip)
+	movq	$0, axis(%rip)
+	xorpd	%xmm3, %xmm3
+	.p2align	4, 0x90
 .LBB0_3:
-	movsd	%xmm2, 16(%rsp)
-	movq	arm@GOTPCREL(%rip), %r12
-	movsd	(%r12), %xmm0
-	mulsd	.LCPI0_4(%rip), %xmm0
-	addsd	(%r13), %xmm0
-	addsd	%xmm2, %xmm0
-	movq	ang@GOTPCREL(%rip), %r14
-	movsd	%xmm0, (%r14)
-	movq	cx@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm1
-	movsd	%xmm1, 8(%rsp)
-	movsd	.LCPI0_5(%rip), %xmm1
-	mulsd	%xmm1, %xmm0
-	movsd	.LCPI0_6(%rip), %xmm1
-	divsd	%xmm1, %xmm0
-	callq	cos@PLT
-	mulsd	16(%rsp), %xmm0
-	addsd	8(%rsp), %xmm0
-	movsd	%xmm0, (%rbp)
-	movq	cy@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	movsd	%xmm0, 8(%rsp)
-	movsd	(%r15), %xmm0
-	movsd	%xmm0, 16(%rsp)
-	movsd	(%r14), %xmm0
-	mulsd	.LCPI0_5(%rip), %xmm0
-	divsd	.LCPI0_6(%rip), %xmm0
-	callq	sin@PLT
-	mulsd	16(%rsp), %xmm0
-	addsd	8(%rsp), %xmm0
-	movsd	%xmm0, (%rbx)
-	movsd	(%r15), %xmm0
-	divsd	.LCPI0_7(%rip), %xmm0
-	addsd	(%r12), %xmm0
-	addsd	.LCPI0_1(%rip), %xmm0
+	mulsd	%xmm10, %xmm3
+	movsd	%xmm3, ang(%rip)
+	movsd	x1(%rip), %xmm0
+	movsd	y1(%rip), %xmm1
+	movsd	len100(%rip), %xmm2
+	movsd	depth(%rip), %xmm4
+	movsd	%xmm4, 32(%rsp)
+	callq	triBranch
+	movsd	axis(%rip), %xmm3
+	addsd	%xmm7, %xmm3
+	movsd	%xmm3, axis(%rip)
+	ucomisd	%xmm3, %xmm6
+	ja	.LBB0_3
+	movsd	pos(%rip), %xmm0
+	addsd	%xmm7, %xmm0
+	movsd	%xmm0, pos(%rip)
+	ucomisd	%xmm0, %xmm6
+	ja	.LBB0_1
+	xorl	%eax, %eax
+	movaps	48(%rsp), %xmm6
+	movaps	64(%rsp), %xmm7
+	movaps	80(%rsp), %xmm8
+	movaps	96(%rsp), %xmm9
+	movaps	112(%rsp), %xmm10
+	movaps	128(%rsp), %xmm11
+	movaps	144(%rsp), %xmm12
+	movaps	160(%rsp), %xmm13
+	movaps	176(%rsp), %xmm14
+	movaps	192(%rsp), %xmm15
+	addq	$216, %rsp
+	popq	%rdi
+	popq	%rsi
+	retq
+	.seh_endproc
+
+	.def	triBranch;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	__real@400921ff2e48e8a7
+	.section	.rdata,"dr",discard,__real@400921ff2e48e8a7
+	.p2align	3
+__real@400921ff2e48e8a7:
+	.quad	0x400921ff2e48e8a7
+	.globl	__real@4066800000000000
+	.section	.rdata,"dr",discard,__real@4066800000000000
+	.p2align	3
+__real@4066800000000000:
+	.quad	0x4066800000000000
+	.globl	__real@3fe0000000000000
+	.section	.rdata,"dr",discard,__real@3fe0000000000000
+	.p2align	3
+__real@3fe0000000000000:
+	.quad	0x3fe0000000000000
+	.globl	__real@4049000000000000
+	.section	.rdata,"dr",discard,__real@4049000000000000
+	.p2align	3
+__real@4049000000000000:
+	.quad	0x4049000000000000
+	.globl	__real@bff0000000000000
+	.section	.rdata,"dr",discard,__real@bff0000000000000
+	.p2align	3
+__real@bff0000000000000:
+	.quad	0xbff0000000000000
+	.globl	__real@c04e000000000000
+	.section	.rdata,"dr",discard,__real@c04e000000000000
+	.p2align	3
+__real@c04e000000000000:
+	.quad	0xc04e000000000000
+	.text
+	.globl	triBranch
+	.p2align	4, 0x90
+triBranch:
+.seh_proc triBranch
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	subq	$216, %rsp
+	.seh_stackalloc 216
+	movapd	%xmm15, 192(%rsp)
+	.seh_savexmm %xmm15, 192
+	movapd	%xmm14, 176(%rsp)
+	.seh_savexmm %xmm14, 176
+	movapd	%xmm13, 160(%rsp)
+	.seh_savexmm %xmm13, 160
+	movapd	%xmm12, 144(%rsp)
+	.seh_savexmm %xmm12, 144
+	movaps	%xmm11, 128(%rsp)
+	.seh_savexmm %xmm11, 128
+	movapd	%xmm10, 112(%rsp)
+	.seh_savexmm %xmm10, 112
+	movaps	%xmm9, 96(%rsp)
+	.seh_savexmm %xmm9, 96
+	movapd	%xmm8, 80(%rsp)
+	.seh_savexmm %xmm8, 80
+	movapd	%xmm7, 64(%rsp)
+	.seh_savexmm %xmm7, 64
+	movaps	%xmm6, 48(%rsp)
+	.seh_savexmm %xmm6, 48
+	.seh_endprologue
+	movapd	%xmm1, %xmm9
+	movapd	%xmm0, %xmm6
+	movsd	272(%rsp), %xmm11
+	xorpd	%xmm12, %xmm12
+	ucomisd	%xmm12, %xmm11
+	jne	.LBB1_1
+	jp	.LBB1_1
+.LBB1_5:
+	movl	$65280, %ecx
+	callq	vg_set_color
+	movsd	__real@3fe0000000000000(%rip), %xmm0
+	addsd	%xmm0, %xmm6
+	cvttsd2si	%xmm6, %ecx
+	addsd	%xmm0, %xmm9
+	cvttsd2si	%xmm9, %edx
+	movl	$2, %r8d
+	movaps	48(%rsp), %xmm6
+	movaps	64(%rsp), %xmm7
+	movaps	80(%rsp), %xmm8
+	movaps	96(%rsp), %xmm9
+	movaps	112(%rsp), %xmm10
+	movaps	128(%rsp), %xmm11
+	movaps	144(%rsp), %xmm12
+	movaps	160(%rsp), %xmm13
+	movaps	176(%rsp), %xmm14
+	movaps	192(%rsp), %xmm15
+	addq	$216, %rsp
+	popq	%rdi
+	popq	%rsi
+	jmp	vg_draw_circle
+.LBB1_1:
+	movapd	%xmm3, %xmm8
+	movapd	%xmm2, %xmm10
+	movsd	__real@4059000000000000(%rip), %xmm15
+	movsd	__real@3fe0000000000000(%rip), %xmm13
+	leaq	.Lswitch.table.triBranch(%rip), %rdi
+	movsd	__real@3ff0000000000000(%rip), %xmm14
+	jmp	.LBB1_2
+	.p2align	4, 0x90
+.LBB1_4:
+	movl	%ecx, col(%rip)
+	callq	vg_set_color
+	movapd	%xmm6, %xmm0
+	addsd	%xmm13, %xmm0
+	cvttsd2si	%xmm0, %ecx
+	addsd	%xmm13, %xmm9
+	cvttsd2si	%xmm9, %esi
+	movsd	x2(%rip), %xmm0
+	addsd	%xmm13, %xmm0
+	cvttsd2si	%xmm0, %r8d
+	movsd	y2(%rip), %xmm0
+	addsd	%xmm13, %xmm0
+	cvttsd2si	%xmm0, %r9d
+	movl	%esi, %edx
+	callq	vg_draw_line
+	addsd	%xmm14, %xmm6
+	addsd	%xmm13, %xmm6
+	cvttsd2si	%xmm6, %ecx
+	movsd	x2(%rip), %xmm0
+	addsd	%xmm14, %xmm0
+	addsd	%xmm13, %xmm0
+	cvttsd2si	%xmm0, %r8d
+	movsd	y2(%rip), %xmm0
+	addsd	%xmm13, %xmm0
+	cvttsd2si	%xmm0, %r9d
+	movl	%esi, %edx
+	callq	vg_draw_line
+	mulsd	__real@4049000000000000(%rip), %xmm10
+	divsd	%xmm15, %xmm10
+	movsd	x2(%rip), %xmm0
+	movsd	y2(%rip), %xmm1
+	addsd	__real@bff0000000000000(%rip), %xmm11
+	movsd	%xmm11, 32(%rsp)
+	movapd	%xmm10, %xmm2
+	movapd	%xmm8, %xmm3
+	callq	triBranch
+	movsd	x2(%rip), %xmm0
+	movsd	y2(%rip), %xmm1
+	movapd	%xmm8, %xmm3
+	addsd	__real@c04e000000000000(%rip), %xmm3
+	movsd	%xmm11, 32(%rsp)
+	movapd	%xmm10, %xmm2
+	callq	triBranch
+	movsd	x2(%rip), %xmm6
+	movsd	y2(%rip), %xmm9
+	addsd	__real@404e000000000000(%rip), %xmm8
+	ucomisd	%xmm12, %xmm11
+	jne	.LBB1_2
+	jnp	.LBB1_5
+.LBB1_2:
+	movapd	%xmm8, %xmm7
+	mulsd	__real@400921ff2e48e8a7(%rip), %xmm7
+	divsd	__real@4066800000000000(%rip), %xmm7
+	movapd	%xmm7, %xmm0
+	callq	cos
+	mulsd	%xmm10, %xmm0
+	divsd	%xmm15, %xmm0
+	addsd	%xmm6, %xmm0
+	movsd	%xmm0, x2(%rip)
+	movapd	%xmm7, %xmm0
+	callq	sin
+	mulsd	%xmm10, %xmm0
+	divsd	%xmm15, %xmm0
+	movapd	%xmm9, %xmm1
+	subsd	%xmm0, %xmm1
+	movsd	%xmm1, y2(%rip)
+	movapd	%xmm11, %xmm0
+	addsd	%xmm13, %xmm0
 	cvttsd2si	%xmm0, %eax
 	cltq
 	imulq	$715827883, %rax, %rcx
@@ -276,386 +397,90 @@ main:
 	addl	%ecx, %ecx
 	leal	(%rcx,%rcx,2), %ecx
 	subl	%ecx, %eax
-	movl	$16711935, %edi
-	cmpl	$5, %eax
-	jae	.LBB0_5
+	movl	$16711935, %ecx
+	cmpl	$4, %eax
+	ja	.LBB1_4
 	cltq
-	movl	.Lswitch.table.main(,%rax,4), %edi
-	jmp	.LBB0_5
-	.p2align	4, 0x90
-.LBB0_7:
-	movq	star@GOTPCREL(%rip), %r14
-	movq	$0, (%r14)
-	xorpd	%xmm0, %xmm0
-	movsd	.LCPI0_1(%rip), %xmm5
-	movq	sx@GOTPCREL(%rip), %r12
-	movq	sy@GOTPCREL(%rip), %r14
-	.p2align	4, 0x90
-.LBB0_8:
-	movq	t@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm1
-	movapd	%xmm0, %xmm2
-	movapd	%xmm1, %xmm3
-	movapd	%xmm0, %xmm4
-	mulsd	.LCPI0_16(%rip), %xmm0
-	addsd	%xmm1, %xmm0
-	mulsd	.LCPI0_12(%rip), %xmm1
-	mulsd	.LCPI0_13(%rip), %xmm2
-	addsd	%xmm1, %xmm2
-	addsd	%xmm5, %xmm2
-	cvttsd2si	%xmm2, %eax
-	cltq
-	imulq	$1374389535, %rax, %rcx
-	movq	%rcx, %rdx
-	shrq	$63, %rdx
-	sarq	$40, %rcx
-	addl	%edx, %ecx
-	imull	$800, %ecx, %ecx
-	subl	%ecx, %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sd	%eax, %xmm1
-	movsd	%xmm1, (%r12)
-	mulsd	.LCPI0_14(%rip), %xmm3
-	mulsd	.LCPI0_15(%rip), %xmm4
-	addsd	%xmm3, %xmm4
-	addsd	%xmm5, %xmm4
-	cvttsd2si	%xmm4, %eax
-	cltq
-	imulq	$458129845, %rax, %rcx
-	movq	%rcx, %rdx
-	shrq	$63, %rdx
-	sarq	$38, %rcx
-	addl	%edx, %ecx
-	imull	$600, %ecx, %ecx
-	subl	%ecx, %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sd	%eax, %xmm1
-	movsd	%xmm1, (%r14)
-	divsd	.LCPI0_17(%rip), %xmm0
-	addsd	%xmm5, %xmm0
-	cvttsd2si	%xmm0, %eax
-	testb	$1, %al
-	movl	$65535, %edi
-	movl	$16777215, %eax
-	cmovel	%eax, %edi
-	movq	col@GOTPCREL(%rip), %rax
-	movl	%edi, (%rax)
-	callq	vg_set_color@PLT
-	movsd	(%r12), %xmm0
-	addsd	.LCPI0_1(%rip), %xmm0
-	cvttsd2si	%xmm0, %edi
-	movsd	(%r14), %xmm0
-	addsd	.LCPI0_1(%rip), %xmm0
-	cvttsd2si	%xmm0, %esi
-	callq	vg_draw_pixel@PLT
-	movsd	.LCPI0_1(%rip), %xmm5
-	movq	star@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	addsd	.LCPI0_11(%rip), %xmm0
-	movsd	%xmm0, (%rax)
-	movsd	.LCPI0_18(%rip), %xmm1
-	ucomisd	%xmm0, %xmm1
-	ja	.LBB0_8
-	movq	t@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	movapd	%xmm0, %xmm1
-	addsd	%xmm5, %xmm1
-	cvttsd2si	%xmm1, %eax
-	imull	$-1527099483, %eax, %eax
-	addl	$47721856, %eax
-	rorl	$2, %eax
-	cmpl	$23860928, %eax
-	movq	sparkleT@GOTPCREL(%rip), %r14
-	ja	.LBB0_14
-	movq	cx@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm1
-	movsd	%xmm1, 8(%rsp)
-	movsd	.LCPI0_19(%rip), %xmm1
-	addsd	%xmm1, %xmm0
-	movsd	.LCPI0_5(%rip), %xmm1
-	mulsd	%xmm1, %xmm0
-	movsd	.LCPI0_6(%rip), %xmm1
-	divsd	%xmm1, %xmm0
-	callq	cos@PLT
-	movsd	.LCPI0_10(%rip), %xmm1
-	mulsd	%xmm1, %xmm0
-	addsd	8(%rsp), %xmm0
-	movsd	%xmm0, (%r12)
-	movq	cy@GOTPCREL(%rip), %rax
-	movsd	(%rax), %xmm0
-	movsd	%xmm0, 8(%rsp)
-	movsd	(%r13), %xmm0
-	addsd	.LCPI0_19(%rip), %xmm0
-	mulsd	.LCPI0_5(%rip), %xmm0
-	divsd	.LCPI0_6(%rip), %xmm0
-	callq	sin@PLT
-	mulsd	.LCPI0_10(%rip), %xmm0
-	addsd	8(%rsp), %xmm0
-	movq	sy@GOTPCREL(%rip), %rax
-	movsd	%xmm0, (%rax)
-	movq	$0, (%r14)
-	movsd	(%r12), %xmm1
-	movsd	.LCPI0_1(%rip), %xmm2
-	addsd	%xmm2, %xmm1
-	cvttsd2si	%xmm1, %r12d
-	addsd	%xmm2, %xmm0
-	cvttsd2si	%xmm0, %eax
-	movl	%eax, 8(%rsp)
-	xorpd	%xmm0, %xmm0
-	jmp	.LBB0_11
-	.p2align	4, 0x90
-.LBB0_13:
-	movq	col@GOTPCREL(%rip), %rax
-	movl	%edi, (%rax)
-	callq	vg_set_color@PLT
-	movsd	(%r14), %xmm0
-	movsd	.LCPI0_1(%rip), %xmm2
-	mulsd	%xmm2, %xmm0
-	movsd	.LCPI0_20(%rip), %xmm1
-	subsd	%xmm0, %xmm1
-	addsd	%xmm2, %xmm1
-	cvttsd2si	%xmm1, %edx
-	movl	%r12d, %edi
-	movl	8(%rsp), %esi
-	callq	vg_draw_circle@PLT
-	movsd	(%r14), %xmm0
-	addsd	.LCPI0_11(%rip), %xmm0
-	movsd	%xmm0, (%r14)
-	movsd	.LCPI0_3(%rip), %xmm1
-	ucomisd	%xmm0, %xmm1
-	jbe	.LBB0_14
-.LBB0_11:
-	addsd	.LCPI0_1(%rip), %xmm0
-	cvttsd2si	%xmm0, %eax
-	testb	$1, %al
-	movl	$16711935, %edi
-	je	.LBB0_13
-	movl	$16776960, %edi
-	jmp	.LBB0_13
-.LBB0_15:
-	xorl	%eax, %eax
-	addq	$24, %rsp
-	.cfi_def_cfa_offset 56
-	popq	%rbx
-	.cfi_def_cfa_offset 48
-	popq	%r12
-	.cfi_def_cfa_offset 40
-	popq	%r13
-	.cfi_def_cfa_offset 32
-	popq	%r14
-	.cfi_def_cfa_offset 24
-	popq	%r15
-	.cfi_def_cfa_offset 16
-	popq	%rbp
-	.cfi_def_cfa_offset 8
-	retq
-.Lfunc_end0:
-	.size	main, .Lfunc_end0-main
-	.cfi_endproc
+	movl	(%rdi,%rax,4), %ecx
+	jmp	.LBB1_4
+	.seh_endproc
 
-	.section	.rodata.cst8,"aM",@progbits,8
-	.p2align	3
-.LCPI1_0:
-	.quad	0x3fe0000000000000
-.LCPI1_1:
-	.quad	0x4010000000000000
-.LCPI1_2:
-	.quad	0x3ff0000000000000
-.LCPI1_3:
-	.quad	0x4018000000000000
-	.text
-	.globl	sparkle
-	.p2align	4, 0x90
-	.type	sparkle,@function
-sparkle:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	pushq	%r15
-	.cfi_def_cfa_offset 24
-	pushq	%r14
-	.cfi_def_cfa_offset 32
-	pushq	%rbx
-	.cfi_def_cfa_offset 40
-	pushq	%rax
-	.cfi_def_cfa_offset 48
-	.cfi_offset %rbx, -40
-	.cfi_offset %r14, -32
-	.cfi_offset %r15, -24
-	.cfi_offset %rbp, -16
-	movq	sparkleT@GOTPCREL(%rip), %rbx
-	movq	$0, (%rbx)
-	movsd	.LCPI1_0(%rip), %xmm2
-	addsd	%xmm2, %xmm0
-	cvttsd2si	%xmm0, %r14d
-	addsd	%xmm2, %xmm1
-	cvttsd2si	%xmm1, %ebp
-	xorpd	%xmm0, %xmm0
-	movq	col@GOTPCREL(%rip), %r15
-	jmp	.LBB1_1
-	.p2align	4, 0x90
-.LBB1_3:
-	movl	%edi, (%r15)
-	callq	vg_set_color@PLT
-	movsd	(%rbx), %xmm0
-	movsd	.LCPI1_0(%rip), %xmm2
-	mulsd	%xmm2, %xmm0
-	movsd	.LCPI1_1(%rip), %xmm1
-	subsd	%xmm0, %xmm1
-	addsd	%xmm2, %xmm1
-	cvttsd2si	%xmm1, %edx
-	movl	%r14d, %edi
-	movl	%ebp, %esi
-	callq	vg_draw_circle@PLT
-	movsd	(%rbx), %xmm0
-	addsd	.LCPI1_2(%rip), %xmm0
-	movsd	%xmm0, (%rbx)
-	movsd	.LCPI1_3(%rip), %xmm1
-	ucomisd	%xmm0, %xmm1
-	movsd	.LCPI1_0(%rip), %xmm2
-	jbe	.LBB1_4
-.LBB1_1:
-	addsd	%xmm2, %xmm0
-	cvttsd2si	%xmm0, %eax
-	testb	$1, %al
-	movl	$16711935, %edi
-	je	.LBB1_3
-	movl	$16776960, %edi
-	jmp	.LBB1_3
-.LBB1_4:
-	addq	$8, %rsp
-	.cfi_def_cfa_offset 40
-	popq	%rbx
-	.cfi_def_cfa_offset 32
-	popq	%r14
-	.cfi_def_cfa_offset 24
-	popq	%r15
-	.cfi_def_cfa_offset 16
-	popq	%rbp
-	.cfi_def_cfa_offset 8
-	retq
-.Lfunc_end1:
-	.size	sparkle, .Lfunc_end1-sparkle
-	.cfi_endproc
-
+	.def	_main;
+	.scl	2;
+	.type	32;
+	.endef
 	.globl	_main
 	.p2align	4, 0x90
-	.type	_main,@function
 _main:
-	.cfi_startproc
-	pushq	%rax
-	.cfi_def_cfa_offset 16
-	callq	main@PLT
+.seh_proc _main
+	subq	$40, %rsp
+	.seh_stackalloc 40
+	.seh_endprologue
+	callq	main
 	xorl	%eax, %eax
-	popq	%rcx
-	.cfi_def_cfa_offset 8
+	addq	$40, %rsp
 	retq
-.Lfunc_end2:
-	.size	_main, .Lfunc_end2-_main
-	.cfi_endproc
+	.seh_endproc
 
-	.type	cx,@object
 	.bss
-	.globl	cx
+	.globl	x1
 	.p2align	3
-cx:
+x1:
 	.quad	0x0000000000000000
-	.size	cx, 8
 
-	.type	cy,@object
-	.globl	cy
+	.globl	y1
 	.p2align	3
-cy:
+y1:
 	.quad	0x0000000000000000
-	.size	cy, 8
 
-	.type	t,@object
-	.globl	t
+	.globl	x2
 	.p2align	3
-t:
+x2:
 	.quad	0x0000000000000000
-	.size	t, 8
 
-	.type	arm,@object
-	.globl	arm
+	.globl	y2
 	.p2align	3
-arm:
+y2:
 	.quad	0x0000000000000000
-	.size	arm, 8
 
-	.type	ang,@object
+	.globl	len100
+	.p2align	3
+len100:
+	.quad	0x0000000000000000
+
 	.globl	ang
 	.p2align	3
 ang:
 	.quad	0x0000000000000000
-	.size	ang, 8
 
-	.type	rad,@object
-	.globl	rad
+	.globl	depth
 	.p2align	3
-rad:
+depth:
 	.quad	0x0000000000000000
-	.size	rad, 8
 
-	.type	x,@object
-	.globl	x
+	.globl	axis
 	.p2align	3
-x:
+axis:
 	.quad	0x0000000000000000
-	.size	x, 8
 
-	.type	y,@object
-	.globl	y
+	.globl	pos
 	.p2align	3
-y:
+pos:
 	.quad	0x0000000000000000
-	.size	y, 8
 
-	.type	star,@object
-	.globl	star
-	.p2align	3
-star:
-	.quad	0x0000000000000000
-	.size	star, 8
-
-	.type	sx,@object
-	.globl	sx
-	.p2align	3
-sx:
-	.quad	0x0000000000000000
-	.size	sx, 8
-
-	.type	sy,@object
-	.globl	sy
-	.p2align	3
-sy:
-	.quad	0x0000000000000000
-	.size	sy, 8
-
-	.type	sparkleT,@object
-	.globl	sparkleT
-	.p2align	3
-sparkleT:
-	.quad	0x0000000000000000
-	.size	sparkleT, 8
-
-	.type	col,@object
 	.data
 	.globl	col
 	.p2align	2
 col:
 	.long	16777215
-	.size	col, 4
 
-	.type	.Lswitch.table.main,@object
-	.section	.rodata,"a",@progbits
+	.section	.rdata,"dr"
 	.p2align	2
-.Lswitch.table.main:
+.Lswitch.table.triBranch:
 	.long	16711680
 	.long	16776960
 	.long	65280
 	.long	65535
 	.long	255
-	.size	.Lswitch.table.main, 20
 
-	.section	".note.GNU-stack","",@progbits
+	.globl	_fltused

@@ -2,38 +2,39 @@
 LLVM IR OPTIMIZATION REPORT
 ============================================================
 Optimization Level: 3
-Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.ll
-Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
+Platform: windows
+Input: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.ll
+Output: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph_opt.ll
 
 Optimization Statistics:
 ----------------------------------------
 Metric                   Before      After     Change
 ----------------------------------------
 functions                     3          3          0
-globals                      13         14         +1
-alloca                        2          0         -2
-load                         66         38        -28
-store                        34         26         -8
-calls                        23         24         +1
-branches                     46         16        -30
-basic_blocks                 49          3        -46
-total_lines                 445        306       -139
+globals                      10         11         +1
+alloca                        5          0         -5
+load                         54         17        -37
+store                        33         12        -21
+calls                        14         13         -1
+branches                     39         15        -24
+basic_blocks                 43          3        -40
+total_lines                 318        175       -143
 
 Optimizations Applied:
 ----------------------------------------
-✓ Constant merging
-✓ Dead argument elimination
-✓ Global dead code elimination
-✓ Global optimization
-✓ Function inlining
-✓ Control flow simplification
-✓ Instruction combining
-✓ Global value numbering
-✓ Dead code elimination
-✓ Aggressive dead code elimination
-✓ Loop unrolling
-✓ Loop invariant code motion
+[OK] Constant merging
+[OK] Dead argument elimination
+[OK] Global dead code elimination
+[OK] Global optimization
+[OK] Function inlining
+[OK] Control flow simplification
+[OK] Instruction combining
+[OK] Global value numbering
+[OK] Dead code elimination
+[OK] Aggressive dead code elimination
+[OK] Loop unrolling
+[OK] Loop invariant code motion
 
 Optimization complete (Level 3)
-Lines: 457 → 335 (26.7% reduction)
+Lines: 330 -> 201 (39.1% reduction)
 Output: vGraph_opt.ll

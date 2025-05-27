@@ -1,22 +1,30 @@
 ============================================================
 ASSEMBLY CODE GENERATION REPORT
 ============================================================
-Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
-Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.asm
-Object: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.o
-Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.exe
+Platform: windows
+Input: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph_opt.ll
+Output: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.asm
+Object: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.o
+Executable: c:\Users\Adriel\Desktop\Informacion-de-Prioridad\ProgramasCV\Full-Stack-Compiler\out\vGraph.exe
+
+Build Tools Used:
+----------------------------------------
+C Compiler          : clang
+Assembler           : clang
+Linker              : gcc
+Archiver            : ar
 
 Assembly Statistics:
 ----------------------------------------
-Total Lines         :        661
-Code Lines          :        423
-Functions           :         16
-Labels              :         16
-Calls               :         24
-Jumps               :         24
-Moves               :        166
-Arithmetic          :         99
-Stack Ops           :         23
+Total Lines         :        486
+Code Lines          :        269
+Functions           :         34
+Labels              :         32
+Calls               :         12
+Jumps               :          9
+Moves               :        121
+Arithmetic          :         38
+Stack Ops           :         12
 
 Build Steps:
 ----------------------------------------
@@ -30,19 +38,37 @@ Assembly Syntax: AT&T (GNU Assembler)
 
 Functions found:
 ----------------------------------------
+  - @feat.00
+  - __real@4062c00000000000
+  - __real@4084500000000000
+  - __real@3ff0000000000000
+  - __real@4059000000000000
+  - __real@4079000000000000
+  - __real@4000000000000000
+  - __real@407c200000000000
+  - __real@4008000000000000
+  - __real@4010000000000000
+  - __xmm@40845000000000004079000000000000
+  - __xmm@407c200000000000407f400000000000
+  - __real@404e000000000000
+  - __real@4018000000000000
   - main
-  - sparkle
+  - __real@400921ff2e48e8a7
+  - __real@4066800000000000
+  - __real@3fe0000000000000
+  - __real@4049000000000000
+  - __real@bff0000000000000
+  - __real@c04e000000000000
+  - triBranch
   - _main
-  - cx
-  - cy
-  - t
-  - arm
+  - x1
+  - y1
+  - x2
+  - y2
+  - len100
   - ang
-  - rad
-  - x
-  - y
-  - star
-  - sx
-  - sy
-  - sparkleT
+  - depth
+  - axis
+  - pos
   - col
+  - _fltused

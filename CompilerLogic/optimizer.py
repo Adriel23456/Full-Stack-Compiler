@@ -1,28 +1,187 @@
-# File: CompilerLogic/optimizer.py
 """
 LLVM IR Optimizer for VGraph compiler
 Applies various optimization passes to improve code efficiency
+Cross-platform compatible (Windows/Linux/MacOS)
 """
 import os
-from llvmlite import ir, binding as llvm
-from config import BASE_DIR
+import sys
+import platform
+import tempfile
+from pathlib import Path
 
-# Initialize LLVM
-llvm.initialize()
-llvm.initialize_native_target()
-llvm.initialize_native_asmprinter()
+# Try to import required modules with fallbacks
+try:
+    from llvmlite import ir, binding as llvm
+    LLVMLITE_AVAILABLE = True
+except ImportError:
+    LLVMLITE_AVAILABLE = False
+    print("Warning: llvmlite module not found. Install with: pip install llvmlite")
+
+from config import BASE_DIR
 
 class Optimizer:
     """
-    Optimizes LLVM IR using various optimization passes
+    Optimizes LLVM IR using various optimization passes - Cross-platform compatible
     """
     def __init__(self):
-        self.input_path = os.path.join(BASE_DIR, "out", "vGraph.ll")
-        self.output_path = os.path.join(BASE_DIR, "out", "vGraph_opt.ll")
+        # Platform detection
+        self.platform = platform.system().lower()
+        self.is_windows = self.platform == 'windows'
+        self.is_linux = self.platform == 'linux'
+        self.is_mac = self.platform == 'darwin'
         
-        # Create target machine for optimization
-        target = llvm.Target.from_default_triple()
-        self.target_machine = target.create_target_machine()
+        # Setup platform-specific configurations
+        self._setup_platform_specifics()
+        
+        # File encoding for cross-platform compatibility
+        self.file_encoding = 'utf-8'
+        
+        # Initialize LLVM if available
+        if LLVMLITE_AVAILABLE:
+            self._initialize_llvm()
+    
+    def _setup_platform_specifics(self):
+        """Setup platform-specific configurations"""
+        # Ensure output directory exists
+        self.output_dir = os.path.join(BASE_DIR, "out")
+        self.assets_dir = os.path.join(BASE_DIR, "assets")
+        
+        self._ensure_directory_exists(self.output_dir)
+        self._ensure_directory_exists(self.assets_dir)
+        
+        # Setup file paths
+        self.input_path = os.path.join(self.output_dir, "vGraph.ll")
+        self.output_path = os.path.join(self.output_dir, "vGraph_opt.ll")
+        self.report_path = os.path.join(self.assets_dir, "optimization_report.txt")
+    
+    def _ensure_directory_exists(self, directory):
+        """Ensure directory exists with proper cross-platform handling"""
+        try:
+            os.makedirs(directory, exist_ok=True)
+            
+            # Set appropriate permissions on Unix-like systems
+            if not self.is_windows:
+                try:
+                    os.chmod(directory, 0o755)
+                except (OSError, PermissionError):
+                    pass  # Ignore permission errors
+                    
+        except Exception as e:
+            print(f"Warning: Could not create directory {directory}: {e}")
+    
+    def _initialize_llvm(self):
+        """Initialize LLVM with error handling"""
+        try:
+            llvm.initialize()
+            llvm.initialize_native_target()
+            llvm.initialize_native_asmprinter()
+            
+            # Create target machine for optimization
+            target = llvm.Target.from_default_triple()
+            self.target_machine = target.create_target_machine()
+            
+        except Exception as e:
+            print(f"Warning: LLVM initialization failed: {e}")
+            self.target_machine = None
+    
+    def _check_dependencies(self):
+        """Check if required dependencies are available"""
+        missing_deps = []
+        
+        if not LLVMLITE_AVAILABLE:
+            missing_deps.append('llvmlite')
+        
+        return missing_deps
+    
+    def _install_missing_dependencies(self):
+        """Try to install missing Python dependencies automatically"""
+        missing_deps = []
+        
+        if not LLVMLITE_AVAILABLE:
+            try:
+                print("Installing llvmlite...")
+                import subprocess
+                subprocess.run([sys.executable, '-m', 'pip', 'install', 'llvmlite'], 
+                             check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print("Successfully installed llvmlite")
+                print("Note: Please restart the application for changes to take effect")
+            except subprocess.CalledProcessError:
+                missing_deps.append('llvmlite')
+        
+        return missing_deps
+    
+    def _sanitize_text(self, text):
+        """
+        Sanitize text for cross-platform file writing
+        """
+        if not text:
+            return ""
+        
+        # Replace problematic Unicode characters with safe alternatives
+        replacements = {
+            '\u2713': '[OK]',  # ✓ -> [OK]
+            '\u2717': '[X]',   # ✗ -> [X]
+            '\u2714': '[OK]',  # ✔ -> [OK]
+            '\u2718': '[X]',   # ✘ -> [X]
+            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
+            'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ñ': 'N'
+        }
+        
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
+        # Ensure only printable ASCII or common Unicode
+        result = ""
+        for char in text:
+            if ord(char) < 128 and (char.isprintable() or char.isspace()):
+                result += char
+            elif char in '\n\r\t':
+                result += char
+            else:
+                result += '?'  # Replace problematic characters
+        
+        return result
+    
+    def _write_file_safely(self, filepath, content):
+        """
+        Write file with cross-platform encoding safety
+        """
+        try:
+            # Sanitize content
+            safe_content = self._sanitize_text(content)
+            
+            # Ensure directory exists
+            self._ensure_directory_exists(os.path.dirname(filepath))
+            
+            # Write with explicit UTF-8 encoding and Unix line endings
+            with open(filepath, 'w', encoding=self.file_encoding, newline='\n') as f:
+                f.write(safe_content)
+            
+            return True
+        except Exception as e:
+            print(f"Error writing file {filepath}: {e}")
+            return False
+    
+    def _read_file_safely(self, filepath):
+        """
+        Read file with cross-platform encoding safety
+        """
+        try:
+            # Try UTF-8 first
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            try:
+                # Fallback to system default encoding
+                with open(filepath, 'r', encoding=sys.getdefaultencoding()) as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                # Last resort: read as latin-1 (never fails)
+                with open(filepath, 'r', encoding='latin-1') as f:
+                    return f.read()
+        except Exception as e:
+            print(f"Error reading file {filepath}: {e}")
+            return None
         
     def optimize(self, optimization_level=2):
         """
@@ -34,13 +193,20 @@ class Optimizer:
         Returns:
             tuple: (success: bool, message: str, output_path: str)
         """
+        # Check dependencies first
+        if not LLVMLITE_AVAILABLE:
+            missing_deps = self._install_missing_dependencies()
+            if 'llvmlite' in missing_deps:
+                return False, "LLVM optimization requires llvmlite. Please install with: pip install llvmlite", None
+        
         try:
             # Read the input IR
             if not os.path.exists(self.input_path):
                 return False, "IR file not found. Please generate IR first.", None
-                
-            with open(self.input_path, 'r') as f:
-                ir_string = f.read()
+            
+            ir_string = self._read_file_safely(self.input_path)
+            if ir_string is None:
+                return False, "Failed to read IR file.", None
             
             # Parse the IR
             try:
@@ -106,29 +272,29 @@ class Optimizer:
             optimized_lines = len(optimized_ir.splitlines())
             reduction = ((original_lines - optimized_lines) / original_lines * 100) if original_lines > 0 else 0
             
-            # Write optimized IR
-            with open(self.output_path, 'w') as f:
-                f.write(optimized_ir)
+            # Write optimized IR safely
+            if not self._write_file_safely(self.output_path, optimized_ir):
+                return False, "Failed to write optimized IR file.", None
             
             # Generate detailed optimization report
             report = self._generate_optimization_report(ir_string, optimized_ir, optimization_level)
             
             message = (f"Optimization complete (Level {optimization_level})\n"
-                      f"Lines: {original_lines} → {optimized_lines} ({reduction:.1f}% reduction)\n"
+                      f"Lines: {original_lines} -> {optimized_lines} ({reduction:.1f}% reduction)\n"
                       f"Output: {os.path.basename(self.output_path)}")
             
-            # Also save the report
-            report_path = os.path.join(BASE_DIR, "assets", "optimization_report.txt")
-            with open(report_path, 'w') as f:
-                f.write(report)
-                f.write(f"\n\n{message}")
+            # Save the report safely
+            report_content = report + f"\n\n{message}"
+            if not self._write_file_safely(self.report_path, report_content):
+                print("Warning: Could not save optimization report")
             
             return True, message, self.output_path
             
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return False, f"Optimization failed: {str(e)}", None
+            error_msg = f"Optimization failed: {str(e)}"
+            return False, self._sanitize_text(error_msg), None
     
     def _generate_optimization_report(self, original_ir, optimized_ir, level):
         """Generate a detailed report of optimizations applied"""
@@ -137,6 +303,7 @@ class Optimizer:
         report.append("LLVM IR OPTIMIZATION REPORT")
         report.append("=" * 60)
         report.append(f"Optimization Level: {level}")
+        report.append(f"Platform: {self.platform}")
         report.append(f"Input: {self.input_path}")
         report.append(f"Output: {self.output_path}")
         report.append("")
@@ -177,22 +344,22 @@ class Optimizer:
         report.append("-" * 40)
         
         if level >= 1:
-            report.append("✓ Constant merging")
-            report.append("✓ Dead argument elimination")
-            report.append("✓ Global dead code elimination")
-            report.append("✓ Global optimization")
+            report.append("[OK] Constant merging")
+            report.append("[OK] Dead argument elimination")
+            report.append("[OK] Global dead code elimination")
+            report.append("[OK] Global optimization")
             
         if level >= 2:
-            report.append("✓ Function inlining")
-            report.append("✓ Control flow simplification")
-            report.append("✓ Instruction combining")
-            report.append("✓ Global value numbering")
-            report.append("✓ Dead code elimination")
+            report.append("[OK] Function inlining")
+            report.append("[OK] Control flow simplification")
+            report.append("[OK] Instruction combining")
+            report.append("[OK] Global value numbering")
+            report.append("[OK] Dead code elimination")
             
         if level >= 3:
-            report.append("✓ Aggressive dead code elimination")
-            report.append("✓ Loop unrolling")
-            report.append("✓ Loop invariant code motion")
+            report.append("[OK] Aggressive dead code elimination")
+            report.append("[OK] Loop unrolling")
+            report.append("[OK] Loop invariant code motion")
         
         return "\n".join(report)
     
@@ -203,4 +370,25 @@ class Optimizer:
             1: "Basic optimization (fast compile)",
             2: "Standard optimization (balanced)",
             3: "Aggressive optimization (best performance)"
+        }
+    
+    def get_system_info(self):
+        """
+        Get system information for debugging
+        
+        Returns:
+            dict: System information
+        """
+        return {
+            'platform': self.platform,
+            'is_windows': self.is_windows,
+            'is_linux': self.is_linux,
+            'is_mac': self.is_mac,
+            'output_dir': self.output_dir,
+            'assets_dir': self.assets_dir,
+            'file_encoding': self.file_encoding,
+            'llvmlite_available': LLVMLITE_AVAILABLE,
+            'python_version': sys.version,
+            'missing_dependencies': self._check_dependencies(),
+            'target_machine_available': hasattr(self, 'target_machine') and self.target_machine is not None
         }

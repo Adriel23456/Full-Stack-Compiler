@@ -1,20 +1,38 @@
 """
 Keyboard input handler for TextBox component
+Cross-platform compatible (Windows/Linux/MacOS)
 """
 import pygame
+import platform
+import subprocess
+import sys
+import os
 from config import KEY_REPEAT_DELAY, KEY_REPEAT_INTERVAL
 
 class KeyHandler:
     """
-    Handles keyboard input for TextBox
+    Handles keyboard input for TextBox - Cross-platform compatible
     """
     def __init__(self, textbox):
         self.textbox = textbox
+        
+        # Platform detection
+        self.platform = platform.system().lower()
+        self.is_windows = self.platform == 'windows'
+        self.is_linux = self.platform == 'linux'
+        self.is_mac = self.platform == 'darwin'
         
         # Key repeat tracking
         self.key_states = {}  # Tracks the state of each key for manual repeat
         self.repeat_delay = KEY_REPEAT_DELAY
         self.repeat_interval = KEY_REPEAT_INTERVAL
+        
+        # Clipboard method preference (will be set on first use)
+        self.clipboard_method = None
+        self.clipboard_available = False
+        
+        # Initialize clipboard
+        self._init_clipboard()
         
         # Numpad key mapping
         self.numpad_map = {
@@ -35,87 +53,289 @@ class KeyHandler:
             pygame.K_KP_PLUS: (pygame.K_PLUS, '+'),
             pygame.K_KP_ENTER: (pygame.K_RETURN, '\n')
         }
+    
+    def _init_clipboard(self):
+        """Initialize clipboard support for the current platform"""
+        try:
+            # Try to initialize pygame scrap (works on most platforms)
+            pygame.scrap.init()
+            self.clipboard_available = True
+            self.clipboard_method = 'pygame'
+        except:
+            self.clipboard_available = False
+            self.clipboard_method = None
+        
+        # Platform-specific clipboard initialization
+        if self.is_windows:
+            self._init_windows_clipboard()
+        elif self.is_mac:
+            self._init_mac_clipboard()
+        elif self.is_linux:
+            self._init_linux_clipboard()
+    
+    def _init_windows_clipboard(self):
+        """Initialize Windows-specific clipboard"""
+        try:
+            # Try win32clipboard first
+            import win32clipboard
+            self.clipboard_method = 'win32'
+            self.clipboard_available = True
+        except ImportError:
+            try:
+                # Fallback to tkinter
+                import tkinter as tk
+                self.clipboard_method = 'tkinter'
+                self.clipboard_available = True
+            except ImportError:
+                # Keep pygame as fallback
+                pass
+    
+    def _init_mac_clipboard(self):
+        """Initialize macOS-specific clipboard"""
+        try:
+            # Test if pbcopy/pbpaste are available
+            subprocess.run(['pbcopy'], input=b'', check=True, 
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.clipboard_method = 'pbcopy'
+            self.clipboard_available = True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Keep pygame as fallback
+            pass
+    
+    def _init_linux_clipboard(self):
+        """Initialize Linux-specific clipboard"""
+        # Try different clipboard tools in order of preference
+        tools = ['xclip', 'xsel', 'wl-copy']  # wl-copy for Wayland
+        
+        for tool in tools:
+            try:
+                subprocess.run([tool, '--version'], check=True, 
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self.clipboard_method = tool
+                self.clipboard_available = True
+                break
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+    
+    def _copy_windows(self, text):
+        """Copy text to clipboard on Windows"""
+        if self.clipboard_method == 'win32':
+            try:
+                import win32clipboard
+                win32clipboard.OpenClipboard()
+                win32clipboard.EmptyClipboard()
+                win32clipboard.SetClipboardText(text)
+                win32clipboard.CloseClipboard()
+                return True
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'tkinter':
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                root.clipboard_clear()
+                root.clipboard_append(text)
+                root.update()
+                root.destroy()
+                return True
+            except Exception:
+                pass
+        
+        return False
+    
+    def _paste_windows(self):
+        """Paste text from clipboard on Windows"""
+        if self.clipboard_method == 'win32':
+            try:
+                import win32clipboard
+                win32clipboard.OpenClipboard()
+                data = win32clipboard.GetClipboardData()
+                win32clipboard.CloseClipboard()
+                return data
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'tkinter':
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                data = root.clipboard_get()
+                root.destroy()
+                return data
+            except Exception:
+                pass
+        
+        return None
+    
+    def _copy_mac(self, text):
+        """Copy text to clipboard on macOS"""
+        try:
+            process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE)
+            process.communicate(input=text.encode('utf-8'))
+            return process.returncode == 0
+        except Exception:
+            return False
+    
+    def _paste_mac(self):
+        """Paste text from clipboard on macOS"""
+        try:
+            process = subprocess.Popen(['pbpaste'], stdout=subprocess.PIPE)
+            data, _ = process.communicate()
+            if process.returncode == 0:
+                return data.decode('utf-8')
+        except Exception:
+            pass
+        return None
+    
+    def _copy_linux(self, text):
+        """Copy text to clipboard on Linux"""
+        if self.clipboard_method == 'xclip':
+            try:
+                process = subprocess.Popen(['xclip', '-selection', 'clipboard'], 
+                                         stdin=subprocess.PIPE)
+                process.communicate(input=text.encode('utf-8'))
+                return process.returncode == 0
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'xsel':
+            try:
+                process = subprocess.Popen(['xsel', '--clipboard', '--input'], 
+                                         stdin=subprocess.PIPE)
+                process.communicate(input=text.encode('utf-8'))
+                return process.returncode == 0
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'wl-copy':
+            try:
+                process = subprocess.Popen(['wl-copy'], stdin=subprocess.PIPE)
+                process.communicate(input=text.encode('utf-8'))
+                return process.returncode == 0
+            except Exception:
+                pass
+        
+        return False
+    
+    def _paste_linux(self):
+        """Paste text from clipboard on Linux"""
+        if self.clipboard_method == 'xclip':
+            try:
+                process = subprocess.Popen(['xclip', '-selection', 'clipboard', '-o'], 
+                                         stdout=subprocess.PIPE)
+                data, _ = process.communicate()
+                if process.returncode == 0:
+                    return data.decode('utf-8')
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'xsel':
+            try:
+                process = subprocess.Popen(['xsel', '--clipboard', '--output'], 
+                                         stdout=subprocess.PIPE)
+                data, _ = process.communicate()
+                if process.returncode == 0:
+                    return data.decode('utf-8')
+            except Exception:
+                pass
+        
+        if self.clipboard_method == 'wl-copy':
+            try:
+                process = subprocess.Popen(['wl-paste'], stdout=subprocess.PIPE)
+                data, _ = process.communicate()
+                if process.returncode == 0:
+                    return data.decode('utf-8')
+            except Exception:
+                pass
+        
+        return None
+    
+    def _copy_pygame_fallback(self, text):
+        """Fallback copy using pygame"""
+        try:
+            pygame.scrap.put(pygame.SCRAP_TEXT, text.encode('utf-8'))
+            return True
+        except Exception:
+            return False
+    
+    def _paste_pygame_fallback(self):
+        """Fallback paste using pygame"""
+        try:
+            clipboard_data = pygame.scrap.get(pygame.SCRAP_TEXT)
+            if clipboard_data:
+                # Try various encodings
+                for encoding in ['utf-8', 'latin-1', 'cp1252', 'ascii']:
+                    try:
+                        return clipboard_data.decode(encoding)
+                    except UnicodeDecodeError:
+                        continue
+                # Last resort
+                return clipboard_data.decode('latin-1', errors='replace')
+        except Exception:
+            pass
+        return None
         
     def copy_selected_text(self):
         """Copy selected text to clipboard with platform-specific handling"""
-        if self.textbox.selection.is_active():
-            selected_text = self.textbox.selection.get_selected_text()
-            if selected_text:
-                try:
-                    # Try platform-specific approaches - xclip for Linux
-                    import subprocess
-                    try:
-                        process = subprocess.Popen(['xclip', '-selection', 'clipboard'], 
-                                                stdin=subprocess.PIPE)
-                        process.communicate(input=selected_text.encode('utf-8'))
-                        return True
-                    except Exception as e:
-                        print(f"xclip error: {e}")
-                        
-                    # Fallback to pygame if xclip fails
-                    try:
-                        pygame.scrap.put(pygame.SCRAP_TEXT, selected_text.encode('utf-8'))
-                        return True
-                    except Exception as e:
-                        print(f"Pygame clipboard error: {e}")
-                except Exception as e:
-                    print('???')
-        return False
+        if not self.textbox.selection.is_active():
+            return False
+        
+        selected_text = self.textbox.selection.get_selected_text()
+        if not selected_text:
+            return False
+        
+        # Try platform-specific method first
+        success = False
+        if self.is_windows:
+            success = self._copy_windows(selected_text)
+        elif self.is_mac:
+            success = self._copy_mac(selected_text)
+        elif self.is_linux:
+            success = self._copy_linux(selected_text)
+        
+        # Fallback to pygame
+        if not success and self.clipboard_available:
+            success = self._copy_pygame_fallback(selected_text)
+        
+        return success
 
     def paste_text_from_clipboard(self):
-        """Paste text from clipboard with Ubuntu compatibility"""
+        """Paste text from clipboard with cross-platform compatibility"""
         try:
             clipboard_text = None
-            clipboard_data = None
             
-            # Try xclip first (Linux)
-            try:
-                import subprocess
-                process = subprocess.Popen(['xclip', '-selection', 'clipboard', '-o'], 
-                                        stdout=subprocess.PIPE)
-                clipboard_data = process.stdout.read()
-                if clipboard_data:
-                    clipboard_text = clipboard_data.decode('utf-8', errors='replace')
-            except Exception as e:
-                print(f"xclip paste error: {e}")
+            # Try platform-specific method first
+            if self.is_windows:
+                clipboard_text = self._paste_windows()
+            elif self.is_mac:
+                clipboard_text = self._paste_mac()
+            elif self.is_linux:
+                clipboard_text = self._paste_linux()
             
-            # If xclip failed, try pygame
-            if not clipboard_text:
-                try:
-                    clipboard_data = pygame.scrap.get(pygame.SCRAP_TEXT)
-                    if clipboard_data:
-                        # Try various encodings
-                        for encoding in ['utf-8', 'latin-1', 'cp1252']:
-                            try:
-                                clipboard_text = clipboard_data.decode(encoding)
-                                break
-                            except UnicodeDecodeError:
-                                continue
-                        
-                        # Last resort
-                        if not clipboard_text:
-                            clipboard_text = clipboard_data.decode('latin-1', errors='replace')
-                except Exception as e:
-                    print(f"Pygame clipboard error: {e}")
+            # Fallback to pygame
+            if not clipboard_text and self.clipboard_available:
+                clipboard_text = self._paste_pygame_fallback()
             
             if not clipboard_text:
                 return False
-                
+            
             # Clean up the text
             clipboard_text = clipboard_text.replace('\0', '')
             clipboard_text = clipboard_text.replace('\r\n', '\n')
+            clipboard_text = clipboard_text.replace('\r', '\n')
             
-            # Filter unwanted control characters
+            # Filter unwanted control characters but keep essential whitespace
             printable_chars = []
             for char in clipboard_text:
-                if char.isprintable() or char in ['\n', '\r', '\t']:
+                if char.isprintable() or char in ['\n', '\t']:
                     printable_chars.append(char)
             clipboard_text = ''.join(printable_chars)
             
             if not clipboard_text:
                 return False
-            
-            # Process the text normally
             
             # If selection is active, delete selected text first
             if self.textbox.selection.is_active():
@@ -164,9 +384,8 @@ class KeyHandler:
             return True
         
         except Exception as e:
-            print(f"Paste error: {e}")
-        
-        return False
+            # Silent fallback for any unexpected errors
+            return False
     
     def handle_keydown_event(self, event):
         """Handle key down events"""
@@ -785,7 +1004,7 @@ class KeyHandler:
                 # Key no longer pressed
                 del self.key_states[key]
         
-                # First, handle Ctrl+Z separately with its own logic
+        # First, handle Ctrl+Z separately with its own logic
         ctrl_pressed = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
         
         # Solo manejar CTRL+Z y CTRL+V con repetición
