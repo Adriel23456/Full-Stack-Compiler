@@ -26,9 +26,11 @@ class RuntimeBuilder:
         self.script_dir = Path(__file__).parent.absolute()
         
         # File paths
-        self.runtime_c = self.script_dir / "runtime.c"
-        self.runtime_o = self.script_dir / "runtime.o"
-        self.runtime_lib = self.script_dir / "libvgraphrt.a"
+        plat_tag = self.platform                  # windows | linux | darwin
+        self.runtime_c  = self.script_dir / "runtime.c"
+        self.runtime_o  = self.script_dir / f"runtime_{plat_tag}.o"
+        self.runtime_lib = self.script_dir / f"libvgraphrt_{plat_tag}.a"
+
         
         print(f"[Build] VGraph Runtime Builder")
         print(f"[Build] Platform: {self.platform}")
@@ -213,20 +215,25 @@ class RuntimeBuilder:
         return True
     
     def clean(self):
-        """Clean build artifacts"""
-        print(f"[Build] Cleaning build artifacts...")
-        
-        files_to_remove = [self.runtime_o, self.runtime_lib]
-        
-        for file_path in files_to_remove:
-            if file_path.exists():
-                try:
-                    file_path.unlink()
-                    print(f"[Build] Removed: {file_path}")
-                except Exception as e:
-                    print(f"[Build] Warning: Could not remove {file_path}: {e}")
-        
-        print(f"[Build] Clean completed")
+        """Clean build artifacts (todos los .o/.a por plataforma)"""
+        print("[Build] Cleaning build artifacts...")
+
+        for p in self.script_dir.glob("runtime_*.o"):
+            try:
+                p.unlink()
+                print(f"[Build] Removed: {p.name}")
+            except Exception as e:
+                print(f"[Build] Warning: Could not remove {p.name}: {e}")
+
+        for p in self.script_dir.glob("libvgraphrt_*.a"):
+            try:
+                p.unlink()
+                print(f"[Build] Removed: {p.name}")
+            except Exception as e:
+                print(f"[Build] Warning: Could not remove {p.name}: {e}")
+
+        print("[Build] Clean completed")
+
     
     def info(self):
         """Print build information"""

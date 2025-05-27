@@ -63,9 +63,10 @@ class CodeGenerator:
         self.exe_path = os.path.join(self.output_dir, f"vGraph{exe_ext}")
         
         # Runtime paths
-        self.runtime_c_path = os.path.join(self.runtime_dir, "runtime.c")
-        self.runtime_o_path = os.path.join(self.runtime_dir, "runtime.o")
-        self.runtime_lib_path = os.path.join(self.runtime_dir, "libvgraphrt.a")
+        plat_tag = self.platform          # 'windows' | 'linux' | 'darwin'
+        self.runtime_c_path  = os.path.join(self.runtime_dir, "runtime.c")
+        self.runtime_o_path  = os.path.join(self.runtime_dir, f"runtime_{plat_tag}.o")
+        self.runtime_lib_path = os.path.join(self.runtime_dir, f"libvgraphrt_{plat_tag}.a")
         
         # Platform-specific build tools
         self._setup_build_tools()
@@ -336,25 +337,47 @@ class CodeGenerator:
             return False, f"Assembly generation error: {str(e)}", None
     
     def _build_runtime(self):
-        """Build the VGraph runtime library if needed"""
+        """
+        Build the VGraph runtime library (obj + .a) para la plataforma actual
+        usando artefactos separados (runtime_<plat>.o / libvgraphrt_<plat>.a).
+        """
         try:
-            # Check if runtime.o already exists and is up to date
-            if os.path.exists(self.runtime_o_path) and os.path.exists(self.runtime_c_path):
-                runtime_mtime = os.path.getmtime(self.runtime_o_path)
-                c_mtime = os.path.getmtime(self.runtime_c_path)
-                if runtime_mtime > c_mtime:
-                    return True, "Runtime already up to date"
-            
-            # Check if C compiler is available
+            # Re-compilar SOLO si aún no existe el .o/.a para esta plataforma
+            needs_rebuild = (
+                not os.path.exists(self.runtime_o_path) or
+                not os.path.exists(self.runtime_lib_path) or
+                os.path.getmtime(self.runtime_o_path) < os.path.getmtime(self.runtime_c_path)
+            )
+
+            if not needs_rebuild:
+                return True, "Runtime already up to date"
+
+            # Detectar compilador C
             compiler = self.build_tools.get('c_compiler')
             if not compiler:
-                return False, "No C compiler found. Please install gcc, clang, or Visual Studio Build Tools"
-            
-            # Compile runtime.c
-            return self._compile_runtime(compiler)
-            
+                return False, "No C compiler found. Install gcc, clang, or MSVC"
+
+            # Compilar runtime.c → runtime_<plat>.o
+            success, msg = self._compile_runtime(compiler)
+            if not success:
+                return False, msg
+
+            # Empaquetar en libvgraphrt_<plat>.a (si archiver disponible)
+            archiver = self.build_tools.get('archiver')
+            if archiver and archiver != 'lib':          # ar / llvm-ar en Unix
+                lib_cmd = [archiver, 'rcs', self.runtime_lib_path, self.runtime_o_path]
+                subprocess.run(lib_cmd, cwd=self.runtime_dir,
+                            capture_output=True, text=True)
+            elif archiver == 'lib':                      # MSVC lib.exe
+                lib_cmd = [archiver, f'/OUT:{self.runtime_lib_path}', self.runtime_o_path]
+                subprocess.run(lib_cmd, cwd=self.runtime_dir,
+                            capture_output=True, text=True)
+
+            return True, "Runtime built successfully"
+
         except Exception as e:
-            return False, f"Runtime build error: {str(e)}"
+            return False, f"Runtime build error: {e}"
+
     
     def _compile_runtime(self, compiler):
         """Compile the runtime with the detected compiler"""
