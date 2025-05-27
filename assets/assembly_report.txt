@@ -5,7 +5,7 @@ Platform: linux
 Input: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph_opt.ll
 Output: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.asm
 Object: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.o
-Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph
+Executable: /home/adriel/Documents/Full-Stack-Compiler/out/vGraph.exe
 
 Build Tools Used:
 ----------------------------------------

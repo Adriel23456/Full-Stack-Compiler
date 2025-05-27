@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>       /* sqrt, abs */
+#include <stdarg.h>
+#include <errno.h>
 
 /* Detección de plataforma mejorada */
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)

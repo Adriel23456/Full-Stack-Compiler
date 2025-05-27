@@ -58,8 +58,8 @@ class CodeGenerator:
         self.asm_path = os.path.join(self.output_dir, "vGraph.asm")
         self.obj_path = os.path.join(self.output_dir, "vGraph.o")
         
-        # Platform-specific executable extension
-        exe_ext = ".exe" if self.is_windows else ""
+        # Platform-specific executable
+        exe_ext = ".exe"
         self.exe_path = os.path.join(self.output_dir, f"vGraph{exe_ext}")
         
         # Runtime paths
