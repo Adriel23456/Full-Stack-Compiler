@@ -156,7 +156,6 @@ pause > nul
                                 full_cmd = term_cmd + [bash_script]
                             
                             process = subprocess.Popen(full_cmd)
-                            print(f"Launched in {term_name}")
                             return True
                         except Exception as e:
                             print(f"Failed to launch in {term_name}: {e}")
