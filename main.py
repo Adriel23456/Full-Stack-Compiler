@@ -2,14 +2,14 @@
 Main entry point of the program
 Initializes pygame and the View Controller.
 
-Added: cross‑platform GPU acceleration via SDL2 render drivers
+Added: cross-platform GPU acceleration via SDL2 render drivers
 ----------------------------------------------------------------
 * Selects the best hardware backend for the current OS using
   the SDL_RENDER_DRIVER environment variable (Metal on macOS,
   Direct3D on Windows, OpenGL on Linux/Unix).
-* Enables double‑buffering and requests vsync where available.
+* Enables double-buffering and requests vsync where available.
 * Keeps a graceful software fallback, so the program remains
-  100 % backward‑compatible on machines without a discrete GPU
+  100% backward-compatible on machines without a discrete GPU
   or with very old drivers.
 """
 import os
